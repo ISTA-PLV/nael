@@ -706,11 +706,10 @@ expanded whenever suitable characters are inserted.\"
         (string-join
          (seq-map-indexed
           (lambda (pair index)
-            (format "%s%S %S%s"
-                    (if (eq 0 index) "(" "  (")
+            (format "%s(%S [%S])"
+                    (if (eq 0 index) "" "  ")
                     (concat "\\" (car pair))
-                    (cdr pair)
-                    ")"))
+                    (cdr pair)))
           build-abbrev-singletons)
          "\n"))
       "Local Variables"))))
