@@ -154,9 +154,9 @@
             (seq "\\" nonl)
             (not (any "'")))
         (group-n 2 "'"))
-    (1 (unless (nth 8 (syntax-ppss (match-beginning 1)))
+    (1 (unless (nth 8 (save-excursion (syntax-ppss (match-beginning 1))))
          (string-to-syntax "|")))
-    (2 (unless (nth 8 (syntax-ppss (match-beginning 1)))
+    (2 (unless (nth 8 (save-excursion (syntax-ppss (match-beginning 1))))
          (string-to-syntax "|")))))
   "`syntax-propertize-function' for `nael-mode'.
 Recognizes Lean character literals.")
