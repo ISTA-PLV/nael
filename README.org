@@ -198,6 +198,8 @@ Since version 30 from 2025, Emacs' popular ~use-package~ macro supports a =:vc= 
 
 Nael is effectively licensed under GNU GPL version 3 only.  More precisely, it is licensed under Apache-2.0 and sublicensed under GPL-3.0.
 
+This is a fork of Nael maintained by /ISTA PLV/.
+
 Nael is maintained by /Mekeor Melire/ ([[mailto:mekeor@posteo.de][mekeor@posteo.de]]) on [[https://codeberg.org/mekeor/nael][Codeberg]].
 
 # Local Variables:
