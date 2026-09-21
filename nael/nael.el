@@ -4,9 +4,11 @@
 ;; Copyright © 2014-2015 Soonho Kong
 ;; Copyright © 2024 Free Software Foundation, Inc.
 ;; Copyright © 2025 Mekeor Melire
+;; Copyright © 2026 Alex Loitzl
 
 ;; Author: Adam Topaz <topaz@ualberta.ca>
 ;;         Akira Komamura <akira.komamura@gmail.com>
+;;         Alex Loitzl <alex.loitzl@mailbox.org>
 ;;         Bao Zhiyuan <bzy_sustech@foxmail.com>
 ;;         Daniel Selsam <daniel.selsam@protonmail.com>
 ;;         Gabriel Ebner <gebner@gebner.org>
@@ -27,10 +29,10 @@
 ;;         Yael Dillies <yael.dillies@gmail.com>
 ;;         Yury G. Kudryashov <urkud@urkud.name>
 ;; Keywords: languages
-;; Maintainer: Mekeor Melire <mekeor@posteo.de>
+;; Maintainer: Alex Loitzl <alex.loitzl@mailbox.org>
 ;; Package-Requires: ((emacs "29.1"))
 ;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
-;; URL: https://codeberg.org/mekeor/nael
+;; URL: https://github.com/ista-plv/nael
 ;; Version: 0.8.3
 
 ;; This is licensed under GNU General Public License (version 3 only),
@@ -142,6 +144,22 @@
 
     table)
   "Syntax table used in `nael-mode'.")
+
+(defconst nael-syntax-propertize
+  (syntax-propertize-rules
+   ((rx (or line-start (not (syntax word)))
+        (group-n 1 "'")
+        (or (seq "\\x" (= 2 (any "0-9A-Fa-f")))
+            (seq "\\u" (= 4 (any "0-9A-Fa-f")))
+            (seq "\\" nonl)
+            (not (any "'")))
+        (group-n 2 "'"))
+    (1 (unless (nth 8 (save-excursion (syntax-ppss (match-beginning 1))))
+         (string-to-syntax "|")))
+    (2 (unless (nth 8 (save-excursion (syntax-ppss (match-beginning 1))))
+         (string-to-syntax "|")))))
+  "`syntax-propertize-function' for `nael-mode'.
+Recognizes Lean character literals.")
 
 (defconst nael-syntax-definition-pre
   (rx (zero-or-more (or "noncomputable" "partial" "unsafe"
@@ -526,6 +544,8 @@ least evaluated an autoload statement for
   ;; Font-lock:
   (setq-local font-lock-defaults
               nael-font-lock-defaults)
+  (setq-local syntax-propertize-function
+              nael-syntax-propertize)
   ;; Compile:
   (setq-local compilation-mode-font-lock-keywords
               nil)
