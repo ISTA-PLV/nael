@@ -73,7 +73,7 @@
                                    "^" "  "
                                    (nael-eglot-eldoc-fontify goal))))
                  (seq-drop goals 1) 'string))
-               :echo first-goal)
+               :echo 'skip)
        (list nil)))))
 
 (defun nael-eglot-eldoc-goal (cb &rest _)
