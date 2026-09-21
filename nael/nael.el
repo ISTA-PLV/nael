@@ -143,6 +143,22 @@
     table)
   "Syntax table used in `nael-mode'.")
 
+(defconst nael-syntax-propertize
+  (syntax-propertize-rules
+   ((rx (or line-start (not (syntax word)))
+        (group-n 1 "'")
+        (or (seq "\\x" (= 2 (any "0-9A-Fa-f")))
+            (seq "\\u" (= 4 (any "0-9A-Fa-f")))
+            (seq "\\" nonl)
+            (not (any "'")))
+        (group-n 2 "'"))
+    (1 (unless (nth 8 (syntax-ppss (match-beginning 1)))
+         (string-to-syntax "|")))
+    (2 (unless (nth 8 (syntax-ppss (match-beginning 1)))
+         (string-to-syntax "|")))))
+  "`syntax-propertize-function' for `nael-mode'.
+Recognizes Lean character literals.")
+
 (defconst nael-syntax-definition-pre
   (rx (zero-or-more (or "noncomputable" "partial" "unsafe"
                         "private" "protected" "public" space))))
@@ -526,6 +542,8 @@ least evaluated an autoload statement for
   ;; Font-lock:
   (setq-local font-lock-defaults
               nael-font-lock-defaults)
+  (setq-local syntax-propertize-function
+              nael-syntax-propertize)
   ;; Compile:
   (setq-local compilation-mode-font-lock-keywords
               nil)
