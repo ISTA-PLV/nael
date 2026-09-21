@@ -4,9 +4,11 @@
 ;; Copyright © 2014-2015 Soonho Kong
 ;; Copyright © 2024 Free Software Foundation, Inc.
 ;; Copyright © 2025 Mekeor Melire
+;; Copyright © 2026 Alex Loitzl
 
 ;; Author: Adam Topaz <topaz@ualberta.ca>
 ;;         Akira Komamura <akira.komamura@gmail.com>
+;;         Alex Loitzl <alex.loitzl@mailbox.org>
 ;;         Bao Zhiyuan <bzy_sustech@foxmail.com>
 ;;         Daniel Selsam <daniel.selsam@protonmail.com>
 ;;         Gabriel Ebner <gebner@gebner.org>
@@ -27,10 +29,10 @@
 ;;         Yael Dillies <yael.dillies@gmail.com>
 ;;         Yury G. Kudryashov <urkud@urkud.name>
 ;; Keywords: languages
-;; Maintainer: Mekeor Melire <mekeor@posteo.de>
+;; Maintainer: Alex Loitzl <alex.loitzl@mailbox.org>
 ;; Package-Requires: ((emacs "29.1"))
 ;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
-;; URL: https://codeberg.org/mekeor/nael
+;; URL: https://github.com/ista-plv/nael
 ;; Version: 0.8.3
 
 ;; This is licensed under GNU General Public License (version 3 only),
