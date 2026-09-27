@@ -51,6 +51,7 @@
       (get-buffer-create nael-eglot-eldoc-fontify-buffer)
     (erase-buffer)
     (insert string)
+    (set-syntax-table nael-mode-syntax-table)
     (setq-local font-lock-defaults nael-font-lock-defaults)
     (font-lock-ensure)
     (buffer-string)))
