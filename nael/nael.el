@@ -88,8 +88,9 @@
     (modify-syntax-entry ?/  ". 14nb" table)
     (modify-syntax-entry ?-  ". 123"  table)
     (modify-syntax-entry ?\n ">"      table)
-    (modify-syntax-entry ?«  "<"      table)
-    (modify-syntax-entry ?»  ">"      table)
+    ;; « » registered as comments, content fixed in `nael-font-lock-defaults`
+    (modify-syntax-entry ?«  "< c"      table)
+    (modify-syntax-entry ?»  "> c"      table)
 
     ;; Words:
     (mapc
@@ -125,7 +126,12 @@
        ?ℿ ?⅀ ?⅁ ?⅂ ?⅃ ?⅄ ?ⅅ ?ⅆ ?ⅇ ?ⅈ ?ⅉ ?⅊ ?⅋ ?⅌ ?⅍ ?ⅎ ?⅏
        ;; Subscripts:
        ?₁ ?₂ ?₃ ?₄ ?₅ ?₆ ?₇ ?₈ ?₉ ?₀ ?ₐ ?ₑ ?ₒ ?ₓ ?ₔ ?ₕ ?ₖ ?ₗ ?ₘ ?ₙ ?ₚ
-       ?ₛ ?ₜ ?' ?_ ?! ??))
+       ?ₛ ?ₜ))
+
+    ;; Symbol constituents
+    (mapc
+     (lambda (character) (modify-syntax-entry character "_" table))
+     '(?_ ?! ?? ?'))
 
     ;; Operators:
     (mapc
@@ -157,7 +163,7 @@
     (or "axiom" "class" "constant" "def" "definition" "inductive"
         "instance" "lemma" "opaque" "structure" "theorem"
         (group "class" (zero-or-more space) "inductive")))
-   word-end
+   symbol-end
    (zero-or-more space)
    (group (zero-or-more
            "{" (zero-or-more (not (any "}"))) "}"
@@ -169,7 +175,7 @@
 (defvar nael-font-lock-defaults
   (list
    (list
-    (list (rx word-start "attribute" word-end
+    (list (rx symbol-start "attribute" symbol-end
               (zero-or-more space)
               (group
                (one-or-more "[" (zero-or-more (not (any "]"))) "]"
@@ -183,9 +189,9 @@
           '(1 'font-lock-keyword-face))
 
     ;; Mutual definitions:
-    (list (rx word-start "mutual" word-end
+    (list (rx symbol-start "mutual" symbol-end
               (zero-or-more space)
-              word-start (or "inductive" "definition" "def") word-end
+              symbol-start (or "inductive" "definition" "def") symbol-end
               (group (zero-or-more (not (any " \t\n\r{([,")))
                      (zero-or-more (zero-or-more space) ","
                                    (zero-or-more space)
@@ -204,28 +210,28 @@
     ;; Keywords:
     (list "\\(set_option\\)[ \t]*\\([^ \t\n]*\\)"
           '(2 'font-lock-constant-face))
-    (cons (rx word-start
+    (cons (rx symbol-start
               (or
-               "abbrev" "assert!" "at" "attribute" "attributes" "axiom"
-               "begin" "break" "builtin_initialize" "by" "cases"
+               "abbrev" "apply" "assert!" "at" "attribute" "attributes"
+               "axiom" "begin" "break" "builtin_initialize" "by" "cases"
                "catch" "class" "constant" "continue" "dbg_trace"
                "declare_syntax_cat" "def" "deriving" "do" "elab" "else"
-               "end" "example" "exists" "export" "extends" "finally"
-               "for" "forall" "from" "fun" "generalizing" "have" "hide"
-               "hiding" "if" "import" "in" "include" "induction"
-               "inductive" "infix" "infixl" "infixr" "init_quot"
-               "initialize" "instance" "lemma" "let" "local" "macro"
-               "macro_rules" "match" "match_syntax" "module" "mut"
-               "mutual" "namespace" "nomatch" "noncomputable" "notation"
-               "open" "opaque" "panic!" "partial" "postfix" "precedence"
-               "prefix" "prelude" "private" "protected" "public" "raw"
-               "rec" "register_builtin_option" "renaming" "return"
-               "run_cmd" "scoped" "section" "set_option" "show"
+               "end" "exact" "example" "exists" "export" "extends"
+               "finally" "for" "forall" "from" "fun" "generalizing"
+               "have" "hide" "hiding" "if" "import" "in" "include"
+               "induction" "inductive" "infix" "infixl" "infixr"
+               "init_quot" "initialize" "instance" "lemma" "let" "local"
+               "macro" "macro_rules" "match" "match_syntax" "module"
+               "mut" "mutual" "namespace" "nomatch" "noncomputable"
+               "notation" "open" "opaque" "panic!" "partial" "postfix"
+               "precedence" "prefix" "prelude" "private" "protected"
+               "public" "raw" "rec" "register_builtin_option" "renaming"
+               "return" "run_cmd" "scoped" "section" "set_option" "show"
                "structure" "suffices" "syntax" "then" "theorem" "this"
                "try" "unif_hint" "universe" "universes" "unless"
                "unreachable!" "unsafe" "using" "using_well_founded"
                "variable" "variables" "where" "with")
-              word-end)
+              symbol-end)
           'font-lock-keyword-face)
     (list (rx word-start (group "example") ".")
           '(1 'font-lock-keyword-face))
@@ -233,9 +239,9 @@
           'font-lock-keyword-face)
 
     ;; Types:
-    (cons (rx word-start
-              (or "Prop" "Type" "Type*" "Sort" "Sort*")
-              symbol-end)
+    (cons (rx symbol-start
+              (or (seq (or "Type" "Sort") "*")
+                  (seq (or "Prop" "Type" "Sort") symbol-end)))
           'font-lock-type-face)
     (list (rx word-start (group (or "Prop" "Type" "Sort")) ".")
           '(1 'font-lock-type-face))
@@ -254,10 +260,10 @@
              "⬝h" "⬝hp" "⬝i" "⬝o" "⬝op" "⬝ph" "⬝po" "⬝pv" "⬝r" "⬝v"
              "⬝vp" "𝔸"))
           'font-lock-constant-face)
-    (cons (rx word-start
+    (cons (rx symbol-start
               (one-or-more digit)
               (optional (and "." (zero-or-more digit)))
-              word-end)
+              symbol-end)
           'font-lock-constant-face)
 
     ;; Place holder:
@@ -265,7 +271,7 @@
           'font-lock-preprocessor-face)
 
     ;; Warnings:
-    (cons (rx word-start "sorry" word-end)
+    (cons (rx symbol-start "sorry" symbol-end)
           'font-lock-warning-face)
 
     ;; Escaped identifiers:
