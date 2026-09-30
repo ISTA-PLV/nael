@@ -37,6 +37,11 @@
   "Face for section-headers of Nael-specific ElDoc documentations."
   :group 'nael-eglot)
 
+(defcustom nael-eglot-echo-goal nil
+  "Whether to show the first goal in the echo area."
+  :type 'boolean
+  :group 'nael-eglot)
+
 (defvar nael-eglot-eldoc-fontify-buffer "*Nael Eglot ElDoc Fontify*"
   "Name of buffer that is reused in order to fontify Nael code.")
 
@@ -73,7 +78,7 @@
                                    "^" "  "
                                    (nael-eglot-eldoc-fontify goal))))
                  (seq-drop goals 1) 'string))
-               :echo 'skip)
+               :echo (if nael-eglot-echo-goal first-goal 'skip))
        (list nil)))))
 
 (defun nael-eglot-eldoc-goal (cb &rest _)
