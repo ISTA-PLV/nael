@@ -89,11 +89,14 @@ Extra.html#Lean.Lsp.PlainGoal"
 (defun nael-lsp-configure-when-managed ()
   "Buffer-locally set up ElDoc and lsp-mode for Nael.
 
-Use ElDoc documentation strategy `compose' and add ElDoc documentation
-functions for proof goal."
+Use ElDoc documentation strategy `compose', apply
+`nael-eglot-eldoc-idle-delay' and add ElDoc documentation functions for
+proof goal."
   (interactive)
   (setq-local eldoc-documentation-strategy
               #'eldoc-documentation-compose)
+  (when nael-eglot-eldoc-idle-delay
+    (setq-local eldoc-idle-delay nael-eglot-eldoc-idle-delay))
   (add-hook 'eldoc-documentation-functions
             #'nael-lsp-eldoc-goal -90 'local)
   (add-hook 'eldoc-documentation-functions
