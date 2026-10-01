@@ -21,7 +21,8 @@ Language Server Protocol (LSP):
 
 - =C-c C-e= (~eglot~) starts Eglot, the LSP client.
 - =C-c C-r= (~nael-eglot-restart-file~) makes the Lean server reprocess the current file, building its imports first if they are out of date.  Opening a file does not build its imports, unless ~nael-eglot-build-dependencies~ is non-nil.
-- =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point.
+- =C-c C-i= (~nael-infoview~) toggles the infoview, a window that shows the goals and the expected type at point and follows point.  It needs Lean 4.30 or later.
+- =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point, unless the infoview shows them.
 - =C-c C-l= (~lsp~) starts lsp-mode, an alternative LSP client.  The key is only bound if ~nael-lsp~ is (auto)loaded.
 
 Abbreviations:

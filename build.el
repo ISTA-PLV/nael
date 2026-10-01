@@ -563,11 +563,13 @@ expanded whenever suitable characters are inserted.\"
   (require 'ert)
   (add-to-list 'load-path (file-truename "nael"))
   (add-to-list 'load-path (file-truename "test"))
-  (dolist (file (directory-files "test" t (rx "-tests.el" eos)))
-    (load file nil t))
+  ;; Test files provide features named after them and may require
+  ;; each other.
+  (dolist (file (directory-files "test" nil (rx "-tests.el" eos)))
+    (require (intern (file-name-base file))))
   (when (member "test-live" build-targets)
-    (dolist (file (directory-files "test" t (rx "-live.el" eos)))
-      (load file nil t)))
+    (dolist (file (directory-files "test" nil (rx "-live.el" eos)))
+      (require (intern (file-name-base file)))))
   (ert-run-tests-batch-and-exit))
 
 ;;; build ends here

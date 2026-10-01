@@ -80,6 +80,14 @@ server answers for text it has not seen yet."
   (or (eglot-current-server)
       (jsonrpc-error "No current JSON-RPC connection")))
 
+(declare-function nael-infoview-shows-goals-p "nael-infoview" ())
+
+(defun nael-eglot-eldoc-goals-elsewhere-p ()
+  "Return non-nil if goals are displayed elsewhere than by ElDoc.
+That is the case while the infoview is visible and works."
+  (and (fboundp 'nael-infoview-shows-goals-p)
+       (nael-infoview-shows-goals-p)))
+
 (defun nael-eglot-eldoc-goal-fn (cb get)
   "Construct ElDoc CB handler function for Lean LSP goal response with GET."
   (lambda (response)
@@ -115,13 +123,14 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainGoal"
-  (nael-eglot-flush-changes)
-  (jsonrpc-async-request
-   (nael-eglot-server-or-lose)
-   :$/lean/plainGoal
-   (nael-eglot-compat-position-params)
-   :success-fn (nael-eglot-eldoc-goal-fn cb #'plist-get))
-  t)
+  (unless (nael-eglot-eldoc-goals-elsewhere-p)
+    (nael-eglot-flush-changes)
+    (jsonrpc-async-request
+     (nael-eglot-server-or-lose)
+     :$/lean/plainGoal
+     (nael-eglot-compat-position-params)
+     :success-fn (nael-eglot-eldoc-goal-fn cb #'plist-get))
+    t))
 
 (defun nael-eglot-eldoc-term-goal-fn (cb get format)
   "Construct ElDoc CB handler function for Lean LSP term-goal response.
@@ -153,14 +162,15 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainTermGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainTermGoal"
-  (nael-eglot-flush-changes)
-  (jsonrpc-async-request
-   (nael-eglot-server-or-lose)
-   :$/lean/plainTermGoal
-   (nael-eglot-compat-position-params)
-   :success-fn (nael-eglot-eldoc-term-goal-fn
-                cb #'plist-get #'nael-eglot-compat-format-markup))
-  t)
+  (unless (nael-eglot-eldoc-goals-elsewhere-p)
+    (nael-eglot-flush-changes)
+    (jsonrpc-async-request
+     (nael-eglot-server-or-lose)
+     :$/lean/plainTermGoal
+     (nael-eglot-compat-position-params)
+     :success-fn (nael-eglot-eldoc-term-goal-fn
+                  cb #'plist-get #'nael-eglot-compat-format-markup))
+    t))
 
 ;;;###autoload
 (defun nael-eglot-configure-when-managed ()
