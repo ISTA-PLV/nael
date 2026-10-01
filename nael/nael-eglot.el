@@ -206,6 +206,73 @@ start a server of class `nael-eglot-server'."
                    (lambda (&optional _interactive _project)
                      (cons 'nael-eglot-server nael-eglot-contact))))
 
+;;;; Lean extensions of LSP:
+
+(defconst nael-eglot-rpc-wire-format "v1"
+  "Encoding of RPC references that Nael asks the server for.
+Wire format \"v1\" encodes a reference as {\"__rpcref\": ID}.  Servers
+of Lean versions before 4.30 do not know it and use \"v0\", {\"p\": ID}.")
+
+(cl-defmethod eglot-client-capabilities :around ((_server nael-eglot-server))
+  "Add the Lean-specific client capabilities to those of Eglot."
+  (append (cl-call-next-method)
+          (list :lean (list :rpcWireFormat nael-eglot-rpc-wire-format))))
+
+(defun nael-eglot-uri-buffer (uri)
+  "Return the live buffer visiting the file of URI, or nil."
+  (find-buffer-visiting (eglot-uri-to-path uri)))
+
+(defvar-local nael-eglot-file-progress nil
+  "Regions of the current buffer that the server is still processing.
+This is the latest `processing' vector of `$/lean/fileProgress': each
+element is a plist with an LSP `:range' and a `:kind', where 1 means
+processing and 2 means a fatal error.  An empty vector means done.")
+
+(defvar nael-eglot-file-progress-functions nil
+  "Abnormal hook run when the server reports progress on a buffer.
+Each function is called in that buffer with the new value of
+`nael-eglot-file-progress' as argument.")
+
+(defvar nael-eglot-diagnostics-functions nil
+  "Abnormal hook run when the server publishes diagnostics for a buffer.
+Each function is called in that buffer with the vector of LSP
+diagnostics as argument, after Eglot has handled them.")
+
+(cl-defmethod eglot-handle-notification
+  ((_server nael-eglot-server) (_method (eql $/lean/fileProgress))
+   &key textDocument processing &allow-other-keys)
+  "Record PROCESSING for the buffer of TEXTDOCUMENT and run hooks."
+  (when-let* ((buffer (nael-eglot-uri-buffer
+                       (plist-get textDocument :uri))))
+    (with-current-buffer buffer
+      (setq nael-eglot-file-progress processing)
+      (run-hook-with-args 'nael-eglot-file-progress-functions
+                          processing))))
+
+(cl-defmethod eglot-handle-notification :after
+  ((_server nael-eglot-server)
+   (_method (eql textDocument/publishDiagnostics))
+   &key uri diagnostics &allow-other-keys)
+  "Run `nael-eglot-diagnostics-functions' with DIAGNOSTICS for URI."
+  (when-let* ((buffer (nael-eglot-uri-buffer uri)))
+    (with-current-buffer buffer
+      (run-hook-with-args 'nael-eglot-diagnostics-functions
+                          diagnostics))))
+
+(defun nael-eglot-processing-line-p (&optional line)
+  "Return non-nil if the server is still processing LINE.
+LINE is 0-based as in LSP and defaults to the line of point.  The
+answer comes from the latest `nael-eglot-file-progress'; regions where
+processing stopped with a fatal error do not count."
+  (let ((line (or line (1- (line-number-at-pos nil t)))))
+    (seq-some (lambda (item)
+                (let ((range (plist-get item :range)))
+                  (and (memql (plist-get item :kind) '(nil 1))
+                       (<= (plist-get (plist-get range :start) :line)
+                           line
+                           (plist-get (plist-get range :end) :line)))))
+              nael-eglot-file-progress)))
+
 ;;;; Building dependencies:
 
 ;; Adapted from `lean4-eglot.el' of lean4-mode
