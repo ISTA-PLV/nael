@@ -1,0 +1,8 @@
+#+title: Test fixtures
+
+- =goals-iris-spinlock.json= :: The result of =Lean.Widget.getInteractiveGoals=
+  in =Iris/HeapLang/Lib/SpinLock.lean= of [[https://github.com/leanprover-community/iris-lean][iris-lean]]
+  (commit =82c3988=, Lean 4.34.1) at line 110, inside =newlock_spec=, with RPC
+  wire format v1: 3 goals and 66 references.  The goal text is derived from
+  iris-lean, which is licensed under the Apache License, Version 2.0; see
+  =../../nael/LICENSE.APACHE2=.

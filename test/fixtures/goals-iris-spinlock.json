@@ -1,0 +1,1168 @@
+{
+ "goals": [
+  {
+   "ctx": {
+    "__rpcref": "35"
+   },
+   "goalPrefix": "⊢ ",
+   "hyps": [
+    {
+     "fvarIds": [
+      "_uniq.1645"
+     ],
+     "names": [
+      "hlc"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "0"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "HasLC"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1650"
+     ],
+     "names": [
+      "GF"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "1"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "BundledGFunctors"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1653"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝¹"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "2"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "HeapLangGS "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "3"
+            },
+            "subexprPos": "/0/1"
+           },
+           {
+            "text": "hlc"
+           }
+          ]
+         },
+         {
+          "text": " "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "4"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1658"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "5"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "SpinLockG "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "6"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.80"
+     ],
+     "names": [
+      "Φ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "7"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "8"
+            },
+            "subexprPos": "/0"
+           },
+           {
+            "text": "Val"
+           }
+          ]
+         },
+         {
+          "text": " → "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "9"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "append": [
+             {
+              "text": "IProp "
+             },
+             {
+              "tag": [
+               {
+                "info": {
+                 "__rpcref": "10"
+                },
+                "subexprPos": "/1/1"
+               },
+               {
+                "text": "GF"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.395"
+     ],
+     "names": [
+      "γ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "11"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "GName"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.651"
+     ],
+     "names": [
+      "l"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "12"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "Loc"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.946"
+     ],
+     "names": [
+      "R"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "13"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "IProp "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "14"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.972"
+     ],
+     "names": [
+      "E"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "15"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "CoPset"
+       }
+      ]
+     }
+    }
+   ],
+   "isInserted": false,
+   "mvarId": "_uniq.2189.987",
+   "type": {
+    "tag": [
+     {
+      "info": {
+       "__rpcref": "16"
+      },
+      "subexprPos": "/"
+     },
+     {
+      "append": [
+       {
+        "text": "\n∗"
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "17"
+          },
+          "subexprPos": "/0/1/0/1/0/1"
+         },
+         {
+          "text": "Hγ"
+         }
+        ]
+       },
+       {
+        "text": " : "
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "18"
+          },
+          "subexprPos": "/0/1/0/1/0/1/1"
+         },
+         {
+          "append": [
+           {
+            "text": "token "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "19"
+              },
+              "subexprPos": "/0/1/0/1/0/1/1/1"
+             },
+             {
+              "text": "γ"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "text": "\n∗"
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "20"
+          },
+          "subexprPos": "/0/1/0/1/1"
+         },
+         {
+          "text": "Hpt"
+         }
+        ]
+       },
+       {
+        "text": " : "
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "21"
+          },
+          "subexprPos": "/0/1/0/1/1/1"
+         },
+         {
+          "append": [
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "22"
+              },
+              "subexprPos": "/0/1/0/1/1/1/0/0/1"
+             },
+             {
+              "text": "l"
+             }
+            ]
+           },
+           {
+            "text": " ↦ "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "23"
+              },
+              "subexprPos": "/0/1/0/1/1/1/1"
+             },
+             {
+              "append": [
+               {
+                "text": "some "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "24"
+                  },
+                  "subexprPos": "/0/1/0/1/1/1/1/1"
+                 },
+                 {
+                  "append": [
+                   {
+                    "text": "hl_val(#"
+                   },
+                   {
+                    "tag": [
+                     {
+                      "info": {
+                       "__rpcref": "25"
+                      },
+                      "subexprPos": "/0/1/0/1/1/1/1/1/1/1"
+                     },
+                     {
+                      "text": "false"
+                     }
+                    ]
+                   },
+                   {
+                    "text": ")"
+                   }
+                  ]
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "text": "\n∗"
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "26"
+          },
+          "subexprPos": "/0/1/1"
+         },
+         {
+          "text": "HR"
+         }
+        ]
+       },
+       {
+        "text": " : "
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "27"
+          },
+          "subexprPos": "/0/1/1/1"
+         },
+         {
+          "text": "R"
+         }
+        ]
+       },
+       {
+        "text": "\n⊢ "
+       },
+       {
+        "tag": [
+         {
+          "diffStatus": "willChange",
+          "info": {
+           "__rpcref": "28"
+          },
+          "subexprPos": "/1"
+         },
+         {
+          "append": [
+           {
+            "text": "|={"
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "29"
+              },
+              "subexprPos": "/1/0/0/1"
+             },
+             {
+              "text": "E"
+             }
+            ]
+           },
+           {
+            "text": "}=> "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "30"
+              },
+              "subexprPos": "/1/1"
+             },
+             {
+              "append": [
+               {
+                "text": "isLock "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "31"
+                  },
+                  "subexprPos": "/1/1/0/0/1"
+                 },
+                 {
+                  "text": "?m.252"
+                 }
+                ]
+               },
+               {
+                "text": " "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "32"
+                  },
+                  "subexprPos": "/1/1/0/1"
+                 },
+                 {
+                  "append": [
+                   {
+                    "text": "hl_val(#"
+                   },
+                   {
+                    "tag": [
+                     {
+                      "info": {
+                       "__rpcref": "33"
+                      },
+                      "subexprPos": "/1/1/0/1/1/1"
+                     },
+                     {
+                      "text": "l"
+                     }
+                    ]
+                   },
+                   {
+                    "text": ")"
+                   }
+                  ]
+                 }
+                ]
+               },
+               {
+                "text": " "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "34"
+                  },
+                  "subexprPos": "/1/1/1"
+                 },
+                 {
+                  "text": "R"
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "ctx": {
+    "__rpcref": "50"
+   },
+   "goalPrefix": "⊢ ",
+   "hyps": [
+    {
+     "fvarIds": [
+      "_uniq.1645"
+     ],
+     "names": [
+      "hlc"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "36"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "HasLC"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1650"
+     ],
+     "names": [
+      "GF"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "37"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "BundledGFunctors"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1653"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝¹"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "38"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "HeapLangGS "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "39"
+            },
+            "subexprPos": "/0/1"
+           },
+           {
+            "text": "hlc"
+           }
+          ]
+         },
+         {
+          "text": " "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "40"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1658"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "41"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "SpinLockG "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "42"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.80"
+     ],
+     "names": [
+      "Φ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "43"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "44"
+            },
+            "subexprPos": "/0"
+           },
+           {
+            "text": "Val"
+           }
+          ]
+         },
+         {
+          "text": " → "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "45"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "append": [
+             {
+              "text": "IProp "
+             },
+             {
+              "tag": [
+               {
+                "info": {
+                 "__rpcref": "46"
+                },
+                "subexprPos": "/1/1"
+               },
+               {
+                "text": "GF"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.395"
+     ],
+     "names": [
+      "γ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "47"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "GName"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.651"
+     ],
+     "names": [
+      "l"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "48"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "Loc"
+       }
+      ]
+     }
+    }
+   ],
+   "mvarId": "_uniq.2189.891",
+   "type": {
+    "tag": [
+     {
+      "info": {
+       "__rpcref": "49"
+      },
+      "subexprPos": "/"
+     },
+     {
+      "text": "GName"
+     }
+    ]
+   }
+  },
+  {
+   "ctx": {
+    "__rpcref": "65"
+   },
+   "goalPrefix": "⊢ ",
+   "hyps": [
+    {
+     "fvarIds": [
+      "_uniq.1645"
+     ],
+     "names": [
+      "hlc"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "51"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "HasLC"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1650"
+     ],
+     "names": [
+      "GF"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "52"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "BundledGFunctors"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1653"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝¹"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "53"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "HeapLangGS "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "54"
+            },
+            "subexprPos": "/0/1"
+           },
+           {
+            "text": "hlc"
+           }
+          ]
+         },
+         {
+          "text": " "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "55"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.1658"
+     ],
+     "isInstance": true,
+     "names": [
+      "inst✝"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "56"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "text": "SpinLockG "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "57"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "text": "GF"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.80"
+     ],
+     "names": [
+      "Φ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "58"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "append": [
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "59"
+            },
+            "subexprPos": "/0"
+           },
+           {
+            "text": "Val"
+           }
+          ]
+         },
+         {
+          "text": " → "
+         },
+         {
+          "tag": [
+           {
+            "info": {
+             "__rpcref": "60"
+            },
+            "subexprPos": "/1"
+           },
+           {
+            "append": [
+             {
+              "text": "IProp "
+             },
+             {
+              "tag": [
+               {
+                "info": {
+                 "__rpcref": "61"
+                },
+                "subexprPos": "/1/1"
+               },
+               {
+                "text": "GF"
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.395"
+     ],
+     "names": [
+      "γ"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "62"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "GName"
+       }
+      ]
+     }
+    },
+    {
+     "fvarIds": [
+      "_uniq.2189.651"
+     ],
+     "names": [
+      "l"
+     ],
+     "type": {
+      "tag": [
+       {
+        "info": {
+         "__rpcref": "63"
+        },
+        "subexprPos": "/"
+       },
+       {
+        "text": "Loc"
+       }
+      ]
+     }
+    }
+   ],
+   "mvarId": "_uniq.2189.891",
+   "type": {
+    "tag": [
+     {
+      "info": {
+       "__rpcref": "64"
+      },
+      "subexprPos": "/"
+     },
+     {
+      "text": "GName"
+     }
+    ]
+   }
+  }
+ ]
+}
