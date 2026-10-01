@@ -1,4 +1,4 @@
-This is nael.info, produced by makeinfo version 7.1 from nael.texi.
+This is nael.info, produced by makeinfo version 7.3 from nael.texi.
 
 INFO-DIR-SECTION Emacs misc features
 START-INFO-DIR-ENTRY
@@ -66,7 +66,6 @@ Changelog
 * Version 0.7.0 from 2025-12-15: Version 070 from 2025-12-15.
 * Version 0.6.2 from 2025-11-30: Version 062 from 2025-11-30.
 * Version 0.6.0 from 2025-11-30: Version 060 from 2025-11-30.
-
 
 
 File: nael.info,  Node: Get Started,  Next: Usage,  Prev: Top,  Up: Top
@@ -399,35 +398,37 @@ Nael is effectively licensed under GNU GPL version 3 only.  More
 precisely, it is licensed under Apache-2.0 and sublicensed under
 GPL-3.0.
 
+   This is a fork of Nael maintained by _ISTA PLV_.
+
    Nael is maintained by _Mekeor Melire_ (mekeor@posteo.de
 <mailto:mekeor@posteo.de>) on Codeberg
 (https://codeberg.org/mekeor/nael).
 
-
 
 Tag Table:
 Node: Top192
-Node: Get Started2369
-Node: Usage2706
-Node: Configuration4449
-Node: Installation5815
-Node: Installation from Melpa6136
-Node: Installation from Sources7172
-Node: Manual Installation7580
-Node: Installation via package-vc8516
-Ref: Installation via package-vc-selected-packages9189
-Ref: Installation via use-package vc10286
-Node: Changelog11104
-Node: Version 082 from 2026-02-2211549
-Node: Version 080 from 2026-12-1611909
-Node: Version 070 from 2025-12-1512554
-Node: Version 062 from 2025-11-3013153
-Node: Version 060 from 2025-11-3013506
-Node: License and Maintenance14604
+Node: Get Started2368
+Node: Usage2705
+Node: Configuration4448
+Node: Installation5814
+Node: Installation from Melpa6135
+Node: Installation from Sources7171
+Node: Manual Installation7579
+Node: Installation via package-vc8515
+Ref: Installation via package-vc-selected-packages9188
+Ref: Installation via use-package vc10285
+Node: Changelog11103
+Node: Version 082 from 2026-02-2211548
+Node: Version 080 from 2026-12-1611908
+Node: Version 070 from 2025-12-1512553
+Node: Version 062 from 2025-11-3013152
+Node: Version 060 from 2025-11-3013505
+Node: License and Maintenance14603
 
 End Tag Table
 
 
 Local Variables:
 coding: utf-8
+Info-documentlanguage: en
 End:
