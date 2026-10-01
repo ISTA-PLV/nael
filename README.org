@@ -24,6 +24,7 @@ To install Nael the easy way, first set up [[https://melpa.org/#/getting-started
 Language Server Protocol (LSP):
 
 - =C-c C-e= (~eglot~) starts Eglot, the LSP client.
+- =C-c C-r= (~nael-eglot-restart-file~) makes the Lean server reprocess the current file, building its imports first if they are out of date.  Opening a file does not build its imports, unless ~nael-eglot-build-dependencies~ is non-nil.
 - =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point.
 - =C-c C-l= (~lsp~) starts lsp-mode, an alternative LSP client.  The key is only bound if ~nael-lsp~ is (auto)loaded.
 
