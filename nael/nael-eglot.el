@@ -63,6 +63,14 @@ If nil, leave `eldoc-idle-delay' alone."
     (font-lock-ensure)
     (buffer-string)))
 
+(defun nael-eglot-flush-changes ()
+  "Send pending changes of the current buffer to the server now.
+
+Eglot delays `textDocument/didChange' by `eglot-send-changes-idle-time'.
+A request about a position must not overtake the edits before it, or the
+server answers for text it has not seen yet."
+  (eglot--signal-textDocument/didChange))
+
 (defun nael-eglot-eldoc-goal-fn (cb get)
   "Construct ElDoc CB handler function for Lean LSP goal response with GET."
   (lambda (response)
@@ -98,6 +106,7 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainGoal"
+  (nael-eglot-flush-changes)
   (jsonrpc-async-request
    (eglot--current-server-or-lose)
    :$/lean/plainGoal
@@ -135,6 +144,7 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainTermGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainTermGoal"
+  (nael-eglot-flush-changes)
   (jsonrpc-async-request
    (eglot--current-server-or-lose)
    :$/lean/plainTermGoal
