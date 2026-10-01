@@ -156,7 +156,7 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
     (should (equal (get-text-property (string-search "n m" text) 'nael-hyp text)
                    '("_uniq.2" "_uniq.3")))
     (should (equal (get-text-property (string-search "⊢" text) 'nael-goal text)
-                   "_uniq.1"))
+                   '("_uniq.1" . 0)))
     (should (equal (get-text-property 0 'outline-level text) 1))
     (should (equal (get-text-property (string-search "case" text)
                                       'outline-level text)
@@ -169,6 +169,20 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                            "⊢ n = 0\n"
                            "k : Nat\n"
                            "n m : Nat\n")))))
+
+(ert-deftest nael-render-test-repeated-goal ()
+  "A metavariable listed twice yields two distinct goal ids."
+  (let ((text (nael-render-goals
+               (list :goals (vector (nael-render-test-goal)
+                                    (nael-render-test-goal)))
+               nil)))
+    (setq text (nael-render-result-text text))
+    (should (equal (get-text-property (string-search "goal 1" text)
+                                      'nael-goal text)
+                   '("_uniq.1" . 0)))
+    (should (equal (get-text-property (string-search "goal 2" text)
+                                      'nael-goal text)
+                   '("_uniq.1" . 1)))))
 
 (ert-deftest nael-render-test-sections ()
   (should (equal (nael-render-test-text nil nil) ""))

@@ -1,0 +1,148 @@
+;;; nael-infoview-tests.el --- Tests for nael-infoview  -*- lexical-binding: t; -*-
+
+;; Copyright © 2026 Klaus Kraßnitzer
+
+;; SPDX-License-Identifier: GPL-3.0-only
+
+;; This is licensed under GNU General Public License (version 3 only),
+;; see nael/LICENSE.GPL3.
+
+;;; Commentary:
+
+;; Tests for the infoview buffer of `nael-infoview' that need no Lean
+;; server: recorded goals are shown directly.
+
+;;; Code:
+
+(require 'ert)
+(require 'nael-infoview)
+(require 'nael-render-tests)
+
+(defmacro nael-infoview-test-with-goals (&rest body)
+  "Run BODY in the infoview showing the recorded goals of SpinLock."
+  (declare (indent 0) (debug t))
+  `(let ((nael-infoview-options nil))
+     (unwind-protect
+         (progn
+           (nael-infoview--show (nael-render-test-fixture) nil
+                                (nael-rpc-make-owner) "SpinLock.lean:110:2")
+           (with-current-buffer (nael-infoview--buffer)
+             (switch-to-buffer (current-buffer))
+             (goto-char (point-min))
+             ,@body))
+       (when-let* ((buffer (nael-infoview--buffer)))
+         (kill-buffer buffer)))))
+
+(defun nael-infoview-test-goto (string)
+  "Move point to the start of the first occurrence of STRING."
+  (goto-char (point-min))
+  (search-forward string)
+  (goto-char (match-beginning 0)))
+
+(ert-deftest nael-infoview-test-show ()
+  (nael-infoview-test-with-goals
+    (should (string-prefix-p "Tactic state: 3 goals\ngoal 1\n"
+                             (buffer-string)))
+    (should (= (seq-count (lambda (overlay)
+                            (overlay-get overlay 'mouse-face))
+                          (overlays-in (point-min) (point-max)))
+               63))
+    (should (string-search "SpinLock.lean:110:2"
+                           (nael-infoview--header-line)))))
+
+(ert-deftest nael-infoview-test-fold-survives-render ()
+  "Folded goals and sections stay folded when the goals are shown again."
+  (nael-infoview-test-with-goals
+    (nael-infoview-test-goto "goal 2")
+    (outline-hide-subtree)
+    (should (outline-invisible-p (line-end-position)))
+    (should (equal (nael-infoview--folded-keys)
+                   (list (get-text-property (point) 'nael-goal))))
+    ;; Render again, as a filter toggle or a refresh does.
+    (nael-infoview-toggle-instances)
+    (nael-infoview-test-goto "goal 2")
+    (should (outline-invisible-p (line-end-position)))
+    (nael-infoview-test-goto "goal 1")
+    (should-not (outline-invisible-p (line-end-position)))
+    (nael-infoview-test-goto "goal 3")
+    (should-not (outline-invisible-p (line-end-position)))))
+
+(ert-deftest nael-infoview-test-filters ()
+  (nael-infoview-test-with-goals
+    (should (string-search "inst✝" (buffer-string)))
+    (nael-infoview-toggle-instances)
+    (should-not (string-search "inst✝" (buffer-string)))
+    (should (plist-get nael-infoview-options :hide-instances))
+    (let ((header (nael-infoview--header-line)))
+      (should (eq (get-text-property (string-search "instances" header)
+                                     'face header)
+                  'nael-infoview-filter-on))
+      (should (eq (get-text-property (string-search "types" header)
+                                     'face header)
+                  'nael-infoview-filter-off)))
+    (nael-infoview-toggle-instances)
+    (should (string-search "inst✝" (buffer-string)))))
+
+(ert-deftest nael-infoview-test-goal-navigation ()
+  (nael-infoview-test-with-goals
+    (nael-infoview-next-goal)
+    (should (looking-at "goal 1"))
+    (nael-infoview-next-goal)
+    (should (looking-at "goal 2"))
+    (forward-line 2)
+    (nael-infoview-previous-goal)
+    (should (looking-at "goal 2"))
+    (nael-infoview-previous-goal)
+    (should (looking-at "goal 1"))
+    (should-error (nael-infoview-previous-goal) :type 'user-error)
+    (nael-infoview-next-goal 2)
+    (should (looking-at "goal 3"))
+    (should-error (nael-infoview-next-goal) :type 'user-error)))
+
+(ert-deftest nael-infoview-test-copy-goal ()
+  (nael-infoview-test-with-goals
+    (nael-infoview-test-goto "goal 3")
+    (forward-line 3)
+    (let ((kill-ring nil))
+      (nael-infoview-copy-goal)
+      (should (string-prefix-p "goal 3\nhlc : HasLC\n" (car kill-ring)))
+      (should (string-suffix-p "⊢ GName" (car kill-ring)))
+      (should-not (text-properties-at 0 (car kill-ring))))))
+
+(ert-deftest nael-infoview-test-point-highlight ()
+  "The innermost subterm at point is highlighted, and only that."
+  (nael-infoview-test-with-goals
+    (nael-infoview-test-goto "IProp GF")
+    (search-forward "G")
+    (nael-infoview--highlight-point)
+    (let ((overlay nael-infoview--point-overlay)
+          (node (nael-render-node-at (point))))
+      (should (equal (buffer-substring-no-properties
+                      (overlay-start overlay) (overlay-end overlay))
+                     "GF"))
+      (should (= (overlay-start overlay) (nael-render-node-beg node))))
+    (goto-char (point-min))
+    (nael-infoview--highlight-point)
+    (should-not nael-infoview--point-overlay)))
+
+(ert-deftest nael-infoview-test-window-anchor ()
+  "The window keeps its place in a goal when the goals are rendered again."
+  (nael-infoview-test-with-goals
+    (nael-infoview-test-goto "goal 3")
+    (forward-line 2)
+    (forward-char 3)
+    (let ((line (buffer-substring-no-properties (line-beginning-position)
+                                                (point))))
+      ;; Hiding instances removes lines above, in goals 1 to 3.
+      (nael-infoview-toggle-instances)
+      (should (equal (buffer-substring-no-properties
+                      (line-beginning-position) (point))
+                     line))
+      (should (equal (get-text-property (point) 'nael-goal)
+                     (save-excursion (nael-infoview-test-goto "goal 3")
+                                     (get-text-property (point)
+                                                        'nael-goal)))))))
+
+(provide 'nael-infoview-tests)
+
+;;; nael-infoview-tests.el ends here

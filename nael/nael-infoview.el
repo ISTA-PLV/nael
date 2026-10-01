@@ -35,6 +35,7 @@
 (require 'cl-lib)
 (require 'eglot)
 (require 'face-remap)
+(require 'outline)
 
 (require 'nael-eglot)
 (require 'nael-render)
@@ -65,7 +66,25 @@ take precedence; they can match the category `nael-infoview'."
 
 (defconst nael-infoview-buffer-name "*Nael Infoview*")
 
+(defface nael-infoview-point-node
+  '((t :inherit highlight))
+  "Face of the subterm at point in the infoview."
+  :group 'nael-infoview)
+
+(defface nael-infoview-filter-on
+  '((t :inherit mode-line-emphasis))
+  "Face of an active filter in the header line of the infoview."
+  :group 'nael-infoview)
+
+(defface nael-infoview-filter-off
+  '((t :inherit shadow))
+  "Face of an inactive filter in the header line of the infoview."
+  :group 'nael-infoview)
+
 ;;;; State:
+
+(defvar nael-infoview-options nil
+  "View options of the infoview, as described in `nael-render-goals'.")
 
 (defvar nael-infoview--source nil
   "The Nael buffer that the infoview follows.")
@@ -96,6 +115,12 @@ nil when up to date, or one of `updating', `processing',
 (defvar-local nael-infoview--location nil
   "Description of the position whose information is shown.")
 
+(defvar-local nael-infoview--results nil
+  "The shown results, as (GOALS TERM-GOAL), for rendering them again.")
+
+(defvar-local nael-infoview--point-overlay nil
+  "Overlay that highlights the subterm at point.")
+
 (defvar-local nael-infoview--dim-cookie nil
   "Face remapping that dims outdated content, or nil.")
 
@@ -112,15 +137,35 @@ nil when up to date, or one of `updating', `processing',
 
 (defvar-keymap nael-infoview-mode-map
   :doc "Keymap of `nael-infoview-mode'."
-  "g" #'nael-infoview-refresh)
+  "g" #'nael-infoview-refresh
+  "n" #'nael-infoview-next-goal
+  "p" #'nael-infoview-previous-goal
+  "w" #'nael-infoview-copy-goal
+  "i" #'nael-infoview-toggle-instances
+  "t" #'nael-infoview-toggle-types
+  "a" #'nael-infoview-toggle-inaccessible
+  "l" #'nael-infoview-toggle-let-values
+  "r" #'nael-infoview-toggle-reverse)
+
+(defun nael-infoview--outline-level ()
+  "Return the outline level of the heading at point."
+  (or (get-text-property (point) 'outline-level) 1))
 
 (define-derived-mode nael-infoview-mode special-mode "Nael Infoview"
   "Major mode of the Nael infoview, which shows goals at point.
+
+Headings of sections and goals can be folded with \\[outline-cycle]
+and \\[outline-cycle-buffer], as in `outline-minor-mode'.
 
 \\{nael-infoview-mode-map}"
   (setq-local revert-buffer-function
               (lambda (&rest _) (nael-infoview-refresh)))
   (setq-local header-line-format '(:eval (nael-infoview--header-line)))
+  (setq-local outline-search-function #'outline-search-level
+              outline-level #'nael-infoview--outline-level
+              outline-minor-mode-cycle t)
+  (outline-minor-mode)
+  (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))
 
 (defun nael-infoview--buffer ()
@@ -139,9 +184,33 @@ nil when up to date, or one of `updating', `processing',
   (when-let* ((buffer (nael-infoview--buffer)))
     (get-buffer-window buffer t)))
 
+(defconst nael-infoview--filters
+  '((:hide-instances "instances" nael-infoview-toggle-instances)
+    (:hide-types "types" nael-infoview-toggle-types)
+    (:hide-inaccessible "✝" nael-infoview-toggle-inaccessible)
+    (:hide-let-values "let values" nael-infoview-toggle-let-values)
+    (:reverse "reverse" nael-infoview-toggle-reverse))
+  "View options of the infoview: key, label and toggle command.")
+
+(defun nael-infoview--filter-buttons ()
+  "Return the clickable filter toggles for the header line."
+  (mapconcat
+   (pcase-lambda (`(,key ,label ,command))
+     (propertize label
+                 'face (if (plist-get nael-infoview-options key)
+                           'nael-infoview-filter-on
+                         'nael-infoview-filter-off)
+                 'mouse-face 'mode-line-highlight
+                 'help-echo (format "mouse-1: %s"
+                                    (documentation command t))
+                 'keymap (make-mode-line-mouse-map 'mouse-1 command)))
+   nael-infoview--filters " "))
+
 (defun nael-infoview--header-line ()
   "Return the header line of the infoview."
   (concat
+   (nael-infoview--filter-buttons)
+   "  "
    (or nael-infoview--location "")
    (pcase nael-infoview--status
      ('nil "")
@@ -223,9 +292,6 @@ to the buffer if not in a goal, and the column."
 
 ;;;; Showing results:
 
-(defvar nael-infoview-options nil
-  "View options of the infoview, as described in `nael-render-goals'.")
-
 (defun nael-infoview--location (buffer pos)
   "Describe position POS in BUFFER for the header line."
   (with-current-buffer buffer
@@ -234,32 +300,90 @@ to the buffer if not in a goal, and the column."
       (format "%s:%d:%d" (buffer-name) (line-number-at-pos)
               (current-column)))))
 
+(defun nael-infoview--heading-key ()
+  "Return a key for the heading at point that survives a refresh."
+  (or (get-text-property (point) 'nael-goal)
+      (get-text-property (point) 'nael-section)))
+
+(defun nael-infoview--folded-keys ()
+  "Return the keys of the folded headings of the current buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (let (keys)
+      (unless (outline-on-heading-p) (outline-next-heading))
+      (while (not (eobp))
+        (when (outline-invisible-p (line-end-position))
+          (push (nael-infoview--heading-key) keys))
+        (outline-next-heading))
+      keys)))
+
+(defun nael-infoview--fold (keys)
+  "Fold the headings of the current buffer whose key is in KEYS."
+  (when keys
+    (save-excursion
+      (goto-char (point-min))
+      (unless (outline-on-heading-p) (outline-next-heading))
+      (while (not (eobp))
+        (when (member (nael-infoview--heading-key) keys)
+          (outline-hide-subtree))
+        (outline-next-heading)))))
+
+(defun nael-infoview--render ()
+  "Render the shown results again, keeping folds and window positions."
+  (let* ((rendered (apply #'nael-render-goals
+                          (append nael-infoview--results
+                                  (list nael-infoview-options))))
+         (inhibit-read-only t)
+         (folded (nael-infoview--folded-keys))
+         (windows (mapcar (lambda (window)
+                            (cons window
+                                  (nael-infoview--window-anchor window)))
+                          (get-buffer-window-list nil nil t))))
+    (delete-all-overlays)
+    (erase-buffer)
+    (if (string-empty-p (nael-render-result-text rendered))
+        (insert (propertize "No goals or expected type at point.\n"
+                            'face 'shadow))
+      (insert (nael-render-result-text rendered)))
+    (dolist (node (nael-render-result-nodes rendered))
+      (overlay-put (make-overlay (nael-render-node-beg node)
+                                 (nael-render-node-end node))
+                   'mouse-face 'highlight))
+    (setq nael-infoview--point-overlay nil)
+    (nael-infoview--fold folded)
+    (pcase-dolist (`(,window . ,anchors) windows)
+      (nael-infoview--restore-window window anchors))
+    (nael-infoview--highlight-point)))
+
 (defun nael-infoview--show (goals term-goal owner location)
   "Show GOALS and TERM-GOAL, whose references OWNER keeps.
 LOCATION describes where they were requested."
-  (let ((buffer (nael-infoview--get-buffer-create))
-        (rendered (nael-render-goals goals term-goal nael-infoview-options)))
-    (with-current-buffer buffer
-      (let ((inhibit-read-only t)
-            (windows (mapcar (lambda (window)
-                               (cons window (nael-infoview--window-anchor
-                                             window)))
-                             (get-buffer-window-list buffer nil t)))
-            (previous nael-infoview--owner))
-        (delete-all-overlays)
-        (erase-buffer)
-        (if (string-empty-p (nael-render-result-text rendered))
-            (insert (propertize "No goals or expected type at point.\n"
-                                'face 'shadow))
-          (insert (nael-render-result-text rendered)))
-        (pcase-dolist (`(,window . ,anchors) windows)
-          (nael-infoview--restore-window window anchors))
-        (setq nael-infoview--owner owner
-              nael-infoview--location location)
-        ;; Only now is nothing shown any longer that uses the old
-        ;; references.
-        (when previous (nael-rpc-owner-release previous))))
-    (nael-infoview--set-status nil)))
+  (with-current-buffer (nael-infoview--get-buffer-create)
+    (let ((previous nael-infoview--owner))
+      (setq nael-infoview--results (list goals term-goal)
+            nael-infoview--owner owner
+            nael-infoview--location location)
+      (nael-infoview--render)
+      ;; Only now is nothing shown any longer that uses the old
+      ;; references.
+      (when previous (nael-rpc-owner-release previous))))
+  (nael-infoview--set-status nil))
+
+(defun nael-infoview--highlight-point ()
+  "Highlight the subterm at point in the infoview."
+  (if-let* ((node (nael-render-node-at (point))))
+      (if nael-infoview--point-overlay
+          (move-overlay nael-infoview--point-overlay
+                        (nael-render-node-beg node)
+                        (nael-render-node-end node))
+        (setq nael-infoview--point-overlay
+              (make-overlay (nael-render-node-beg node)
+                            (nael-render-node-end node)))
+        (overlay-put nael-infoview--point-overlay
+                     'face 'nael-infoview-point-node))
+    (when nael-infoview--point-overlay
+      (delete-overlay nael-infoview--point-overlay)
+      (setq nael-infoview--point-overlay nil))))
 
 ;;;; Requests:
 
@@ -429,6 +553,89 @@ ElDoc then leaves goals to the infoview."
   (interactive)
   (when nael-infoview--target
     (nael-infoview--update)))
+
+(defun nael-infoview--toggle-option (key)
+  "Toggle the view option KEY and render the infoview again."
+  (setq nael-infoview-options
+        (plist-put (copy-sequence nael-infoview-options) key
+                   (not (plist-get nael-infoview-options key))))
+  (when-let* ((buffer (nael-infoview--buffer)))
+    (with-current-buffer buffer
+      (when nael-infoview--results
+        (nael-infoview--render))
+      (force-mode-line-update))))
+
+(defun nael-infoview-toggle-instances ()
+  "Toggle hiding instance hypotheses in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option :hide-instances))
+
+(defun nael-infoview-toggle-types ()
+  "Toggle hiding hypotheses that are types in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option :hide-types))
+
+(defun nael-infoview-toggle-inaccessible ()
+  "Toggle hiding inaccessible names, which contain \"✝\", in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option :hide-inaccessible))
+
+(defun nael-infoview-toggle-let-values ()
+  "Toggle hiding the values of let-bound hypotheses in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option :hide-let-values))
+
+(defun nael-infoview-toggle-reverse ()
+  "Toggle showing targets before hypotheses in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option :reverse))
+
+(defun nael-infoview--goal-start (pos)
+  "Return the start of the goal at POS, or nil if POS is in no goal."
+  (when (get-text-property pos 'nael-goal)
+    (if (and (> pos (point-min))
+             (equal (get-text-property (1- pos) 'nael-goal)
+                    (get-text-property pos 'nael-goal)))
+        (previous-single-property-change pos 'nael-goal nil (point-min))
+      pos)))
+
+(defun nael-infoview-next-goal (&optional n)
+  "Move to the start of the Nth next goal in the infoview."
+  (interactive "p")
+  (dotimes (_ (or n 1))
+    (let ((pos (point)))
+      (when (get-text-property pos 'nael-goal)
+        (setq pos (next-single-property-change pos 'nael-goal nil
+                                               (point-max))))
+      (unless (get-text-property pos 'nael-goal)
+        (setq pos (next-single-property-change pos 'nael-goal)))
+      (if pos (goto-char pos) (user-error "No next goal")))))
+
+(defun nael-infoview-previous-goal (&optional n)
+  "Move to the start of the Nth previous goal in the infoview."
+  (interactive "p")
+  (dotimes (_ (or n 1))
+    (let* ((start (nael-infoview--goal-start (point)))
+           (pos (if (and start (< start (point))) start
+                  (let ((before (previous-single-property-change
+                                 (or start (point)) 'nael-goal)))
+                    (and before
+                         (nael-infoview--goal-start
+                          (if (get-text-property before 'nael-goal)
+                              before
+                            (max (point-min) (1- before)))))))))
+      (if pos (goto-char pos) (user-error "No previous goal")))))
+
+(defun nael-infoview-copy-goal ()
+  "Copy the goal at point in the infoview as plain text."
+  (interactive)
+  (let ((start (or (nael-infoview--goal-start (point))
+                   (user-error "No goal at point"))))
+    (kill-new (string-trim-right
+               (buffer-substring-no-properties
+                start (next-single-property-change start 'nael-goal nil
+                                                   (point-max)))))
+    (message "Copied goal")))
 
 ;;;###autoload
 (defun nael-infoview ()

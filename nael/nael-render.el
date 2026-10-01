@@ -25,8 +25,11 @@
 ;; extents.
 ;;
 ;; Goals and hypotheses carry the text properties `nael-goal' and
-;; `nael-hyp', with the server's stable identifiers, so that state such
-;; as folding can survive a refresh.  Headings carry `outline-level'.
+;; `nael-hyp', made from the server's stable identifiers, so that state
+;; such as folding can survive a refresh.  The same metavariable can be
+;; listed as several goals, so `nael-goal' is (MVARID . N) for the Nth
+;; occurrence of MVARID.  Headings carry `outline-level';
+;; section headings also carry `nael-section', `goals' or `term-goal'.
 
 ;;; Code:
 
@@ -110,6 +113,9 @@ that contains only TEXT."
 
 (defvar nael-render--nodes nil
   "Nodes rendered so far, in reverse order.")
+
+(defvar nael-render--goal-ids nil
+  "Metavariable ids of the goals rendered so far, for `nael-goal'.")
 
 (defvar nael-render--faces nil
   "Faces to add after fontification, as a list of (BEG END FACE).
@@ -224,11 +230,15 @@ is a plist of view options; see `nael-render-goals'."
                             ((nael-render--true-p (plist-get goal :isRemoved))
                              'nael-render-diff-removed))))
       (push (list beg (point) diff) nael-render--faces))
-    (put-text-property beg (point) 'nael-goal (plist-get goal :mvarId))))
+    (let ((id (plist-get goal :mvarId)))
+      (put-text-property beg (point) 'nael-goal
+                         (cons id (seq-count (lambda (other) (equal other id))
+                                             nael-render--goal-ids)))
+      (push id nael-render--goal-ids))))
 
-(defun nael-render--heading (text)
-  "Insert TEXT as a level 1 heading."
-  (nael-render--insert (propertize text 'outline-level 1)
+(defun nael-render--heading (text section)
+  "Insert TEXT as the level 1 heading of SECTION, a symbol."
+  (nael-render--insert (propertize text 'outline-level 1 'nael-section section)
                        'nael-render-heading)
   (insert "\n"))
 
@@ -241,7 +251,8 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
              (pcase count
                (0 "no goals")
                (1 "1 goal")
-               (_ (format "%d goals" count)))))
+               (_ (format "%d goals" count))))
+     'goals)
     (seq-do-indexed
      (lambda (goal index)
        (unless (zerop index) (insert "\n"))
@@ -292,13 +303,14 @@ OPTIONS is a plist of view options:
   :hide-let-values   hide the values of let-bound hypotheses;
   :reverse           show the target first, then hypotheses upwards."
   (let ((nael-render--nodes nil)
+        (nael-render--goal-ids nil)
         (nael-render--faces nil))
     (with-temp-buffer
       (when goals
         (nael-render--goals-section (plist-get goals :goals) options))
       (when term-goal
         (unless (bobp) (insert "\n"))
-        (nael-render--heading "Expected type")
+        (nael-render--heading "Expected type" 'term-goal)
         (nael-render--goal term-goal nil options))
       (nael-render--apply-faces)
       (nael-render--put-nodes)
