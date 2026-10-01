@@ -1,0 +1,27 @@
+Nael
+This fork is maintained by ISTA PLV <https://github.com/ISTA-PLV/nael>.
+
+This product includes software developed by third parties, as follows.
+
+------------------------------------------------------------------------
+nael-eglot.el: dependencyBuildMode and nael-eglot-restart-file
+------------------------------------------------------------------------
+Adapted from lean4-mode <https://github.com/d-torrance/lean4-mode>, file
+lean4-eglot.el at commit 0c2216dd435b0bde8343c59ff24c6422e16ff733,
+Copyright (c) 2026 Doug Torrance, licensed under the Apache License,
+Version 2.0; see LICENSE.APACHE2.
+
+The NOTICE file of lean4-mode contains the following notices that
+pertain to that code, reproduced verbatim:
+
+  lean4-mode
+  Copyright (c) 2013-2026 the lean4-mode contributors
+
+  ------------------------------------------------------------------------
+  The move from lsp-mode to Eglot
+  ------------------------------------------------------------------------
+  Draws on the forks at <https://github.com/bustercopley/lean4-mode> by
+  Buster Copley and <https://github.com/ultronozm/lean4-mode> by Paul D.
+  Nelson, both of which are forks of this package and so are under the
+  Apache License, Version 2.0.  Neither asserts copyright in its own
+  files; the credit is recorded here and in the commit history.

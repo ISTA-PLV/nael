@@ -2,11 +2,14 @@
 
 ;; Copyright © 2024 Free Software Foundation, Inc.
 ;; Copyright © 2025 Mekeor Melire
+;; Copyright © 2026 Doug Torrance
+;; Copyright © 2026 Klaus Kraßnitzer
 
 ;; SPDX-License-Identifier: GPL-3.0-only
 
 ;; This is licensed under GNU General Public License (version 3 only),
-;; see LICENSE.GPL3.
+;; see LICENSE.GPL3.  Parts are adapted from lean4-mode under the Apache
+;; License, Version 2.0; see NOTICE and LICENSE.APACHE2.
 
 ;;; Commentary:
 
@@ -63,6 +66,14 @@ If nil, leave `eldoc-idle-delay' alone."
     (font-lock-ensure)
     (buffer-string)))
 
+(defun nael-eglot-flush-changes ()
+  "Send pending changes of the current buffer to the server now.
+
+Eglot delays `textDocument/didChange' by `eglot-send-changes-idle-time'.
+A request about a position must not overtake the edits before it, or the
+server answers for text it has not seen yet."
+  (eglot--signal-textDocument/didChange))
+
 (defun nael-eglot-eldoc-goal-fn (cb get)
   "Construct ElDoc CB handler function for Lean LSP goal response with GET."
   (lambda (response)
@@ -98,6 +109,7 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainGoal"
+  (nael-eglot-flush-changes)
   (jsonrpc-async-request
    (eglot--current-server-or-lose)
    :$/lean/plainGoal
@@ -135,6 +147,7 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainTermGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainTermGoal"
+  (nael-eglot-flush-changes)
   (jsonrpc-async-request
    (eglot--current-server-or-lose)
    :$/lean/plainTermGoal
@@ -172,15 +185,83 @@ for any output."
 (defcustom nael-eglot-contact (list "lake" "serve")
   "Contact for Eglot server program for `nael-mode'.
 
-See `eglot-server-programs' for requirements of CONTACT."
+This is a list (PROGRAM [ARGS...]) or (HOST PORT [TCP-ARGS...]) as
+described for CONTACT in `eglot-server-programs'.  Eglot uses it to
+start a server of class `nael-eglot-server'."
   :type '(choice (repeat :tag "(PROGRAM [ARGS...])" string)
                  (sexp :tag "Other"))
   :group 'nael-eglot)
 
+(defclass nael-eglot-server (eglot-lsp-server) ()
+  :documentation "Eglot server class for the Lean language server.")
+
 (add-to-list 'eglot-server-programs
              (cons 'nael-mode
                    (lambda (&optional _interactive _project)
-                     nael-eglot-contact)))
+                     (cons 'nael-eglot-server nael-eglot-contact))))
+
+;;;; Building dependencies:
+
+;; Adapted from `lean4-eglot.el' of lean4-mode
+;; <https://github.com/d-torrance/lean4-mode> at commit 0c2216dd43,
+;; Copyright © 2026 Doug Torrance, licensed under the Apache License,
+;; Version 2.0.  Changed: names and docstrings; the server class; the
+;; restart command checks `eglot-managed-p' instead of
+;; `eglot-current-server'.
+
+(defcustom nael-eglot-build-dependencies nil
+  "Whether opening a file makes the server build its imports.
+
+If nil, opening a file never starts a build; when imports are out of
+date, the server says so, and `nael-eglot-restart-file' builds them.
+If non-nil, every opening builds whatever is out of date, which may
+take long.  This corresponds to the setting
+`lean4.automaticallyBuildDependencies' of the Lean extension for
+VS Code, which is off by default as well."
+  :type 'boolean
+  :group 'nael-eglot)
+
+(defvar nael-eglot--build-dependencies-once nil
+  "Non-nil while `nael-eglot-restart-file' reopens a file.")
+
+(defun nael-eglot-dependency-build-mode ()
+  "Return the `dependencyBuildMode' for a `textDocument/didOpen'.
+
+The server treats a missing mode as \"always\", so a mode is sent with
+every opening.  Unlike \"always\", \"once\" does not build again when
+the file worker restarts after a crash or an import change."
+  (cond (nael-eglot-build-dependencies "always")
+        (nael-eglot--build-dependencies-once "once")
+        (t "never")))
+
+(cl-defmethod jsonrpc-connection-send :around
+  ((server nael-eglot-server) &rest args &key method params
+   &allow-other-keys)
+  "Add `dependencyBuildMode' to `textDocument/didOpen' sent to SERVER.
+
+Eglot builds the parameters of `textDocument/didOpen' itself, so the
+field is added here.  Pass ARGS with METHOD and PARAMS on."
+  (if (eq method :textDocument/didOpen)
+      (apply #'cl-call-next-method server
+             (plist-put (copy-sequence args) :params
+                        (append params
+                                (list :dependencyBuildMode
+                                      (nael-eglot-dependency-build-mode)))))
+    (apply #'cl-call-next-method server args)))
+
+;;;###autoload
+(defun nael-eglot-restart-file ()
+  "Restart the server's processing of the current file.
+
+Close and reopen the file on the server, which builds imports that are
+out of date once.  Use this after changing a file that the current file
+imports."
+  (interactive)
+  (unless (eglot-managed-p)
+    (user-error "Buffer is not managed by Eglot"))
+  (eglot--signal-textDocument/didClose)
+  (let ((nael-eglot--build-dependencies-once t))
+    (eglot--signal-textDocument/didOpen)))
 
 (provide 'nael-eglot)
 

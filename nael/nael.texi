@@ -75,6 +75,8 @@ Language Server Protocol (LSP):
 @item
 @samp{C-c C-e} (@code{eglot}) starts Eglot, the LSP client.
 @item
+@samp{C-c C-r} (@code{nael-eglot-restart-file}) makes the Lean server reprocess the current file, building its imports first if they are out of date.  Opening a file does not build its imports, unless @code{nael-eglot-build-dependencies} is non-nil.
+@item
 @samp{C-h .} (@code{eldoc-doc-buffer}) displays the ElDoc documentation buffer showing tactic state and expected goal at point.
 @item
 @samp{C-c C-l} (@code{lsp}) starts lsp-mode, an alternative LSP client.  The key is only bound if @code{nael-lsp} is (auto)loaded.
@@ -333,6 +335,8 @@ Rename nael-abbrev-table-only-skeletons to nael-abbrev-skeleton-table.
 @chapter License and Maintenance
 
 Nael is effectively licensed under GNU GPL version 3 only.  More precisely, it is licensed under Apache-2.0 and sublicensed under GPL-3.0.
+
+Parts of @code{nael-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under Apache-2.0; see @samp{NOTICE}.
 
 This is a fork of Nael maintained by @emph{ISTA PLV}.
 

@@ -66,6 +66,7 @@
 (declare-function nael-eglot-configure-when-initialized "nael-eglot"
                   (_))
 (declare-function nael-eglot-configure-when-managed "nael-eglot" ())
+(declare-function nael-eglot-restart-file "nael-eglot" ())
 (declare-function nael-lsp-configure-when-managed "nael-lsp" ())
 
 (defgroup nael nil
@@ -480,7 +481,8 @@ least evaluated an autoload statement for
   "C-c C-a" #'abbrev-mode
   "C-c C-c" #'project-compile
   "C-c C-e" #'eglot
-  "C-c C-k" #'nael-abbrev-help)
+  "C-c C-k" #'nael-abbrev-help
+  "C-c C-r" #'nael-eglot-restart-file)
 
 ;;;###autoload
 (define-derived-mode nael-mode prog-mode "Nael"
