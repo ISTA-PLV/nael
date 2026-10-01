@@ -336,7 +336,7 @@ Rename nael-abbrev-table-only-skeletons to nael-abbrev-skeleton-table.
 
 Nael is effectively licensed under GNU GPL version 3 only.  More precisely, it is licensed under Apache-2.0 and sublicensed under GPL-3.0.
 
-Parts of @code{nael-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under Apache-2.0; see @samp{NOTICE}.
+Parts of @code{nael-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under Apache-2.0.  @code{nael-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and licensed under the MIT License, see @samp{LICENSE.MIT}.  For details, see @samp{NOTICE}.
 
 This is a fork of Nael maintained by @emph{ISTA PLV}.
 

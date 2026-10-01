@@ -25,3 +25,26 @@ pertain to that code, reproduced verbatim:
   Nelson, both of which are forks of this package and so are under the
   Apache License, Version 2.0.  Neither asserts copyright in its own
   files; the credit is recorded here and in the commit history.
+
+------------------------------------------------------------------------
+nael-rpc.el
+------------------------------------------------------------------------
+Derived from lean4-mode <https://github.com/d-torrance/lean4-mode>, file
+lean4-rpc.el at commit 0c2216dd435b0bde8343c59ff24c6422e16ff733,
+Copyright (c) 2026 Jan Mas Rovira and Copyright (c) 2026 Doug Torrance,
+which is in turn derived from neo-lean-mode
+<https://github.com/janmasrovira/neo-lean-mode>, file neo-lean-rpc.el,
+Copyright (c) 2026 Jan Mas Rovira.  Both are licensed under the MIT
+License.  nael-rpc.el, including Nael's changes, remains under the MIT
+License; see LICENSE.MIT.
+
+The NOTICE file of lean4-mode contains the following notice that
+pertains to that code, reproduced verbatim:
+
+  ------------------------------------------------------------------------
+  lean4-rpc.el, lean4-render.el
+  ------------------------------------------------------------------------
+  Derived from neo-lean-mode <https://github.com/janmasrovira/neo-lean-mode>,
+  Copyright (c) 2026 Jan Mas Rovira, licensed under the MIT License.  These
+  two files remain under the MIT License; see LICENSES/MIT.txt.  The rest of
+  this package is licensed under the Apache License, Version 2.0.
