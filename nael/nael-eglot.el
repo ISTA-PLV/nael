@@ -27,6 +27,7 @@
 (require 'eglot)
 
 (require 'nael)
+(require 'nael-eglot-compat)
 
 (defgroup nael-eglot nil
   "`eglot' and `eldoc' configured for `nael-mode'."
@@ -72,7 +73,12 @@ If nil, leave `eldoc-idle-delay' alone."
 Eglot delays `textDocument/didChange' by `eglot-send-changes-idle-time'.
 A request about a position must not overtake the edits before it, or the
 server answers for text it has not seen yet."
-  (eglot--signal-textDocument/didChange))
+  (nael-eglot-compat-flush))
+
+(defun nael-eglot-server-or-lose ()
+  "Return the Eglot server of the current buffer or signal an error."
+  (or (eglot-current-server)
+      (jsonrpc-error "No current JSON-RPC connection")))
 
 (defun nael-eglot-eldoc-goal-fn (cb get)
   "Construct ElDoc CB handler function for Lean LSP goal response with GET."
@@ -111,9 +117,9 @@ https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainGoal"
   (nael-eglot-flush-changes)
   (jsonrpc-async-request
-   (eglot--current-server-or-lose)
+   (nael-eglot-server-or-lose)
    :$/lean/plainGoal
-   (eglot--TextDocumentPositionParams)
+   (nael-eglot-compat-position-params)
    :success-fn (nael-eglot-eldoc-goal-fn cb #'plist-get))
   t)
 
@@ -149,11 +155,11 @@ https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainTermGoal"
   (nael-eglot-flush-changes)
   (jsonrpc-async-request
-   (eglot--current-server-or-lose)
+   (nael-eglot-server-or-lose)
    :$/lean/plainTermGoal
-   (eglot--TextDocumentPositionParams)
+   (nael-eglot-compat-position-params)
    :success-fn (nael-eglot-eldoc-term-goal-fn
-                cb #'plist-get #'eglot--format-markup))
+                cb #'plist-get #'nael-eglot-compat-format-markup))
   t)
 
 ;;;###autoload
@@ -259,9 +265,9 @@ imports."
   (interactive)
   (unless (eglot-managed-p)
     (user-error "Buffer is not managed by Eglot"))
-  (eglot--signal-textDocument/didClose)
+  (nael-eglot-compat-did-close)
   (let ((nael-eglot--build-dependencies-once t))
-    (eglot--signal-textDocument/didOpen)))
+    (nael-eglot-compat-did-open)))
 
 (provide 'nael-eglot)
 
