@@ -2,11 +2,14 @@
 
 ;; Copyright © 2024 Free Software Foundation, Inc.
 ;; Copyright © 2025 Mekeor Melire
+;; Copyright © 2026 Doug Torrance
+;; Copyright © 2026 Klaus Kraßnitzer
 
 ;; SPDX-License-Identifier: GPL-3.0-only
 
 ;; This is licensed under GNU General Public License (version 3 only),
-;; see LICENSE.GPL3.
+;; see LICENSE.GPL3.  Parts are adapted from lean4-mode under the Apache
+;; License, Version 2.0; see NOTICE and LICENSE.APACHE2.
 
 ;;; Commentary:
 
@@ -198,6 +201,13 @@ start a server of class `nael-eglot-server'."
                      (cons 'nael-eglot-server nael-eglot-contact))))
 
 ;;;; Building dependencies:
+
+;; Adapted from `lean4-eglot.el' of lean4-mode
+;; <https://github.com/d-torrance/lean4-mode> at commit 0c2216dd43,
+;; Copyright © 2026 Doug Torrance, licensed under the Apache License,
+;; Version 2.0.  Changed: names and docstrings; the server class; the
+;; restart command checks `eglot-managed-p' instead of
+;; `eglot-current-server'.
 
 (defcustom nael-eglot-build-dependencies nil
   "Whether opening a file makes the server build its imports.

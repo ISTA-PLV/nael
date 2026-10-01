@@ -402,6 +402,10 @@ Nael is effectively licensed under GNU GPL version 3 only.  More
 precisely, it is licensed under Apache-2.0 and sublicensed under
 GPL-3.0.
 
+   Parts of ‘nael-eglot.el’ are adapted from lean4-mode
+(https://github.com/d-torrance/lean4-mode) under Apache-2.0; see
+‘NOTICE’.
+
    This is a fork of Nael maintained by _ISTA PLV_.
 
    Nael is maintained by _Mekeor Melire_ (mekeor@posteo.de
