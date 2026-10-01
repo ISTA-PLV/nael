@@ -42,7 +42,7 @@
   :type 'boolean
   :group 'nael-eglot)
 
-(defcustom nael-eglot-eldoc-idle-delay 0.05
+(defcustom nael-eldoc-idle-delay 0.05
   "Buffer-local value of `eldoc-idle-delay' in Nael buffers.
 If nil, leave `eldoc-idle-delay' alone."
   :type '(choice (number :tag "Seconds")
@@ -148,13 +148,13 @@ Extra.html#Lean.Lsp.PlainTermGoal"
   "Buffer-locally set up ElDoc and Eglot for Nael.
 
 Use ElDoc documentation strategy `compose', apply
-`nael-eglot-eldoc-idle-delay' and add ElDoc documentation functions for
+`nael-eldoc-idle-delay' and add ElDoc documentation functions for
 goal and term goal."
   (interactive)
   (setq-local eldoc-documentation-strategy
               #'eldoc-documentation-compose)
-  (when nael-eglot-eldoc-idle-delay
-    (setq-local eldoc-idle-delay nael-eglot-eldoc-idle-delay))
+  (when nael-eldoc-idle-delay
+    (setq-local eldoc-idle-delay nael-eldoc-idle-delay))
   (add-hook 'eldoc-documentation-functions
             #'nael-eglot-eldoc-goal -90 'local)
   (add-hook 'eldoc-documentation-functions
