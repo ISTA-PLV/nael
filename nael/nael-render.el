@@ -72,12 +72,12 @@
   :group 'nael-render)
 
 (defface nael-render-diff-inserted
-  '((t :inherit diff-refine-added))
+  '((t :inherit diff-added :extend nil))
   "Face of what the tactic at point has added or changed."
   :group 'nael-render)
 
 (defface nael-render-diff-removed
-  '((t :inherit diff-refine-removed))
+  '((t :inherit diff-removed :extend nil))
   "Face of what the tactic at point will remove or change."
   :group 'nael-render)
 
