@@ -151,6 +151,26 @@ The buffer is current, and point is before `rw'."
                       (buffer-local-value 'post-command-hook buffer)))
     (should-not (memq #'nael-infoview--track eglot-managed-mode-hook))))
 
+(ert-deftest nael-infoview-live-expected-type-hidden ()
+  "A hidden expected type is not even requested."
+  (with-current-buffer (nael-infoview-live-open)
+    ;; Inside `[h]' there is an expected type.
+    (nael-infoview-live-move 4 6)
+    (should (nael-infoview-live-wait-for "Expected type"))
+    (nael-infoview-live-settle)
+    (let ((nael-infoview-expected-type 'hidden)
+          (before (alist-get 'infoview-term-goal nael-rpc--slots)))
+      (nael-infoview-live-move 4 7)
+      (should (nael-rpc-live-wait
+               (lambda ()
+                 (and (null (nael-infoview-live-status))
+                      (not (string-search "Expected type"
+                                          (nael-infoview-live-text)))))
+               30))
+      (should (string-prefix-p "Tactic state: 1 goal"
+                               (nael-infoview-live-text)))
+      (should (eq (alist-get 'infoview-term-goal nael-rpc--slots) before)))))
+
 (ert-deftest nael-infoview-live-throttle ()
   "Updates in quick succession are coalesced into a trailing one."
   (with-current-buffer (nael-infoview-live-open)

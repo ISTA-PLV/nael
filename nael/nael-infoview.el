@@ -140,10 +140,12 @@ Lean 4.30 and later announce their RPC wire format."
          handle (lambda (result) (setq goals result) (finish))
          :owner owner :slot 'infoview-goals
          :failure (lambda (e) (fail e) (setq goals nil) (finish)))
-        (nael-rpc-get-interactive-term-goal
-         handle (lambda (result) (setq term-goal result) (finish))
-         :owner owner :slot 'infoview-term-goal
-         :failure (lambda (e) (fail e) (setq term-goal nil) (finish)))))))
+        (if (eq nael-infoview-expected-type 'hidden)
+            (setq term-goal nil)
+          (nael-rpc-get-interactive-term-goal
+           handle (lambda (result) (setq term-goal result) (finish))
+           :owner owner :slot 'infoview-term-goal
+           :failure (lambda (e) (fail e) (setq term-goal nil) (finish))))))))
 
 (defun nael-infoview--update (&optional force)
   "Update the infoview for `nael-infoview--target' now.

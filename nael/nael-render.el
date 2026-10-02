@@ -117,6 +117,9 @@ that contains only TEXT."
 (defvar nael-render--nodes nil
   "Nodes rendered so far, in reverse order.")
 
+(defvar nael-render--diffs t
+  "Non-nil if diffs are rendered; nil under the option `:hide-diffs'.")
+
 (defvar nael-render--goal-ids nil
   "Metavariable ids of the goals rendered so far, for `nael-goal'.")
 
@@ -180,10 +183,7 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
                 (and (plist-get options :hide-types)
                      (nael-render--true-p (plist-get hyp :isType))))
       (let ((beg (point))
-            (diff (cond ((nael-render--true-p (plist-get hyp :isInserted))
-                         'nael-render-diff-inserted)
-                        ((nael-render--true-p (plist-get hyp :isRemoved))
-                         'nael-render-diff-removed))))
+            (diff (nael-render--flag-diff-face hyp)))
         (cl-loop for (name . more) on names
                  do (nael-render--insert
                      name (if (nael-render--inaccessible-p name)
@@ -202,20 +202,21 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
         (put-text-property beg (point) 'nael-hyp
                            (append (plist-get hyp :fvarIds) nil))))))
 
-(defun nael-render--goal-diff-face (goal)
-  "Return the diff face for GOAL as a whole, or nil.
-Before a tactic, the server marks the goals that it will close or
-replace as removed; after it, the goals that it created as inserted."
-  (cond ((nael-render--true-p (plist-get goal :isInserted))
-         'nael-render-diff-inserted)
-        ((nael-render--true-p (plist-get goal :isRemoved))
-         'nael-render-diff-removed)))
+(defun nael-render--flag-diff-face (object)
+  "Return the diff face for OBJECT, a goal or hypothesis, or nil.
+Before a tactic, the server marks what it will remove; after it, what
+it has inserted."
+  (when nael-render--diffs
+    (cond ((nael-render--true-p (plist-get object :isInserted))
+           'nael-render-diff-inserted)
+          ((nael-render--true-p (plist-get object :isRemoved))
+           'nael-render-diff-removed))))
 
 (defun nael-render--target (goal)
   "Insert the target of GOAL, with its turnstile, as the last line.
 The turnstile shows whether the goal as a whole is removed or inserted."
   (let ((prefix (or (plist-get goal :goalPrefix) "⊢ ")))
-    (nael-render--insert prefix (or (nael-render--goal-diff-face goal)
+    (nael-render--insert prefix (or (nael-render--flag-diff-face goal)
                                     'nael-render-goal-prefix))
     (nael-render--code (plist-get goal :type))
     (insert "\n")))
@@ -230,7 +231,7 @@ see `nael-render-goals'."
     (when heading
       (nael-render--insert (propertize heading 'outline-level 2)
                            'nael-render-case)
-      (when-let* ((diff (nael-render--goal-diff-face goal)))
+      (when-let* ((diff (nael-render--flag-diff-face goal)))
         (push (list beg (point) diff) nael-render--faces))
       (insert "\n"))
     (let ((code-beg (point)))
@@ -288,7 +289,7 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
   "Add the noted faces, then the diff faces of the rendered nodes."
   (pcase-dolist (`(,beg ,end ,face) (reverse nael-render--faces))
     (add-face-text-property beg end face))
-  (dolist (node nael-render--nodes)
+  (dolist (node (and nael-render--diffs nael-render--nodes))
     (when-let* ((face (nael-render-diff-face
                        (nael-render-node-diff-status node))))
       (add-face-text-property (nael-render-node-beg node)
@@ -320,8 +321,10 @@ OPTIONS is a plist of view options:
   :hide-types        hide hypotheses that are types, such as `α : Type';
   :hide-inaccessible hide inaccessible names, such as `n✝';
   :hide-let-values   hide the values of let-bound hypotheses;
-  :reverse           show the target first, then hypotheses upwards."
-  (let ((nael-render--nodes nil)
+  :reverse           show the target first, then hypotheses upwards;
+  :hide-diffs        do not mark what the tactic at point changes."
+  (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
+        (nael-render--nodes nil)
         (nael-render--goal-ids nil)
         (nael-render--faces nil))
     (with-temp-buffer

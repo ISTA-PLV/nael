@@ -50,8 +50,61 @@
 
 ;;;; State:
 
-(defvar nael-infoview-options nil
-  "View options of the infoview, as described in `nael-render-goals'.")
+(defcustom nael-infoview-hide-instances nil
+  "Whether the infoview hides instance hypotheses, like `inst✝ : Ring R'.
+Toggle it in the infoview with \\<nael-infoview-mode-map>\\[nael-infoview-toggle-instances]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-hide-types nil
+  "Whether the infoview hides hypotheses that are types, like `α : Type'.
+Toggle it in the infoview with \\<nael-infoview-mode-map>\\[nael-infoview-toggle-types]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-hide-inaccessible nil
+  "Whether the infoview hides inaccessible names, which contain \"✝\".
+Toggle it in the infoview with \\<nael-infoview-mode-map>\\[nael-infoview-toggle-inaccessible]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-hide-let-values nil
+  "Whether the infoview hides the values of let-bound hypotheses.
+Toggle it in the infoview with \\<nael-infoview-mode-map>\\[nael-infoview-toggle-let-values]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-reverse nil
+  "Whether the infoview shows targets first, then hypotheses upwards.
+Toggle it in the infoview with \\<nael-infoview-mode-map>\\[nael-infoview-toggle-reverse]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-show-diffs t
+  "Whether the infoview marks what the tactic at point changes.
+The marks use the faces `nael-render-diff-inserted' and
+`nael-render-diff-removed'.  Toggle it in the infoview with
+\\<nael-infoview-mode-map>\\[nael-infoview-toggle-diffs]."
+  :type 'boolean
+  :group 'nael-infoview)
+
+(defcustom nael-infoview-expected-type 'expanded
+  "How the infoview shows the expected type at point.
+`expanded' shows it, `collapsed' shows its heading folded, and `hidden'
+does not request it at all."
+  :type '(choice (const :tag "Expanded" expanded)
+                 (const :tag "Collapsed" collapsed)
+                 (const :tag "Hidden" hidden))
+  :group 'nael-infoview)
+
+(defun nael-infoview--options ()
+  "Return the view options for `nael-render-goals'."
+  (list :hide-instances nael-infoview-hide-instances
+        :hide-types nael-infoview-hide-types
+        :hide-inaccessible nael-infoview-hide-inaccessible
+        :hide-let-values nael-infoview-hide-let-values
+        :reverse nael-infoview-reverse
+        :hide-diffs (not nael-infoview-show-diffs)))
 
 (defvar-local nael-infoview--owner nil
   "Owner of the references that the infoview shows.")
@@ -85,7 +138,8 @@ nil when up to date, or one of `updating', `processing',
   "t" #'nael-infoview-toggle-types
   "a" #'nael-infoview-toggle-inaccessible
   "l" #'nael-infoview-toggle-let-values
-  "r" #'nael-infoview-toggle-reverse)
+  "r" #'nael-infoview-toggle-reverse
+  "d" #'nael-infoview-toggle-diffs)
 
 (defun nael-infoview--outline-level ()
   "Return the outline level of the heading at point."
@@ -141,7 +195,7 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
   (mapconcat
    (pcase-lambda (`(,key ,label ,command))
      (propertize label
-                 'face (if (plist-get nael-infoview-options key)
+                 'face (if (plist-get (nael-infoview--options) key)
                            'nael-infoview-filter-on
                          'nael-infoview-filter-off)
                  'mouse-face 'mode-line-highlight
@@ -262,6 +316,17 @@ so that folds survive moving to another tactic."
         (outline-next-heading))
       keys)))
 
+(defun nael-infoview--heading-keys ()
+  "Return the keys of all headings of the current buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (let (keys)
+      (unless (outline-on-heading-p) (outline-next-heading))
+      (while (not (eobp))
+        (push (nael-infoview--heading-key) keys)
+        (outline-next-heading))
+      keys)))
+
 (defun nael-infoview--fold (keys)
   "Fold the headings of the current buffer whose key is in KEYS."
   (when keys
@@ -277,9 +342,10 @@ so that folds survive moving to another tactic."
   "Render the shown results again, keeping folds and window positions."
   (let* ((rendered (apply #'nael-render-goals
                           (append nael-infoview--results
-                                  (list nael-infoview-options))))
+                                  (list (nael-infoview--options)))))
          (inhibit-read-only t)
          (folded (nael-infoview--folded-keys))
+         (present (nael-infoview--heading-keys))
          (windows (mapcar (lambda (window)
                             (cons window
                                   (nael-infoview--window-anchor window)))
@@ -296,7 +362,13 @@ so that folds survive moving to another tactic."
       (overlay-put (make-overlay (nael-render-node-beg node)
                                  (nael-render-node-end node))
                    'mouse-face 'highlight))
-    (nael-infoview--fold folded)
+    (nael-infoview--fold
+     ;; The expected type starts folded if so customized, and remembers
+     ;; being unfolded only while it stays.
+     (if (and (eq nael-infoview-expected-type 'collapsed)
+              (not (memq 'term-goal present)))
+         (cons 'term-goal folded)
+       folded))
     (pcase-dolist (`(,window . ,anchors) windows)
       (nael-infoview--restore-window window anchors))
     (nael-infoview--highlight-point)))
@@ -333,11 +405,10 @@ LOCATION describes where they were requested."
 
 ;;;; Commands:
 
-(defun nael-infoview--toggle-option (key)
-  "Toggle the view option KEY and render the infoview again."
-  (setq nael-infoview-options
-        (plist-put (copy-sequence nael-infoview-options) key
-                   (not (plist-get nael-infoview-options key))))
+(defun nael-infoview--toggle-option (variable)
+  "Toggle the user option VARIABLE and render the infoview again."
+  (set variable (not (symbol-value variable)))
+  (message "%s %s" variable (if (symbol-value variable) "enabled" "disabled"))
   (when-let* ((buffer (nael-infoview--buffer)))
     (with-current-buffer buffer
       (when nael-infoview--results
@@ -347,27 +418,32 @@ LOCATION describes where they were requested."
 (defun nael-infoview-toggle-instances ()
   "Toggle hiding instance hypotheses in the infoview."
   (interactive)
-  (nael-infoview--toggle-option :hide-instances))
+  (nael-infoview--toggle-option 'nael-infoview-hide-instances))
 
 (defun nael-infoview-toggle-types ()
   "Toggle hiding hypotheses that are types in the infoview."
   (interactive)
-  (nael-infoview--toggle-option :hide-types))
+  (nael-infoview--toggle-option 'nael-infoview-hide-types))
 
 (defun nael-infoview-toggle-inaccessible ()
   "Toggle hiding inaccessible names, which contain \"✝\", in the infoview."
   (interactive)
-  (nael-infoview--toggle-option :hide-inaccessible))
+  (nael-infoview--toggle-option 'nael-infoview-hide-inaccessible))
 
 (defun nael-infoview-toggle-let-values ()
   "Toggle hiding the values of let-bound hypotheses in the infoview."
   (interactive)
-  (nael-infoview--toggle-option :hide-let-values))
+  (nael-infoview--toggle-option 'nael-infoview-hide-let-values))
 
 (defun nael-infoview-toggle-reverse ()
   "Toggle showing targets before hypotheses in the infoview."
   (interactive)
-  (nael-infoview--toggle-option :reverse))
+  (nael-infoview--toggle-option 'nael-infoview-reverse))
+
+(defun nael-infoview-toggle-diffs ()
+  "Toggle marking what the tactic at point changes in the infoview."
+  (interactive)
+  (nael-infoview--toggle-option 'nael-infoview-show-diffs))
 
 (defun nael-infoview--goal-start (pos)
   "Return the start of the goal at POS, or nil if POS is in no goal."

@@ -18,10 +18,22 @@
 (require 'nael-infoview)
 (require 'nael-render-tests)
 
+(defmacro nael-infoview-test-with-options (&rest body)
+  "Run BODY with the default view options of the infoview."
+  (declare (indent 0) (debug t))
+  `(let ((nael-infoview-hide-instances nil)
+         (nael-infoview-hide-types nil)
+         (nael-infoview-hide-inaccessible nil)
+         (nael-infoview-hide-let-values nil)
+         (nael-infoview-reverse nil)
+         (nael-infoview-show-diffs t)
+         (nael-infoview-expected-type 'expanded))
+     ,@body))
+
 (defmacro nael-infoview-test-with-goals (&rest body)
   "Run BODY in the infoview showing the recorded goals of SpinLock."
   (declare (indent 0) (debug t))
-  `(let ((nael-infoview-options nil))
+  `(nael-infoview-test-with-options
      (unwind-protect
          (progn
            (nael-infoview--show (nael-render-test-fixture) nil
@@ -117,8 +129,8 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-fold-case-by-name ()
   "A folded case stays folded where it moves, an unfolded one open."
-  (let ((nael-infoview-options nil)
-        (inl (nael-render-test-goal :userName "inl"))
+  (nael-infoview-test-with-options
+   (let ((inl (nael-render-test-goal :userName "inl"))
         (inr (nael-render-test-goal :userName "inr")))
     (unwind-protect
         (progn
@@ -136,14 +148,14 @@ That is what the goals look like after the next tactic."
                                  (nael-rpc-make-owner) "x")
             (nael-infoview-test-goto "case inl")
             (should-not (outline-invisible-p (line-end-position)))))
-      (kill-buffer (nael-infoview--buffer)))))
+      (kill-buffer (nael-infoview--buffer))))))
 
 (ert-deftest nael-infoview-test-filters ()
   (nael-infoview-test-with-goals
     (should (string-search "inst✝" (buffer-string)))
     (nael-infoview-toggle-instances)
     (should-not (string-search "inst✝" (buffer-string)))
-    (should (plist-get nael-infoview-options :hide-instances))
+    (should nael-infoview-hide-instances)
     (let ((header (nael-infoview--header-line)))
       (should (eq (get-text-property (string-search "instances" header)
                                      'face header)
@@ -153,6 +165,44 @@ That is what the goals look like after the next tactic."
                   'nael-infoview-filter-off)))
     (nael-infoview-toggle-instances)
     (should (string-search "inst✝" (buffer-string)))))
+
+(ert-deftest nael-infoview-test-toggle-diffs ()
+  "Diffs can be switched off and on."
+  (nael-infoview-test-with-goals
+    (cl-flet ((marked-p ()
+                (text-property-search-forward
+                 'face 'nael-render-diff-removed
+                 (lambda (face faces) (memq face (ensure-list faces))))))
+      (goto-char (point-min))
+      (should (marked-p))
+      (nael-infoview-toggle-diffs)
+      (goto-char (point-min))
+      (should-not (marked-p))
+      (nael-infoview-toggle-diffs)
+      (goto-char (point-min))
+      (should (marked-p)))))
+
+(ert-deftest nael-infoview-test-expected-type-collapsed ()
+  "A collapsed expected type starts folded and stays as the user leaves it."
+  (nael-infoview-test-with-options
+    (let ((nael-infoview-expected-type 'collapsed)
+          (term-goal (list :hyps [] :type (nael-render-test-code "Nat"))))
+      (unwind-protect
+          (progn
+            (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
+            (with-current-buffer (nael-infoview--buffer)
+              (nael-infoview-test-goto "Expected type")
+              (should (outline-invisible-p (line-end-position)))
+              (outline-show-subtree)
+              (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
+              (nael-infoview-test-goto "Expected type")
+              (should-not (outline-invisible-p (line-end-position)))
+              ;; Gone and back: folded again.
+              (nael-infoview--show nil nil (nael-rpc-make-owner) "x")
+              (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
+              (nael-infoview-test-goto "Expected type")
+              (should (outline-invisible-p (line-end-position)))))
+        (kill-buffer (nael-infoview--buffer))))))
 
 (ert-deftest nael-infoview-test-goal-navigation ()
   (nael-infoview-test-with-goals
