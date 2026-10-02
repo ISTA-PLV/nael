@@ -242,19 +242,41 @@ Also update it if it is waiting for processing to end."
         (setq nael-infoview--diagnostics-key key)
         (nael-infoview--schedule)))))
 
+(defun nael-infoview--track ()
+  "Make the infoview follow the current buffer, if it is a Nael buffer."
+  (if (nael-infoview--followed-p (current-buffer))
+      (progn
+        (add-hook 'post-command-hook #'nael-infoview--post-command nil t)
+        (add-hook 'nael-eglot-file-progress-functions
+                  #'nael-infoview--file-progress nil t)
+        (add-hook 'nael-eglot-diagnostics-functions
+                  #'nael-infoview--diagnostics nil t))
+    (nael-infoview--untrack)))
+
+(defun nael-infoview--untrack ()
+  "Stop the infoview from following the current buffer."
+  (remove-hook 'post-command-hook #'nael-infoview--post-command t)
+  (remove-hook 'nael-eglot-file-progress-functions
+               #'nael-infoview--file-progress t)
+  (remove-hook 'nael-eglot-diagnostics-functions
+               #'nael-infoview--diagnostics t))
+
 (defun nael-infoview--add-hooks ()
-  "Make the infoview follow Nael buffers."
-  (add-hook 'post-command-hook #'nael-infoview--post-command)
-  (add-hook 'nael-eglot-file-progress-functions #'nael-infoview--file-progress)
-  (add-hook 'nael-eglot-diagnostics-functions #'nael-infoview--diagnostics))
+  "Make the infoview follow Nael buffers managed by Eglot.
+The hooks are local to those buffers.  `eglot-managed-mode-hook' adds
+them to buffers that Eglot starts managing later."
+  (add-hook 'eglot-managed-mode-hook #'nael-infoview--track)
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (derived-mode-p 'nael-mode)
+        (nael-infoview--track)))))
 
 (defun nael-infoview--remove-hooks ()
   "Stop following Nael buffers."
-  (remove-hook 'post-command-hook #'nael-infoview--post-command)
-  (remove-hook 'nael-eglot-file-progress-functions
-               #'nael-infoview--file-progress)
-  (remove-hook 'nael-eglot-diagnostics-functions
-               #'nael-infoview--diagnostics))
+  (remove-hook 'eglot-managed-mode-hook #'nael-infoview--track)
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (nael-infoview--untrack))))
 
 (defun nael-infoview-shows-goals-p ()
   "Return non-nil if the infoview shows goals for the current buffer.

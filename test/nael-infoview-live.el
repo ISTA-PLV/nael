@@ -137,6 +137,20 @@ The buffer is current, and point is before `rw'."
           (should (nael-infoview-live-wait-for "⊢ b + 0 = 1")))
       (setq nael-eglot-file-progress []))))
 
+(ert-deftest nael-infoview-live-local-hooks ()
+  "The infoview hooks into Nael buffers only, and leaves them when killed."
+  (let ((buffer (nael-infoview-live-open)))
+    (should (memq #'nael-infoview--post-command
+                  (buffer-local-value 'post-command-hook buffer)))
+    (should-not (memq #'nael-infoview--post-command
+                      (default-value 'post-command-hook)))
+    (with-temp-buffer
+      (should-not (memq #'nael-infoview--post-command post-command-hook)))
+    (kill-buffer (nael-infoview--buffer))
+    (should-not (memq #'nael-infoview--post-command
+                      (buffer-local-value 'post-command-hook buffer)))
+    (should-not (memq #'nael-infoview--track eglot-managed-mode-hook))))
+
 (ert-deftest nael-infoview-live-throttle ()
   "Updates in quick succession are coalesced into a trailing one."
   (with-current-buffer (nael-infoview-live-open)
