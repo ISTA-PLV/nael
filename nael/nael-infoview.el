@@ -154,8 +154,9 @@ nil when up to date, or one of `updating', `processing',
 (define-derived-mode nael-infoview-mode special-mode "Nael Infoview"
   "Major mode of the Nael infoview, which shows goals at point.
 
-Headings of sections and goals can be folded with \\[outline-cycle]
-and \\[outline-cycle-buffer], as in `outline-minor-mode'.
+Headings of sections and goals can be folded by clicking the triangle
+before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
+`outline-minor-mode'.
 
 \\{nael-infoview-mode-map}"
   (setq-local revert-buffer-function
@@ -163,7 +164,8 @@ and \\[outline-cycle-buffer], as in `outline-minor-mode'.
   (setq-local header-line-format '(:eval (nael-infoview--header-line)))
   (setq-local outline-search-function #'outline-search-level
               outline-level #'nael-infoview--outline-level
-              outline-minor-mode-cycle t)
+              outline-minor-mode-cycle t
+              outline-minor-mode-use-buttons t)
   (outline-minor-mode)
   (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))

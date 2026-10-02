@@ -67,6 +67,29 @@
     (nael-infoview-test-goto "goal 3")
     (should-not (outline-invisible-p (line-end-position)))))
 
+(defun nael-infoview-test-button ()
+  "Return the outline button string before the heading at point, or nil."
+  (when-let* ((overlay (seq-find (lambda (o) (overlay-get o 'outline-button))
+                                 (overlays-at (line-beginning-position)))))
+    (overlay-get overlay 'before-string)))
+
+(ert-deftest nael-infoview-test-fold-buttons ()
+  "Every foldable heading has a button that shows whether it is folded."
+  (nael-infoview-test-with-goals
+    (dolist (heading '("Tactic state" "goal 1" "goal 2" "goal 3"))
+      (nael-infoview-test-goto heading)
+      (should (nael-infoview-test-button)))
+    (nael-infoview-test-goto "hlc : HasLC")
+    (should-not (nael-infoview-test-button))
+    (nael-infoview-test-goto "goal 2")
+    (let ((open (nael-infoview-test-button)))
+      (outline-hide-subtree)
+      (should-not (equal (nael-infoview-test-button) open))
+      ;; Still closed after rendering again.
+      (nael-infoview-toggle-types)
+      (nael-infoview-test-goto "goal 2")
+      (should-not (equal (nael-infoview-test-button) open)))))
+
 (ert-deftest nael-infoview-test-filters ()
   (nael-infoview-test-with-goals
     (should (string-search "inst✝" (buffer-string)))
