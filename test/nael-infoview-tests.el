@@ -61,7 +61,8 @@
                           (overlays-in (point-min) (point-max)))
                63))
     (should (string-search "SpinLock.lean:110:2"
-                           (nael-infoview--header-line)))))
+                           (nael-infoview--mode-line-process)))
+    (should-not header-line-format)))
 
 (ert-deftest nael-infoview-test-fold-survives-render ()
   "Folded goals and sections stay folded when the goals are shown again."
@@ -156,13 +157,11 @@ That is what the goals look like after the next tactic."
     (nael-infoview-toggle-instances)
     (should-not (string-search "inst✝" (buffer-string)))
     (should nael-infoview-hide-instances)
-    (let ((header (nael-infoview--header-line)))
-      (should (eq (get-text-property (string-search "instances" header)
-                                     'face header)
-                  'nael-infoview-filter-on))
-      (should (eq (get-text-property (string-search "types" header)
-                                     'face header)
-                  'nael-infoview-filter-off)))
+    ;; The menu shows the state of the filters.
+    (let ((item (assq (intern "Hide instances")
+                      (lookup-key nael-infoview-mode-map [menu-bar Infoview]))))
+      (should (equal (plist-get (nthcdr 4 item) :button)
+                     '(:toggle . nael-infoview-hide-instances))))
     (nael-infoview-toggle-instances)
     (should (string-search "inst✝" (buffer-string)))))
 

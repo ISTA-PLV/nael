@@ -38,16 +38,6 @@
   "Face of the subterm at point in the infoview."
   :group 'nael-infoview)
 
-(defface nael-infoview-filter-on
-  '((t :inherit mode-line-emphasis))
-  "Face of an active filter in the header line of the infoview."
-  :group 'nael-infoview)
-
-(defface nael-infoview-filter-off
-  '((t :inherit shadow))
-  "Face of an inactive filter in the header line of the infoview."
-  :group 'nael-infoview)
-
 ;;;; State:
 
 (defcustom nael-infoview-hide-instances nil
@@ -110,7 +100,7 @@ does not request it at all."
   "Owner of the references that the infoview shows.")
 
 (defvar-local nael-infoview--status nil
-  "Status of the infoview, shown in its header line.
+  "Status of the infoview, shown in its mode line.
 nil when up to date, or one of `updating', `processing',
 `unsupported', `no-server', or (error . MESSAGE).")
 
@@ -155,7 +145,7 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
 \\{nael-infoview-mode-map}"
   (setq-local revert-buffer-function
               (lambda (&rest _) (nael-infoview-refresh)))
-  (setq-local header-line-format '(:eval (nael-infoview--header-line)))
+  (setq-local mode-line-process '(:eval (nael-infoview--mode-line-process)))
   (setq-local outline-search-function #'outline-search-level
               outline-level #'nael-infoview--outline-level
               outline-minor-mode-cycle t
@@ -182,43 +172,23 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
   (when-let* ((buffer (nael-infoview--buffer)))
     (get-buffer-window buffer t)))
 
-(defconst nael-infoview--filters
-  '((:hide-instances "instances" nael-infoview-toggle-instances)
-    (:hide-types "types" nael-infoview-toggle-types)
-    (:hide-inaccessible "✝" nael-infoview-toggle-inaccessible)
-    (:hide-let-values "let values" nael-infoview-toggle-let-values)
-    (:reverse "reverse" nael-infoview-toggle-reverse))
-  "View options of the infoview: key, label and toggle command.")
-
-(defun nael-infoview--filter-buttons ()
-  "Return the clickable filter toggles for the header line."
-  (mapconcat
-   (pcase-lambda (`(,key ,label ,command))
-     (propertize label
-                 'face (if (plist-get (nael-infoview--options) key)
-                           'nael-infoview-filter-on
-                         'nael-infoview-filter-off)
-                 'mouse-face 'mode-line-highlight
-                 'help-echo (format "mouse-1: %s"
-                                    (documentation command t))
-                 'keymap (make-mode-line-mouse-map 'mouse-1 command)))
-   nael-infoview--filters " "))
-
-(defun nael-infoview--header-line ()
-  "Return the header line of the infoview."
+(defun nael-infoview--mode-line-process ()
+  "Return the location and status of the infoview for its mode line.
+This is the value of `mode-line-process', which is where buffers of
+processes such as compilations show their state."
   (concat
-   (nael-infoview--filter-buttons)
-   "  "
-   (or nael-infoview--location "")
+   (when nael-infoview--location
+     (concat " " nael-infoview--location))
    (pcase nael-infoview--status
-     ('nil "")
-     ('updating "  Updating…")
-     ('processing "  Processing…")
-     ('unsupported "  Needs Lean 4.30 or later; see C-h . for goals")
-     ('no-server "  No Lean server")
+     ('nil nil)
+     ('updating " updating")
+     ('processing " processing")
+     ('unsupported
+      (propertize " needs Lean 4.30" 'help-echo
+                  "Lean 4.30 or later is needed; C-h . shows the goals"))
+     ('no-server " no server")
      (`(error . ,message)
-      (concat "  " (propertize (format "Error: %s" message)
-                               'face 'error))))))
+      (propertize " error" 'face 'error 'help-echo message)))))
 
 (defun nael-infoview--set-status (status)
   "Set the STATUS of the infoview and dim its content if outdated."
@@ -290,7 +260,7 @@ goal, and the column."
 ;;;; Showing results:
 
 (defun nael-infoview--location (buffer pos)
-  "Describe position POS in BUFFER for the header line."
+  "Describe position POS in BUFFER for the mode line."
   (with-current-buffer buffer
     (save-excursion
       (goto-char pos)
@@ -444,6 +414,43 @@ LOCATION describes where they were requested."
   "Toggle marking what the tactic at point changes in the infoview."
   (interactive)
   (nael-infoview--toggle-option 'nael-infoview-show-diffs))
+
+(defun nael-infoview-set-expected-type (visibility)
+  "Set how the infoview shows the expected type to VISIBILITY.
+See `nael-infoview-expected-type'."
+  (setq nael-infoview-expected-type visibility)
+  (nael-infoview-refresh))
+
+(easy-menu-define nael-infoview-mode-menu nael-infoview-mode-map
+  "Menu for the Nael infoview."
+  '("Infoview"
+    ["Refresh" nael-infoview-refresh]
+    "---"
+    ["Hide instances" nael-infoview-toggle-instances
+     :style toggle :selected nael-infoview-hide-instances]
+    ["Hide types" nael-infoview-toggle-types
+     :style toggle :selected nael-infoview-hide-types]
+    ["Hide inaccessible names" nael-infoview-toggle-inaccessible
+     :style toggle :selected nael-infoview-hide-inaccessible]
+    ["Hide let values" nael-infoview-toggle-let-values
+     :style toggle :selected nael-infoview-hide-let-values]
+    ["Target first" nael-infoview-toggle-reverse
+     :style toggle :selected nael-infoview-reverse]
+    ["Show diffs" nael-infoview-toggle-diffs
+     :style toggle :selected nael-infoview-show-diffs]
+    ("Expected type"
+     ["Expanded" (nael-infoview-set-expected-type 'expanded)
+      :style radio :selected (eq nael-infoview-expected-type 'expanded)]
+     ["Collapsed" (nael-infoview-set-expected-type 'collapsed)
+      :style radio :selected (eq nael-infoview-expected-type 'collapsed)]
+     ["Hidden" (nael-infoview-set-expected-type 'hidden)
+      :style radio :selected (eq nael-infoview-expected-type 'hidden)])
+    "---"
+    ["Next goal" nael-infoview-next-goal]
+    ["Previous goal" nael-infoview-previous-goal]
+    ["Copy goal" nael-infoview-copy-goal]
+    "---"
+    ["Customize" (customize-group 'nael-infoview)]))
 
 (defun nael-infoview--goal-start (pos)
   "Return the start of the goal at POS, or nil if POS is in no goal."
