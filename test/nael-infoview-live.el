@@ -171,6 +171,44 @@ The buffer is current, and point is before `rw'."
                                (nael-infoview-live-text)))
       (should (eq (alist-get 'infoview-term-goal nael-rpc--slots) before)))))
 
+(defun nael-infoview-live-large-goal (n)
+  "Return a theorem whose goal has N variables, N hypotheses and a sum."
+  (concat "theorem large "
+          (mapconcat (lambda (i) (format "(x%d : Nat)" i)) (number-sequence 0 (1- n)) " ")
+          " "
+          (mapconcat (lambda (i) (format "(h%d : x%d = %d)" i i i))
+                     (number-sequence 0 (1- n)) " ")
+          " : "
+          (mapconcat (lambda (i) (format "x%d" i)) (number-sequence 0 (1- n)) " + ")
+          (format " = %d := by\n  sorry\n" (/ (* n (1- n)) 2))))
+
+(ert-deftest nael-infoview-live-large-goal ()
+  "A goal with hundreds of hypotheses renders in well under a second."
+  (with-current-buffer (nael-infoview-live-open)
+    (goto-char (point-max))
+    (insert "\n" (nael-infoview-live-large-goal 300))
+    (nael-eglot-flush-changes)
+    (setq nael-eglot-file-progress nil)
+    (should (nael-rpc-live-wait #'nael-rpc-live-processed-p 120))
+    (goto-char (point-max))
+    (forward-line -1)
+    (back-to-indentation)
+    (nael-infoview--post-command)
+    (should (nael-infoview-live-wait-for "h299 : x299 = 299"))
+    (with-current-buffer (nael-infoview--buffer)
+      (let* ((results nael-infoview--results)
+             (render (car (benchmark-run 5
+                            (apply #'nael-render-goals
+                                   (append results
+                                           (list (nael-infoview--options)))))))
+             (show (car (benchmark-run 5 (nael-infoview--render))))
+             (nodes (length (overlays-in (point-min) (point-max)))))
+        (message "Large goal: %d characters, %d overlays; render %.1f ms, \
+render into buffer %.1f ms"
+                 (buffer-size) nodes (* 200 render) (* 200 show))
+        (should (> nodes 900))
+        (should (< (/ show 5) 0.5))))))
+
 (ert-deftest nael-infoview-live-throttle ()
   "Updates in quick succession are coalesced into a trailing one."
   (with-current-buffer (nael-infoview-live-open)
