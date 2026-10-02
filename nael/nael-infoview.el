@@ -145,8 +145,12 @@ Lean 4.30 and later announce their RPC wire format."
          :owner owner :slot 'infoview-term-goal
          :failure (lambda (e) (fail e) (setq term-goal nil) (finish)))))))
 
-(defun nael-infoview--update ()
-  "Update the infoview for `nael-infoview--target' now."
+(defun nael-infoview--update (&optional force)
+  "Update the infoview for `nael-infoview--target' now.
+While the server reports that it is processing the line of the target,
+show that instead of requesting goals, unless FORCE is non-nil.  A
+request made earlier would only wait on the server, so this is just to
+save work; when the server has not reported anything yet, request."
   (pcase-let ((`(,buffer . ,pos) nael-infoview--target))
     (when (and (buffer-live-p buffer) (nael-infoview-visible-p))
       (with-current-buffer buffer
@@ -156,10 +160,10 @@ Lean 4.30 and later announce their RPC wire format."
           (nael-infoview--set-status 'no-server))
          ((not (nael-infoview--rpc-supported-p))
           (nael-infoview--set-status 'unsupported))
-         ((or (null nael-eglot-file-progress)
-              (nael-eglot-processing-line-p
-               (save-excursion (goto-char pos)
-                               (1- (line-number-at-pos nil t)))))
+         ((and (not force)
+               (nael-eglot-processing-line-p
+                (save-excursion (goto-char pos)
+                                (1- (line-number-at-pos nil t)))))
           (nael-infoview--set-status 'processing))
          (t
           (nael-infoview--request buffer pos)))))))
@@ -263,10 +267,10 @@ ElDoc then leaves goals to the infoview."
 ;;;; Commands:
 
 (defun nael-infoview-refresh ()
-  "Update the infoview now."
+  "Update the infoview now, even while the server is processing."
   (interactive)
   (when nael-infoview--target
-    (nael-infoview--update)))
+    (nael-infoview--update 'force)))
 
 ;;;###autoload
 (defun nael-infoview ()

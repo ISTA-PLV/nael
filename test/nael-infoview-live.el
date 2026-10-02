@@ -110,6 +110,33 @@ The buffer is current, and point is before `rw'."
       (should-not (buffer-local-value 'nael-infoview--dim-cookie
                                       (nael-infoview--buffer))))))
 
+(ert-deftest nael-infoview-live-no-progress-yet ()
+  "Without any progress report, goals are requested rather than waited for."
+  (with-current-buffer (nael-infoview-live-open)
+    (let ((generation nael-infoview--generation))
+      (unwind-protect
+          (progn
+            (setq nael-eglot-file-progress nil)
+            (nael-infoview-live-move 5 2)
+            (should (= nael-infoview--generation (1+ generation)))
+            (should (nael-infoview-live-wait-for "⊢ b + 0 = 1")))
+        (setq nael-eglot-file-progress [])))))
+
+(ert-deftest nael-infoview-live-refresh-while-processing ()
+  "Refreshing requests goals even while the server reports processing."
+  (with-current-buffer (nael-infoview-live-open)
+    (unwind-protect
+        (progn
+          (setq nael-eglot-file-progress
+                [(:range (:start (:line 2 :character 0)
+                          :end (:line 5 :character 0))
+                         :kind 1)])
+          (nael-infoview-live-move 5 2)
+          (should (eq (nael-infoview-live-status) 'processing))
+          (nael-infoview-refresh)
+          (should (nael-infoview-live-wait-for "⊢ b + 0 = 1")))
+      (setq nael-eglot-file-progress []))))
+
 (ert-deftest nael-infoview-live-throttle ()
   "Updates in quick succession are coalesced into a trailing one."
   (with-current-buffer (nael-infoview-live-open)
