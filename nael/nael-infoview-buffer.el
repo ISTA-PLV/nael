@@ -192,16 +192,17 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
 (defun nael-infoview--window-anchor (window)
   "Return where WINDOW looks into the infoview, to restore it later.
 The result is (START . POINT), each an anchor (GOAL LINE COLUMN): the
-goal at the position, the line relative to the goal's first line, or
-to the buffer if not in a goal, and the column."
+key of the goal at the position (see `nael-key' in `nael-render'), the
+line relative to the goal's first line, or to the buffer if not in a
+goal, and the column."
   (cl-flet ((anchor (pos)
               (save-excursion
                 (goto-char pos)
-                (let* ((goal (get-text-property pos 'nael-goal))
+                (let* ((goal (get-text-property pos 'nael-key))
                        (goal-start
                         (if goal
                             (or (previous-single-property-change
-                                 (1+ pos) 'nael-goal nil (point-min))
+                                 (1+ pos) 'nael-key nil (point-min))
                                 (point-min))
                           (point-min))))
                   (list goal
@@ -216,7 +217,7 @@ to the buffer if not in a goal, and the column."
     (save-excursion
       (goto-char (point-min))
       (when goal
-        (if-let* ((match (text-property-search-forward 'nael-goal goal t)))
+        (if-let* ((match (text-property-search-forward 'nael-key goal t)))
             (goto-char (prop-match-beginning match))
           (goto-char (point-min))))
       (forward-line line)
@@ -243,9 +244,11 @@ to the buffer if not in a goal, and the column."
               (current-column)))))
 
 (defun nael-infoview--heading-key ()
-  "Return a key for the heading at point that survives a refresh."
-  (or (get-text-property (point) 'nael-goal)
-      (get-text-property (point) 'nael-section)))
+  "Return a key for the heading at point that survives a refresh.
+Goals are identified by their place, see `nael-key' in `nael-render',
+so that folds survive moving to another tactic."
+  (or (get-text-property (point) 'nael-section)
+      (get-text-property (point) 'nael-key)))
 
 (defun nael-infoview--folded-keys ()
   "Return the keys of the folded headings of the current buffer."

@@ -57,8 +57,7 @@
     (nael-infoview-test-goto "goal 2")
     (outline-hide-subtree)
     (should (outline-invisible-p (line-end-position)))
-    (should (equal (nael-infoview--folded-keys)
-                   (list (get-text-property (point) 'nael-goal))))
+    (should (equal (nael-infoview--folded-keys) '((goal . 1))))
     ;; Render again, as a filter toggle or a refresh does.
     (nael-infoview-toggle-instances)
     (nael-infoview-test-goto "goal 2")
@@ -93,6 +92,51 @@ In the margin, the button is a space displaying the icon there."
       (nael-infoview-toggle-types)
       (nael-infoview-test-goto "goal 2")
       (should-not (equal (nael-infoview-test-button) open)))))
+
+(defun nael-infoview-test-renumber (goals suffix)
+  "Return GOALS with fresh metavariable ids ending in SUFFIX.
+That is what the goals look like after the next tactic."
+  (list :goals (vconcat
+                (mapcar (lambda (goal)
+                          (plist-put (copy-sequence goal) :mvarId
+                                     (concat (plist-get goal :mvarId) suffix)))
+                        (plist-get goals :goals)))))
+
+(ert-deftest nael-infoview-test-fold-survives-tactic ()
+  "A folded goal stays folded at the same place after the next tactic."
+  (nael-infoview-test-with-goals
+    (nael-infoview-test-goto "goal 2")
+    (outline-hide-subtree)
+    (nael-infoview--show (nael-infoview-test-renumber
+                          (nael-render-test-fixture) ".next")
+                         nil (nael-rpc-make-owner) "SpinLock.lean:111:2")
+    (nael-infoview-test-goto "goal 2")
+    (should (outline-invisible-p (line-end-position)))
+    (nael-infoview-test-goto "goal 1")
+    (should-not (outline-invisible-p (line-end-position)))))
+
+(ert-deftest nael-infoview-test-fold-case-by-name ()
+  "A folded case stays folded where it moves, an unfolded one open."
+  (let ((nael-infoview-options nil)
+        (inl (nael-render-test-goal :userName "inl"))
+        (inr (nael-render-test-goal :userName "inr")))
+    (unwind-protect
+        (progn
+          (nael-infoview--show (list :goals (vector inl inr)) nil
+                               (nael-rpc-make-owner) "x")
+          (with-current-buffer (nael-infoview--buffer)
+            (nael-infoview-test-goto "case inr")
+            (outline-hide-subtree)
+            ;; `inl' is solved; `inr' is now the first goal.
+            (nael-infoview--show (list :goals (vector inr)) nil
+                                 (nael-rpc-make-owner) "x")
+            (nael-infoview-test-goto "case inr")
+            (should (outline-invisible-p (line-end-position)))
+            (nael-infoview--show (list :goals (vector inl inr)) nil
+                                 (nael-rpc-make-owner) "x")
+            (nael-infoview-test-goto "case inl")
+            (should-not (outline-invisible-p (line-end-position)))))
+      (kill-buffer (nael-infoview--buffer)))))
 
 (ert-deftest nael-infoview-test-filters ()
   (nael-infoview-test-with-goals

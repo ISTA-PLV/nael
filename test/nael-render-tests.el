@@ -197,6 +197,25 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                       (nael-render-test-faces
                        text (string-search "= 0" text))))))
 
+(ert-deftest nael-render-test-goal-keys ()
+  "Goals are keyed by case name and occurrence, or by their place."
+  (let ((text (nael-render-result-text
+               (nael-render-goals
+                (list :goals (vector (nael-render-test-goal :userName "h")
+                                     (nael-render-test-goal)
+                                     (nael-render-test-goal :userName "h")))
+                (list :hyps [] :type (nael-render-test-code "Nat"))))))
+    (cl-flet ((key (string) (get-text-property (string-search string text)
+                                               'nael-key text)))
+      (should (equal (key "case h\n⊢") '(case "h" . 0)))
+      (should (equal (key "goal 2") '(goal . 1)))
+      (should (equal (key "Nat\n") 'term-goal)))
+    (should (equal (get-text-property
+                    (string-search "case h" text
+                                   (1+ (string-search "case h" text)))
+                    'nael-key text)
+                   '(case "h" . 1)))))
+
 (ert-deftest nael-render-test-sections ()
   (should (equal (nael-render-test-text nil nil) ""))
   (should (equal (nael-render-test-text '(:goals []) nil)

@@ -28,7 +28,10 @@
 ;; `nael-hyp', made from the server's stable identifiers, so that state
 ;; such as folding can survive a refresh.  The same metavariable can be
 ;; listed as several goals, so `nael-goal' is (MVARID . N) for the Nth
-;; occurrence of MVARID.  Headings carry `outline-level';
+;; occurrence of MVARID.  Metavariables change with every tactic, so
+;; goals also carry `nael-key', which identifies them by their place
+;; instead: (case NAME . N) for the Nth goal named NAME, (goal . N) for
+;; the Nth goal without a name, and `term-goal' for the expected type.  Headings carry `outline-level';
 ;; section headings also carry `nael-section', `goals' or `term-goal'.
 
 ;;; Code:
@@ -217,10 +220,11 @@ The turnstile shows whether the goal as a whole is removed or inserted."
     (nael-render--code (plist-get goal :type))
     (insert "\n")))
 
-(defun nael-render--goal (goal heading options)
+(defun nael-render--goal (goal heading key options)
   "Insert GOAL, an `InteractiveGoal' or `InteractiveTermGoal'.
-If HEADING is non-nil, insert it as a level 2 heading first.  OPTIONS
-is a plist of view options; see `nael-render-goals'."
+If HEADING is non-nil, insert it as a level 2 heading first.  KEY is
+stored in the property `nael-key'.  OPTIONS is a plist of view options;
+see `nael-render-goals'."
   (let ((beg (point))
         (hyps (plist-get goal :hyps)))
     (when heading
@@ -238,6 +242,7 @@ is a plist of view options; see `nael-render-goals'."
           (nael-render--hyp hyp options))
         (nael-render--target goal))
       (nael-render--fontify code-beg (point)))
+    (put-text-property beg (point) 'nael-key key)
     (let ((id (plist-get goal :mvarId)))
       (put-text-property beg (point) 'nael-goal
                          (cons id (seq-count (lambda (other) (equal other id))
@@ -253,7 +258,8 @@ is a plist of view options; see `nael-render-goals'."
 (defun nael-render--goals-section (goals options)
   "Insert the section for GOALS, a vector of `InteractiveGoal's.
 OPTIONS is a plist of view options; see `nael-render-goals'."
-  (let ((count (length goals)))
+  (let ((count (length goals))
+        (names nil))
     (nael-render--heading
      (format "Tactic state: %s"
              (pcase count
@@ -264,13 +270,18 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
     (seq-do-indexed
      (lambda (goal index)
        (unless (zerop index) (insert "\n"))
-       (nael-render--goal
-        goal
-        (cond ((plist-get goal :userName)
-               (format "case %s" (plist-get goal :userName)))
-              ((> count 1)
-               (format "goal %d" (1+ index))))
-        options))
+       (let ((name (plist-get goal :userName)))
+         (nael-render--goal
+          goal
+          (cond (name (format "case %s" name))
+                ((> count 1) (format "goal %d" (1+ index))))
+          (if name
+              (cons 'case (cons name (seq-count (lambda (other)
+                                                  (equal other name))
+                                                names)))
+            (cons 'goal index))
+          options)
+         (push name names)))
      goals)))
 
 (defun nael-render--apply-faces ()
@@ -319,7 +330,7 @@ OPTIONS is a plist of view options:
       (when term-goal
         (unless (bobp) (insert "\n"))
         (nael-render--heading "Expected type" 'term-goal)
-        (nael-render--goal term-goal nil options))
+        (nael-render--goal term-goal nil 'term-goal options))
       (nael-render--apply-faces)
       (nael-render--put-nodes)
       (nael-render--result-create
