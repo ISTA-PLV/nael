@@ -42,7 +42,7 @@
 (ert-deftest nael-infoview-test-show ()
   (nael-infoview-test-with-goals
     (should (string-prefix-p "Tactic state: 3 goals\ngoal 1\n"
-                             (nael-infoview--text (point-min) (point-max))))
+                             (buffer-string)))
     (should (= (seq-count (lambda (overlay)
                             (and (overlay-get overlay 'mouse-face)
                                  (not (overlay-get overlay 'outline-button))))
@@ -69,10 +69,13 @@
     (should-not (outline-invisible-p (line-end-position)))))
 
 (defun nael-infoview-test-button ()
-  "Return what the outline button of the heading at point displays, or nil."
+  "Return the icon of the outline button of the heading at point, or nil.
+In the margin, the button is a space displaying the icon there."
   (when-let* ((overlay (seq-find (lambda (o) (overlay-get o 'outline-button))
-                                 (overlays-at (line-beginning-position)))))
-    (overlay-get overlay 'display)))
+                                 (overlays-at (line-beginning-position))))
+              (string (overlay-get overlay 'before-string)))
+    (pcase (get-text-property 0 'display string)
+      (`((margin left-margin) ,icon) icon))))
 
 (ert-deftest nael-infoview-test-fold-buttons ()
   "Every foldable heading has a button that shows whether it is folded."
@@ -109,19 +112,18 @@
 
 (ert-deftest nael-infoview-test-goal-navigation ()
   (nael-infoview-test-with-goals
-    ;; Goals start at the button of their heading.
     (nael-infoview-next-goal)
-    (should (looking-at "  goal 1"))
+    (should (looking-at "goal 1"))
     (nael-infoview-next-goal)
-    (should (looking-at "  goal 2"))
+    (should (looking-at "goal 2"))
     (forward-line 2)
     (nael-infoview-previous-goal)
-    (should (looking-at "  goal 2"))
+    (should (looking-at "goal 2"))
     (nael-infoview-previous-goal)
-    (should (looking-at "  goal 1"))
+    (should (looking-at "goal 1"))
     (should-error (nael-infoview-previous-goal) :type 'user-error)
     (nael-infoview-next-goal 2)
-    (should (looking-at "  goal 3"))
+    (should (looking-at "goal 3"))
     (should-error (nael-infoview-next-goal) :type 'user-error)))
 
 (ert-deftest nael-infoview-test-copy-goal ()
@@ -140,17 +142,13 @@
     (nael-infoview-test-goto "IProp GF")
     (search-forward "G")
     (nael-infoview--highlight-point)
-    (let ((overlay nael-infoview--point-overlay))
+    (let ((overlay nael-infoview--point-overlay)
+          (node (nael-render-node-at (point))))
       (should (equal (buffer-substring-no-properties
                       (overlay-start overlay) (overlay-end overlay))
-                     "GF")))
-    ;; Every mouse highlight covers the text of its node, although the
-    ;; button placeholders shifted the text.
-    (maphash (lambda (node overlay)
-               (should (memq node (nael-render-node-ancestors
-                                   (nael-render-node-at
-                                    (overlay-start overlay))))))
-             nael-infoview--node-overlays)
+                     "GF"))
+      ;; Buffer positions are the renderer's positions.
+      (should (= (overlay-start overlay) (nael-render-node-beg node))))
     (goto-char (point-min))
     (nael-infoview--highlight-point)
     (should-not nael-infoview--point-overlay)))

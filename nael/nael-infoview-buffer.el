@@ -70,11 +70,6 @@ nil when up to date, or one of `updating', `processing',
 (defvar-local nael-infoview--point-overlay nil
   "Overlay that highlights the subterm at point.")
 
-(defvar-local nael-infoview--node-overlays nil
-  "Hash table mapping each shown node to its overlay.
-The overlay keeps the node's extent when text is inserted before it,
-such as the placeholders of outline buttons.")
-
 (defvar-local nael-infoview--dim-cookie nil
   "Face remapping that dims outdated content, or nil.")
 
@@ -100,7 +95,7 @@ such as the placeholders of outline buttons.")
   "Major mode of the Nael infoview, which shows goals at point.
 
 Headings of sections and goals can be folded by clicking the triangle
-before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
+in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
 `outline-minor-mode'.
 
 \\{nael-infoview-mode-map}"
@@ -110,10 +105,9 @@ before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
   (setq-local outline-search-function #'outline-search-level
               outline-level #'nael-infoview--outline-level
               outline-minor-mode-cycle t
-              ;; As in other special buffers, such as `describe-bindings'
-              ;; and xref: buttons get a placeholder in the text, so that
-              ;; they are followed by a space and `RET' works on them.
-              outline-minor-mode-use-buttons 'insert)
+              ;; Buttons in the margin leave the text alone, so that
+              ;; positions in the buffer are those of the renderer.
+              outline-minor-mode-use-buttons 'in-margins)
   (outline-minor-mode)
   (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))
@@ -288,24 +282,17 @@ to the buffer if not in a goal, and the column."
                                   (nael-infoview--window-anchor window)))
                           (get-buffer-window-list nil nil t))))
     (delete-all-overlays)
-    ;; Outline inserts button placeholders from `after-change-functions';
-    ;; they must come after the node overlays, which the renderer's
-    ;; positions refer to.
-    (let ((inhibit-modification-hooks t))
-      (erase-buffer)
-      (if (string-empty-p (nael-render-result-text rendered))
-          (insert (propertize "No goals or expected type at point.\n"
-                              'face 'shadow))
-        (insert (nael-render-result-text rendered))))
-    (setq nael-infoview--node-overlays (make-hash-table :test #'eq)
-          nael-infoview--point-overlay nil)
+    (erase-buffer)
+    ;; Outline adds its buttons from `after-change-functions'.
+    (if (string-empty-p (nael-render-result-text rendered))
+        (insert (propertize "No goals or expected type at point.\n"
+                            'face 'shadow))
+      (insert (nael-render-result-text rendered)))
+    (setq nael-infoview--point-overlay nil)
     (dolist (node (nael-render-result-nodes rendered))
-      (let ((overlay (make-overlay (nael-render-node-beg node)
-                                   (nael-render-node-end node))))
-        (overlay-put overlay 'mouse-face 'highlight)
-        (puthash node overlay nael-infoview--node-overlays)))
-    (when (fboundp 'outline--fix-up-all-buttons)
-      (outline--fix-up-all-buttons))
+      (overlay-put (make-overlay (nael-render-node-beg node)
+                                 (nael-render-node-end node))
+                   'mouse-face 'highlight))
     (nael-infoview--fold folded)
     (pcase-dolist (`(,window . ,anchors) windows)
       (nael-infoview--restore-window window anchors))
@@ -327,14 +314,14 @@ LOCATION describes where they were requested."
 
 (defun nael-infoview--highlight-point ()
   "Highlight the subterm at point in the infoview."
-  (if-let* ((node (nael-render-node-at (point)))
-            (extent (and nael-infoview--node-overlays
-                         (gethash node nael-infoview--node-overlays))))
+  (if-let* ((node (nael-render-node-at (point))))
       (if nael-infoview--point-overlay
           (move-overlay nael-infoview--point-overlay
-                        (overlay-start extent) (overlay-end extent))
+                        (nael-render-node-beg node)
+                        (nael-render-node-end node))
         (setq nael-infoview--point-overlay
-              (make-overlay (overlay-start extent) (overlay-end extent)))
+              (make-overlay (nael-render-node-beg node)
+                            (nael-render-node-end node)))
         (overlay-put nael-infoview--point-overlay
                      'face 'nael-infoview-point-node))
     (when nael-infoview--point-overlay
@@ -415,26 +402,13 @@ LOCATION describes where they were requested."
                             (max (point-min) (1- before)))))))))
       (if pos (goto-char pos) (user-error "No previous goal")))))
 
-(defun nael-infoview--text (beg end)
-  "Return the text between BEG and END without outline button placeholders."
-  (let ((pos beg)
-        (parts nil))
-    (dolist (overlay (sort (seq-filter (lambda (o) (overlay-get o 'outline-button))
-                                       (overlays-in beg end))
-                           (lambda (a b) (< (overlay-start a) (overlay-start b)))))
-      (push (buffer-substring-no-properties pos (overlay-start overlay)) parts)
-      ;; `outline--insert-button' inserts two spaces per button.
-      (setq pos (min end (+ 2 (overlay-start overlay)))))
-    (push (buffer-substring-no-properties pos end) parts)
-    (apply #'concat (nreverse parts))))
-
 (defun nael-infoview-copy-goal ()
   "Copy the goal at point in the infoview as plain text."
   (interactive)
   (let ((start (or (nael-infoview--goal-start (point))
                    (user-error "No goal at point"))))
     (kill-new (string-trim-right
-               (nael-infoview--text
+               (buffer-substring-no-properties
                 start (next-single-property-change start 'nael-goal nil
                                                    (point-max)))))
     (message "Copied goal")))

@@ -23,9 +23,9 @@
 (require 'nael-rpc-live)
 
 (defun nael-infoview-live-text ()
-  "Return the text of the infoview, without properties and buttons."
+  "Return the text of the infoview without properties."
   (with-current-buffer (nael-infoview--buffer)
-    (nael-infoview--text (point-min) (point-max))))
+    (buffer-substring-no-properties (point-min) (point-max))))
 
 (defun nael-infoview-live-status ()
   "Return the status of the infoview."
