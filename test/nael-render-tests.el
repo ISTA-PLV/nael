@@ -184,6 +184,19 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                                       'nael-goal text)
                    '("_uniq.1" . 1)))))
 
+(ert-deftest nael-render-test-goal-diff ()
+  "A removed goal marks its turnstile and heading, not its content."
+  (let* ((removed (nael-render-test-goal :isRemoved t :userName "h"))
+         (text (nael-render-result-text
+                (nael-render-goals (list :goals (vector removed)) nil))))
+    (should (memq 'nael-render-diff-removed
+                  (nael-render-test-faces text (string-search "⊢" text))))
+    (should (memq 'nael-render-diff-removed
+                  (nael-render-test-faces text (string-search "case h" text))))
+    (should-not (memq 'nael-render-diff-removed
+                      (nael-render-test-faces
+                       text (string-search "= 0" text))))))
+
 (ert-deftest nael-render-test-sections ()
   (should (equal (nael-render-test-text nil nil) ""))
   (should (equal (nael-render-test-text '(:goals []) nil)

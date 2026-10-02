@@ -199,10 +199,21 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
         (put-text-property beg (point) 'nael-hyp
                            (append (plist-get hyp :fvarIds) nil))))))
 
+(defun nael-render--goal-diff-face (goal)
+  "Return the diff face for GOAL as a whole, or nil.
+Before a tactic, the server marks the goals that it will close or
+replace as removed; after it, the goals that it created as inserted."
+  (cond ((nael-render--true-p (plist-get goal :isInserted))
+         'nael-render-diff-inserted)
+        ((nael-render--true-p (plist-get goal :isRemoved))
+         'nael-render-diff-removed)))
+
 (defun nael-render--target (goal)
-  "Insert the target of GOAL, with its turnstile, as the last line."
+  "Insert the target of GOAL, with its turnstile, as the last line.
+The turnstile shows whether the goal as a whole is removed or inserted."
   (let ((prefix (or (plist-get goal :goalPrefix) "⊢ ")))
-    (nael-render--insert prefix 'nael-render-goal-prefix)
+    (nael-render--insert prefix (or (nael-render--goal-diff-face goal)
+                                    'nael-render-goal-prefix))
     (nael-render--code (plist-get goal :type))
     (insert "\n")))
 
@@ -215,6 +226,8 @@ is a plist of view options; see `nael-render-goals'."
     (when heading
       (nael-render--insert (propertize heading 'outline-level 2)
                            'nael-render-case)
+      (when-let* ((diff (nael-render--goal-diff-face goal)))
+        (push (list beg (point) diff) nael-render--faces))
       (insert "\n"))
     (let ((code-beg (point)))
       (if (plist-get options :reverse)
@@ -225,11 +238,6 @@ is a plist of view options; see `nael-render-goals'."
           (nael-render--hyp hyp options))
         (nael-render--target goal))
       (nael-render--fontify code-beg (point)))
-    (when-let* ((diff (cond ((nael-render--true-p (plist-get goal :isInserted))
-                             'nael-render-diff-inserted)
-                            ((nael-render--true-p (plist-get goal :isRemoved))
-                             'nael-render-diff-removed))))
-      (push (list beg (point) diff) nael-render--faces))
     (let ((id (plist-get goal :mvarId)))
       (put-text-property beg (point) 'nael-goal
                          (cons id (seq-count (lambda (other) (equal other id))
