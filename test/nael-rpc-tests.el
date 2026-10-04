@@ -192,6 +192,30 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
         (should (equal (plist-get failure :code) nael-rpc-needs-reconnect))
         (should-not (nael-rpc-test-find :$/lean/rpc/connect 1))))))
 
+(ert-deftest nael-rpc-test-call-sync ()
+  "A synchronous call returns the result, or signals the error."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer))))
+        (nael-rpc-test-connect)
+        (run-with-timer 0 nil (lambda ()
+                                (nael-rpc-test-answer
+                                 (nael-rpc-test-find :$/lean/rpc/call)
+                                 [1 2])))
+        (should (equal (nael-rpc-call-sync handle "m" nil) [1 2]))
+        (run-with-timer 0 nil (lambda ()
+                                (nael-rpc-test-fail
+                                 (nael-rpc-test-find :$/lean/rpc/call 1)
+                                 nael-rpc-needs-reconnect)))
+        (let ((error (should-error (nael-rpc-call-sync handle "m" nil
+                                                       :retry nil)
+                                   :type 'nael-rpc-error)))
+          (should (equal (nth 1 error) "m"))
+          (should (equal (plist-get (nth 2 error) :code)
+                         nael-rpc-needs-reconnect)))
+        ;; Not retried, as asked.
+        (should-not (nael-rpc-test-find :$/lean/rpc/connect 1))))))
+
 (ert-deftest nael-rpc-test-slot-supersedes ()
   "A call in a slot cancels the previous one; its late answer is dropped."
   (nael-rpc-test-with-fake

@@ -586,26 +586,33 @@ is retried once on a new session."
 (defconst nael-rpc-sync-timeout 3
   "Seconds to wait for a synchronous RPC call before giving up.")
 
-(defun nael-rpc-call-sync (handle method params)
+(define-error 'nael-rpc-error "Lean RPC call failed")
+
+(defun nael-rpc-call-sync (handle method params &rest keys)
   "Call METHOD with PARAMS through HANDLE and wait for the result.
-Return the result, or signal an error if the call fails or does not
-answer within `nael-rpc-sync-timeout'.  Only for commands invoked by
-the user, where an answer is required synchronously, such as `xref'.
-Releasing references in the result is up to the caller."
+Return the result.  If the call fails or does not answer within
+`nael-rpc-sync-timeout', signal `nael-rpc-error' with the method and
+the error plist, as passed to the FAILURE function of `nael-rpc-call'.
+Only for commands invoked by the user, where an answer is required
+synchronously, such as `xref'.  KEYS are as for `nael-rpc-call', but
+for SUCCESS, FAILURE and TIMEOUT.  Releasing references in the result
+is up to the caller."
   (let ((deadline (+ (float-time) nael-rpc-sync-timeout))
         result failure done)
-    (let ((request (nael-rpc-call handle method params
-                                  (lambda (value) (setq result value done t))
-                                  :failure
-                                  (lambda (error) (setq failure error done t))
-                                  :timeout nael-rpc-sync-timeout)))
+    (let ((request (apply #'nael-rpc-call handle method params
+                          (lambda (value) (setq result value done t))
+                          :failure (lambda (error) (setq failure error done t))
+                          :timeout nael-rpc-sync-timeout
+                          keys)))
       (while (and (not done) (< (float-time) deadline))
         (accept-process-output nil 0.02))
-      (unless done (nael-rpc-cancel request)))
-    (cond (failure (error "Lean RPC call %s failed: %s" method
-                          (or (plist-get failure :message) failure)))
-          ((not done) (error "Lean RPC call %s timed out" method))
-          (t result))))
+      (unless done
+        (nael-rpc-cancel request)
+        (setq failure (list :code nil :timeout t
+                            :message "Lean RPC call timed out"))))
+    (if failure
+        (signal 'nael-rpc-error (list method failure))
+      result)))
 
 ;;;; Methods:
 
