@@ -496,6 +496,12 @@ See `nael-infoview-expected-type'."
 
 (eldoc-add-command 'nael-infoview-next-goal 'nael-infoview-previous-goal)
 
+;; ElDoc shows the subterm at point only after commands that move point.
+;; These also land in the infoview: back from a description, and back
+;; from a definition, as Emacs, Evil and Doom Emacs do it.
+(eldoc-add-command 'quit-window 'xref-go-back 'evil-jump-backward
+                   '+popup/quit-window 'better-jumper-jump-backward)
+
 (defun nael-infoview-next-goal (&optional n)
   "Move to the start of the Nth next goal in the infoview."
   (interactive "p")

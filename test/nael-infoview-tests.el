@@ -205,6 +205,13 @@ That is what the goals look like after the next tactic."
               (should (outline-invisible-p (line-end-position)))))
         (kill-buffer (nael-infoview--buffer))))))
 
+(ert-deftest nael-infoview-test-eldoc-commands ()
+  "ElDoc shows the subterm at point after commands that return to it."
+  (dolist (command '(nael-infoview-next-goal quit-window xref-go-back
+                     evil-jump-backward +popup/quit-window
+                     better-jumper-jump-backward))
+    (should (eldoc--message-command-p command))))
+
 (ert-deftest nael-infoview-test-goal-navigation ()
   (nael-infoview-test-with-goals
     (nael-infoview-next-goal)
