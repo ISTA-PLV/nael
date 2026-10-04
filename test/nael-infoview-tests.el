@@ -92,6 +92,8 @@ In the margin, the button is a space displaying the icon there."
 (ert-deftest nael-infoview-test-fold-buttons ()
   "Every foldable heading has a button that shows whether it is folded."
   (nael-infoview-test-with-goals
+    ;; The buttons are separated from the text by a blank column.
+    (should (= left-margin-width 2))
     (dolist (heading '("Tactic state" "goal 1" "goal 2" "goal 3"))
       (nael-infoview-test-goto heading)
       (should (nael-infoview-test-button)))

@@ -151,7 +151,10 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
               outline-minor-mode-cycle t
               ;; Buttons in the margin leave the text alone, so that
               ;; positions in the buffer are those of the renderer.
-              outline-minor-mode-use-buttons 'in-margins)
+              outline-minor-mode-use-buttons 'in-margins
+              ;; One column for the button and one to separate it from
+              ;; the text.
+              outline-margin-width 2)
   (outline-minor-mode)
   (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))
