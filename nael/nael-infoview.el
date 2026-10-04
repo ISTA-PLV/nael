@@ -29,6 +29,9 @@
 ;; together and shown together; an answer to a superseded request is
 ;; never shown.  The previous content stays until the new one is ready,
 ;; and its RPC references are released only then.
+;;
+;; Subterms in the infoview can be asked about, see
+;; `nael-infoview-hover'.
 
 ;;; Code:
 

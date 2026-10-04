@@ -75,6 +75,86 @@
         (should (string-prefix-p "Nat : Type\n\n" doc))
         (should (string-search "natural numbers" doc))))))
 
+(defun nael-infoview-hover-live-help ()
+  "Return the text of the *Help* buffer."
+  (with-current-buffer "*Help*"
+    (buffer-substring-no-properties (point-min) (point-max))))
+
+(defun nael-infoview-hover-live-describe (string)
+  "Describe the first STRING in the current buffer; wait for *Help*."
+  (let ((before (and (get-buffer "*Help*") (nael-infoview-hover-live-help))))
+    (nael-infoview-test-goto string)
+    (nael-infoview-describe)
+    (should (nael-rpc-live-wait
+             (lambda () (and (get-buffer "*Help*")
+                             (not (equal (nael-infoview-hover-live-help)
+                                         before))))
+             10))))
+
+(ert-deftest nael-infoview-hover-live-describe ()
+  "Subterms are described in the *Help* buffer, and theirs in turn."
+  (with-current-buffer (nael-infoview-live-open)
+    (unwind-protect
+        (progn
+          (with-current-buffer (nael-infoview--buffer)
+            (nael-infoview-hover-live-describe "b"))
+          (should (string-prefix-p "b : Nat\n\nFrom the goals at A.lean:4:2."
+                                   (nael-infoview-hover-live-help)))
+          (with-current-buffer "*Help*"
+            (nael-infoview-hover-live-describe "Nat")
+            (should (string-prefix-p "Nat : Type\n"
+                                     (nael-infoview-hover-live-help)))
+            (should (string-search "natural numbers"
+                                   (nael-infoview-hover-live-help)))
+            (help-go-back)
+            (should (string-prefix-p "b : Nat\n"
+                                     (nael-infoview-hover-live-help)))))
+      (kill-buffer "*Help*"))))
+
+(ert-deftest nael-infoview-hover-live-describe-released ()
+  "A subterm whose reference was released is reported as gone."
+  (with-current-buffer (nael-infoview-live-open)
+    (unwind-protect
+        (progn
+          (with-current-buffer (nael-infoview--buffer)
+            (nael-infoview-hover-live-describe "b"))
+          (let ((page (car nael-infoview--pages))
+                messages)
+            (nael-rpc-owner-release (nael-infoview--page-owner page))
+            (nael-rpc--flush-garbage
+             (nael-rpc-handle-session (nael-infoview--page-handle page)))
+            (cl-letf (((symbol-function 'message)
+                       (lambda (&rest args)
+                         (push (apply #'format-message args) messages))))
+              (with-current-buffer "*Help*"
+                (nael-infoview-test-goto "Nat")
+                (nael-infoview-describe))
+              (should (nael-rpc-live-wait (lambda () messages) 10)))
+            (should (string-prefix-p "Lean no longer knows this subterm"
+                                     (car messages)))))
+      (kill-buffer "*Help*"))))
+
+(ert-deftest nael-infoview-hover-live-definition ()
+  "`xref-find-definitions' on a subterm goes to its definition, and back."
+  (with-current-buffer (nael-infoview-live-open)
+    (let ((infoview (nael-infoview--buffer)))
+      (with-current-buffer infoview
+        (switch-to-buffer infoview)
+        (nael-infoview-test-goto "b")
+        ;; As the command loop does; otherwise xref asks for the identifier.
+        (let ((this-command #'xref-find-definitions))
+          (call-interactively #'xref-find-definitions))
+        (unwind-protect
+            (progn
+              (should (equal (file-name-nondirectory buffer-file-name)
+                             "B.lean"))
+              (should (looking-at "b : Nat := 1"))
+              (xref-go-back)
+              (should (eq (current-buffer) infoview))
+              (should (looking-at "b")))
+          (kill-buffer (find-buffer-visiting
+                        (concat nael-rpc-live-root "Tiny/B.lean"))))))))
+
 (provide 'nael-infoview-hover-live)
 
 ;;; nael-infoview-hover-live.el ends here

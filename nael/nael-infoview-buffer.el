@@ -143,6 +143,9 @@ Headings of sections and goals can be folded by clicking the triangle
 in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
 `outline-minor-mode'.
 
+On a subterm, ElDoc shows it with its type.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it
+in the *Help* buffer, and \\[xref-find-definitions] goes to its definition.
+
 \\{nael-infoview-mode-map}"
   (setq-local revert-buffer-function
               (lambda (&rest _) (nael-infoview-refresh)))
@@ -333,10 +336,7 @@ so that folds survive moving to another tactic."
                             'face 'shadow))
       (insert (nael-render-result-text rendered)))
     (setq nael-infoview--point-overlay nil)
-    (dolist (node (nael-render-result-nodes rendered))
-      (overlay-put (make-overlay (nael-render-node-beg node)
-                                 (nael-render-node-end node))
-                   'mouse-face 'highlight))
+    (nael-infoview--decorate (nael-render-result-nodes rendered) 0)
     (nael-infoview--fold
      ;; The expected type starts folded if so customized, and remembers
      ;; being unfolded only while it stays.

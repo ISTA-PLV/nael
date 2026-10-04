@@ -18,6 +18,9 @@
 (require 'nael-infoview)
 (require 'nael-infoview-tests)
 
+;; As in Doom Emacs, whose `K' runs these functions.
+(defvar +lookup-documentation-functions nil)
+
 (defvar nael-infoview-hover-test-calls nil
   "RPC calls made by the code under test, latest first.
 Each is a plist of the method, the reference asked about, and the keys.")
@@ -34,21 +37,44 @@ Each is a plist of the method, the reference asked about, and the keys.")
     (_ (list :exprExplicit (nael-render-test-code "0")
              :type (nael-render-test-code '("Nat" "12"))))))
 
+(defvar nael-infoview-hover-test-error nil
+  "If non-nil, the error code with which the stub server fails calls.")
+
 (defmacro nael-infoview-hover-test-with-server (&rest body)
   "Run BODY with RPC calls answered at once by a stub server."
   (declare (indent 0) (debug t))
-  `(let ((nael-infoview-hover-test-calls nil))
+  `(let ((nael-infoview-hover-test-calls nil)
+         (nael-infoview-hover-test-error nil)
+         (nael-infoview--pages nil))
      (cl-letf (((symbol-function 'nael-rpc-handle-live-p) #'always)
                ((symbol-function 'nael-rpc-info-to-interactive)
                 (lambda (_handle info success &rest keys)
                   (push (append (list :method 'info :info info) keys)
                         nael-infoview-hover-test-calls)
-                  (let ((result (nael-infoview-hover-test-info info)))
-                    (when-let* ((owner (plist-get keys :owner)))
-                      (setf (nael-rpc-owner-refs owner)
-                            (nael-rpc-collect-refs result :__rpcref)))
-                    (funcall success result)))))
-       ,@body)))
+                  (if nael-infoview-hover-test-error
+                      (funcall (plist-get keys :failure)
+                               (list :code nael-infoview-hover-test-error
+                                     :message "fake error"))
+                    (let ((result (nael-infoview-hover-test-info info)))
+                      (when-let* ((owner (plist-get keys :owner)))
+                        (setf (nael-rpc-owner-refs owner)
+                              (nael-rpc-collect-refs result :__rpcref)))
+                      (funcall success result))))))
+       (unwind-protect (progn ,@body)
+         (when-let* ((help (get-buffer "*Help*")))
+           (kill-buffer help))
+         (when-let* ((source (get-buffer "Source.lean")))
+           (kill-buffer source))))))
+
+(defun nael-infoview-hover-test-handle ()
+  "Return an RPC handle for line 2, column 2 of a buffer Source.lean."
+  (with-current-buffer (get-buffer-create "Source.lean")
+    (erase-buffer)
+    (insert "example : n = 0 := by\n  rfl\n")
+    (nael-rpc--handle-create
+     :buffer (current-buffer)
+     :position '(:textDocument (:uri "file:///Source.lean")
+                 :position (:line 1 :character 2)))))
 
 (defmacro nael-infoview-hover-test-with-goal (&rest body)
   "Run BODY in the infoview showing the goal `n = 0', at its start."
@@ -58,7 +84,7 @@ Each is a plist of the method, the reference asked about, and the keys.")
          (progn
            (nael-infoview--show
             (list :goals (vector (nael-render-test-goal)))
-            nil (nael-rpc-make-owner) "x" 'handle)
+            nil (nael-rpc-make-owner) "x" (nael-infoview-hover-test-handle))
            (with-current-buffer (nael-infoview--buffer)
              (switch-to-buffer (current-buffer))
              (goto-char (point-min))
@@ -86,7 +112,7 @@ The result is (DOC . ECHO), or nil if it reports nothing."
       (should (memq #'nael-infoview-eldoc-function
                     eldoc-documentation-functions))
       (should (eq (and eldoc-mode t) global-eldoc-mode))
-      (should (eq nael-infoview--handle 'handle))
+      (should (nael-rpc-handle-p nael-infoview--handle))
       (nael-infoview-test-goto "n = 0")
       (should (equal (nael-infoview-hover-test-eldoc)
                      '("n : Nat\n\nThe `n` of the test." . "n : Nat")))
@@ -110,7 +136,8 @@ The result is (DOC . ECHO), or nil if it reports nothing."
         (should (equal (nael-infoview-hover-test-eldoc) report))
         (should (= (length nael-infoview-hover-test-calls) 1))
         (nael-infoview--show (list :goals (vector (nael-render-test-goal)))
-                             nil (nael-rpc-make-owner) "x" 'handle)
+                             nil (nael-rpc-make-owner) "x"
+                             nael-infoview--handle)
         ;; The old nodes are not kept.
         (should-not nael-infoview--eldoc-cache)
         (nael-infoview-test-goto "n = 0")
@@ -128,7 +155,7 @@ The result is (DOC . ECHO), or nil if it reports nothing."
                    (vector (nael-render-test-goal
                             :type (nael-render-test-code
                                    '("n" "1" "willDelete") " = 0"))))
-             nil (nael-rpc-make-owner) "x" 'handle)
+             nil (nael-rpc-make-owner) "x" (nael-infoview-hover-test-handle))
             (with-current-buffer (nael-infoview--buffer)
               (nael-infoview-test-goto "n = 0")
               (should (string-suffix-p
@@ -146,6 +173,267 @@ The result is (DOC . ECHO), or nil if it reports nothing."
       (setq nael-infoview--handle nil)
       (should-not (nael-infoview-eldoc-function #'ignore))
       (should-not nael-infoview-hover-test-calls))))
+
+;;;; Descriptions:
+
+(defun nael-infoview-hover-test-help ()
+  "Return the text of the *Help* buffer."
+  (with-current-buffer (help-buffer)
+    (buffer-substring-no-properties (point-min) (point-max))))
+
+(defun nael-infoview-hover-test-page-owners ()
+  "Return whether the owners of the kept descriptions are released."
+  (mapcar (lambda (page)
+            (nael-rpc-owner-released (nael-infoview--page-owner page)))
+          nael-infoview--pages))
+
+(ert-deftest nael-infoview-hover-test-describe ()
+  "A subterm is described in the *Help* buffer."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (should-error (nael-infoview-describe) :type 'user-error)
+      (nael-infoview-test-goto "n = 0")
+      (nael-infoview-describe)
+      (should (equal (nael-infoview-hover-test-help)
+                     "n : Nat
+
+The `n` of the test.
+
+From the goals at Source.lean:2:2.
+"))
+      (should (eq (plist-get (car nael-infoview-hover-test-calls) :slot)
+                  'infoview-describe))
+      (with-current-buffer (help-buffer)
+        ;; The location leads to the source.
+        (search-forward "Source.lean")
+        (push-button)
+        (should (equal (buffer-name) "Source.lean"))
+        (should (looking-at "rfl"))))))
+
+(ert-deftest nael-infoview-hover-test-describe-keys ()
+  "Subterms are described with RET, mouse-1 and `C-h .'."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (should (eq (key-binding (kbd "RET")) #'nael-infoview-describe))
+      (should (eq (key-binding (kbd "C-h .")) #'nael-infoview-describe))
+      (should (eq (key-binding [mouse-2]) #'nael-infoview-describe-at-mouse))
+      ;; mouse-1 follows links, see `mouse-on-link-p'.
+      (should (eq (key-binding [follow-link] nil t (point)) 'mouse-face))
+      (should (get-char-property (point) 'mouse-face))
+      (nael-infoview-test-goto " = 0")
+      (should-not (eq (key-binding (kbd "RET")) #'nael-infoview-describe))
+      (should-not (get-char-property (point) 'mouse-face)))))
+
+(ert-deftest nael-infoview-hover-test-describe-nested ()
+  "Subterms of a description are described in turn; history leads back."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (nael-infoview-describe)
+      (with-current-buffer (help-buffer)
+        (goto-char (point-min))
+        (search-forward "Nat")
+        (backward-char)
+        (should (eq (key-binding (kbd "RET")) #'nael-infoview-describe))
+        (nael-infoview-describe)
+        (should (equal (plist-get (car nael-infoview-hover-test-calls) :info)
+                       '(:__rpcref "12")))
+        (should (string-prefix-p "Nat : Type\n\nThe natural numbers.\n"
+                                 (nael-infoview-hover-test-help)))
+        (let ((calls (length nael-infoview-hover-test-calls)))
+          (help-go-back)
+          (should (string-prefix-p "n : Nat\n" (nael-infoview-hover-test-help)))
+          (help-go-forward)
+          (should (string-prefix-p "Nat : Type\n"
+                                   (nael-infoview-hover-test-help)))
+          ;; History shows what was received; it asks the server nothing.
+          (should (= (length nael-infoview-hover-test-calls) calls)))
+        ;; A page from history still describes its subterms.
+        (help-go-back)
+        (goto-char (point-min))
+        (nael-infoview-describe)
+        (should (equal (plist-get (car nael-infoview-hover-test-calls) :info)
+                       '(:__rpcref "11")))
+        (should eldoc-mode)
+        ;; Other help leaves nothing of the description behind.
+        (describe-variable 'nael-infoview-delay)
+        (should-not (overlays-in (point-min) (point-max)))
+        (should-not (memq #'nael-infoview-eldoc-function
+                          eldoc-documentation-functions))
+        (should-not nael-infoview--handle)
+        (should-not eldoc-mode)
+        ;; And back.
+        (help-go-back)
+        (should (string-prefix-p "0 : Nat\n" (nael-infoview-hover-test-help)))
+        (should eldoc-mode)
+        (should nael-infoview--handle)))))
+
+(ert-deftest nael-infoview-hover-test-describe-release ()
+  "Descriptions keep their references while history can lead back."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (nael-infoview-describe)
+      (with-current-buffer (help-buffer)
+        (goto-char (point-min))
+        (search-forward "Nat")
+        (nael-infoview-describe 1))
+      (should (equal (nael-infoview-hover-test-page-owners) '(nil nil)))
+      (let ((first (car (last nael-infoview--pages)))
+            (second (car nael-infoview--pages)))
+        ;; Going back and describing anew drops the way forward.
+        (with-current-buffer (help-buffer)
+          (help-go-back))
+        ;; Help can still go forward to it.
+        (should-not (nael-rpc-owner-released
+                     (nael-infoview--page-owner second)))
+        (nael-infoview-describe)
+        (should (nael-rpc-owner-released (nael-infoview--page-owner second)))
+        (should-not (memq second nael-infoview--pages))
+        (should-not (nael-rpc-owner-released
+                     (nael-infoview--page-owner first)))
+        ;; Without the *Help* buffer, nothing leads back.
+        (kill-buffer (help-buffer))
+        (nael-infoview-describe)
+        (should (nael-rpc-owner-released (nael-infoview--page-owner first)))
+        (should (equal (nael-infoview-hover-test-page-owners) '(nil)))))))
+
+(ert-deftest nael-infoview-hover-test-describe-dead ()
+  "A subterm that Lean no longer knows is reported, not raised."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (let (messages)
+        (cl-letf (((symbol-function 'message)
+                   (lambda (&rest args)
+                     (push (apply #'format-message args) messages))))
+          (setq nael-infoview-hover-test-error -32602)
+          (nael-infoview-describe)
+          (setq nael-infoview-hover-test-error -32000)
+          (nael-infoview-describe))
+        (should (string-prefix-p "Lean could not look up this subterm: fake"
+                                 (car messages)))
+        (should (string-prefix-p "Lean no longer knows this subterm"
+                                 (cadr messages)))
+        (should-not nael-infoview--pages))
+      ;; The session has ended.
+      (cl-letf (((symbol-function 'nael-rpc-handle-live-p) #'ignore))
+        (should-error (nael-infoview-describe) :type 'user-error)))))
+
+;;;; Definitions:
+
+(defmacro nael-infoview-hover-test-with-definitions (links &rest body)
+  "Run BODY with getGoToLocation answered with LINKS, or ERROR if a number.
+The links are made with `nael-infoview-hover-test-link'.  The calls
+made are recorded in `nael-infoview-hover-test-calls'."
+  (declare (indent 1) (debug t))
+  `(cl-letf (((symbol-function 'nael-rpc-call-sync)
+              (lambda (_handle method params &rest keys)
+                (push (append (list :method method :params params) keys)
+                      nael-infoview-hover-test-calls)
+                (let ((links ,links))
+                  (if (numberp links)
+                      (signal 'nael-rpc-error
+                              (list method (list :code links
+                                                 :message "fake error")))
+                    links)))))
+     ,@body))
+
+(defun nael-infoview-hover-test-link (file line character)
+  "Return a `LocationLink' to LINE and CHARACTER, in UTF-16, of FILE."
+  (let ((position (list :line line :character character)))
+    (list :targetUri (concat "file://" file)
+          :targetRange (list :start '(:line 0 :character 0) :end position)
+          :targetSelectionRange (list :start position :end position))))
+
+(ert-deftest nael-infoview-hover-test-definitions ()
+  "The definition of a subterm is found with xref."
+  (let ((file (make-temp-file "nael-test" nil ".lean"
+                              "-- 𝓝\ndef 𝓝𝓝 b : Nat := 1\n")))
+    (unwind-protect
+        (nael-infoview-hover-test-with-server
+          (nael-infoview-hover-test-with-goal
+            (nael-infoview-test-goto "n = 0")
+            (should (eq (xref-find-backend) 'nael-infoview))
+            (let ((identifier (xref-backend-identifier-at-point
+                               'nael-infoview)))
+              (should (equal identifier "n"))
+              (nael-infoview-hover-test-with-definitions
+                  ;; After "def 𝓝𝓝 ", which is 7 characters but 9
+                  ;; UTF-16 code units.
+                  (list (nael-infoview-hover-test-link file 1 9))
+                (let* ((items (xref-backend-definitions 'nael-infoview
+                                                        identifier))
+                       (location (xref-item-location (car items))))
+                  (should (= (length items) 1))
+                  (should (equal (xref-item-summary (car items))
+                                 "def 𝓝𝓝 b : Nat := 1"))
+                  (should (equal (xref-file-location-file location) file))
+                  (should (= (xref-file-location-line location) 2))
+                  (should (= (xref-file-location-column location) 7))
+                  (let ((call (car nael-infoview-hover-test-calls)))
+                    (should (equal (plist-get call :method)
+                                   "Lean.Widget.getGoToLocation"))
+                    (should (equal (plist-get call :params)
+                                   '(:kind "definition"
+                                     :info (:__rpcref "1"))))
+                    (should (eq (plist-get call :retry) nil))
+                    (should (plist-member call :retry)))
+                  ;; Doom Emacs passes the identifier without properties.
+                  (should (equal (xref-backend-definitions 'nael-infoview "n")
+                                 items))
+                  ;; The same from a buffer visiting the file.
+                  (let ((visiting (find-file-noselect file)))
+                    (unwind-protect
+                        (should (equal (xref-backend-definitions
+                                        'nael-infoview identifier)
+                                       items))
+                      (kill-buffer visiting))))))
+            ;; Not on a subterm, the backend is someone else's.
+            (nael-infoview-test-goto " = 0")
+            (should-not (eq (xref-find-backend) 'nael-infoview))))
+      (delete-file file))))
+
+(ert-deftest nael-infoview-hover-test-definitions-failure ()
+  "A failure to find definitions is reported to the user."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (nael-infoview-hover-test-with-definitions -32602
+        (should (equal (cadr (should-error
+                              (xref-backend-definitions 'nael-infoview "n")
+                              :type 'user-error))
+                       "Lean no longer knows this subterm; \
+describe it again from the infoview")))
+      (nael-infoview-hover-test-with-definitions []
+        (should-not (xref-backend-definitions 'nael-infoview "n"))))))
+
+;;;; Doom Emacs:
+
+(ert-deftest nael-infoview-hover-test-doom-lookup ()
+  "Doom Emacs' `K' describes the subterm at point."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (should (memq #'nael-infoview--lookup-documentation
+                    +lookup-documentation-functions))
+      (should-not (default-value '+lookup-documentation-functions))
+      (should-not (nael-infoview--lookup-documentation "goal"))
+      (should-not (get-buffer "*Help*"))
+      (nael-infoview-test-goto "n = 0")
+      (should (eq (nael-infoview--lookup-documentation "n") 'deferred))
+      (should (string-prefix-p "n : Nat\n" (nael-infoview-hover-test-help))))))
+
+(ert-deftest nael-infoview-hover-test-no-doom ()
+  "Without Doom Emacs, its hook is left undefined."
+  (let ((value +lookup-documentation-functions))
+    (makunbound '+lookup-documentation-functions)
+    (unwind-protect
+        (with-temp-buffer
+          (nael-infoview-hover-setup)
+          (should-not (boundp '+lookup-documentation-functions))
+          (nael-infoview-hover-teardown))
+      (setq +lookup-documentation-functions value))))
 
 (provide 'nael-infoview-hover-tests)
 
