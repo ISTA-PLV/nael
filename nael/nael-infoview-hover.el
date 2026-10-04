@@ -265,7 +265,8 @@ text properties also apply just after their end."
                                  (nael-render-node-end node))))
       (overlay-put overlay 'mouse-face 'highlight)
       (overlay-put overlay 'help-echo #'nael-infoview--node-help-echo)
-      (overlay-put overlay 'keymap nael-infoview-node-map))))
+      (overlay-put overlay 'keymap nael-infoview-node-map)
+      (overlay-put overlay 'nael-infoview-node t))))
 
 (defun nael-infoview--insert-page (page)
   "Insert the description PAGE at point in the *Help* buffer."

@@ -354,7 +354,12 @@ so that folds survive moving to another tactic."
                             (cons window
                                   (nael-infoview--window-anchor window)))
                           (get-buffer-window-list nil nil t))))
-    (delete-all-overlays)
+    ;; Only our overlays, those of the subterms and the highlight.
+    ;; Outline replaces its buttons itself, and others are other
+    ;; packages' business.
+    (remove-overlays nil nil 'nael-infoview-node t)
+    (when nael-infoview--point-overlay
+      (delete-overlay nael-infoview--point-overlay))
     (erase-buffer)
     ;; Outline adds its buttons from `after-change-functions'.
     (if (string-empty-p (nael-render-result-text rendered))

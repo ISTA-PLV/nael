@@ -64,6 +64,30 @@
                            (nael-infoview--mode-line-process)))
     (should-not header-line-format)))
 
+(ert-deftest nael-infoview-test-own-overlays ()
+  "Rendering again replaces the infoview's overlays, and only those."
+  (nael-infoview-test-with-goals
+    (cl-flet ((count (property)
+                (seq-count (lambda (overlay) (overlay-get overlay property))
+                           (overlays-in (point-min) (point-max)))))
+      (let ((foreign (make-overlay 1 5))
+            (nodes (count 'nael-infoview-node))
+            (buttons (count 'outline-button)))
+        (should (> nodes 0))
+        (should (> buttons 0))
+        (nael-infoview-test-goto "IProp GF")
+        (nael-infoview--highlight-point)
+        (nael-infoview-toggle-types)
+        (nael-infoview-toggle-types)
+        (should (overlay-buffer foreign))
+        (should (= (count 'nael-infoview-node) nodes))
+        (should (= (count 'outline-button) buttons))
+        (should (= (seq-count (lambda (overlay)
+                                (eq (overlay-get overlay 'face)
+                                    'nael-infoview-point-node))
+                              (overlays-in (point-min) (point-max)))
+                   1))))))
+
 (ert-deftest nael-infoview-test-fold-survives-render ()
   "Folded goals and sections stay folded when the goals are shown again."
   (nael-infoview-test-with-goals
