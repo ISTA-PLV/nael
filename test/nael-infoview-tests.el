@@ -266,6 +266,66 @@ That is what the goals look like after the next tactic."
                                      (get-text-property (point)
                                                         'nael-goal)))))))
 
+;;;; Windows:
+
+(defmacro nael-infoview-test-with-windows (&rest body)
+  "Run BODY with the infoview displayed in its side window, selected.
+The main window shows the buffer Main."
+  (declare (indent 0) (debug t))
+  `(nael-infoview-test-with-goals
+     (let ((main (get-buffer-create "Main")))
+       (unwind-protect
+           (progn
+             (dolist (window (window-list))
+               (when (window-parameter window 'window-side)
+                 (delete-window window)))
+             (delete-other-windows)
+             (switch-to-buffer main)
+             (setq nael-infoview--window
+                   (display-buffer (nael-infoview--buffer)
+                                   nael-infoview-display-action))
+             (select-window nael-infoview--window)
+             ,@body)
+         (dolist (window (window-list))
+           (when (window-parameter window 'window-side)
+             (delete-window window)))
+         (setq nael-infoview--window nil)
+         (kill-buffer main)))))
+
+(ert-deftest nael-infoview-test-jump-out ()
+  "A jump from the infoview shows its target in another window."
+  (nael-infoview-test-with-windows
+    (let ((target (get-buffer-create "Target")))
+      (unwind-protect
+          (progn
+            ;; As `xref-find-definitions' does.
+            (switch-to-buffer target)
+            (should (eq (window-buffer nael-infoview--window)
+                        (nael-infoview--buffer)))
+            (should (eq (window-buffer) target))
+            (should-not (eq (selected-window) nael-infoview--window)))
+        (kill-buffer target)))))
+
+(ert-deftest nael-infoview-test-jump-back ()
+  "Going back to the infoview selects its window, not a second one."
+  (nael-infoview-test-with-windows
+    (let ((home nael-infoview--window)
+          (pos (save-excursion (nael-infoview-test-goto "goal 2") (point))))
+      (select-window (get-buffer-window "Main"))
+      ;; As `xref-go-back' does, then the command loop.
+      (switch-to-buffer (nael-infoview--buffer))
+      (goto-char pos)
+      (nael-infoview--keep-window)
+      (should (eq (selected-window) home))
+      (should (= (point) pos))
+      (should (equal (sort (mapcar #'buffer-name
+                                   (mapcar #'window-buffer (window-list)))
+                           #'string<)
+                     (list "*Nael Infoview*" "Main")))
+      ;; Nothing happens in the infoview's own window.
+      (nael-infoview--keep-window)
+      (should (eq (selected-window) home)))))
+
 (provide 'nael-infoview-tests)
 
 ;;; nael-infoview-tests.el ends here

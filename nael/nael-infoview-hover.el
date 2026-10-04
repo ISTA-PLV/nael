@@ -25,7 +25,8 @@
 ;; - `nael-infoview-describe', on RET, a click, or `C-h .', shows the
 ;;   same and more in the *Help* buffer, like `describe-function'.  The
 ;;   subterms shown there can be described in turn, and Help's history
-;;   leads back.  In Doom Emacs, `K' does the same.
+;;   leads back.  In Doom Emacs, `K' does the same.  Closing the help
+;;   window returns to the infoview.
 ;;
 ;; - `xref-find-definitions', on `M-.' or Doom's `gd', goes to where the
 ;;   subterm's head is defined; `M-,' or Doom's `C-o' come back.
@@ -348,6 +349,39 @@ The *Help* buffer keeps its local variables from one help to the next."
 ;; Help runs this hook for each help it shows.
 (add-hook 'temp-buffer-window-setup-hook #'nael-infoview--help-cleanup)
 
+(defvar nael-infoview--return nil
+  "Where to return when the help window closes, as (HELP . WINDOW).
+HELP is the window showing a description, WINDOW the one it was asked
+from.")
+
+(defun nael-infoview--return-from-help (_frame)
+  "Select the window that asked for a description, after its help closed.
+Only if the help window was selected when it closed.  Emacs's own
+`quit-window' returns there by itself, but Doom Emacs closes popups with
+`delete-window', which selects the most recently used window that is
+not dedicated, so never the infoview, a side window.  Run from
+`window-selection-change-functions' while a description is shown."
+  (pcase-let ((`(,help . ,origin) nael-infoview--return))
+    (unless (and (window-live-p help)
+                 (eq (window-buffer help) (get-buffer "*Help*")))
+      (setq nael-infoview--return nil)
+      (remove-hook 'window-selection-change-functions
+                   #'nael-infoview--return-from-help)
+      (when (and (eq (old-selected-window) help)
+                 (window-live-p origin)
+                 (not (eq (selected-window) origin)))
+        (select-window origin)))))
+
+(defun nael-infoview--return-after-help (origin)
+  "Return to ORIGIN once the help window, now showing a description, closes.
+ORIGIN is the window that asked for the description."
+  (when-let* ((help (get-buffer-window "*Help*" t)))
+    ;; A description asked for from another keeps the way back.
+    (unless (eq help origin)
+      (setq nael-infoview--return (cons help origin))
+      (add-hook 'window-selection-change-functions
+                #'nael-infoview--return-from-help))))
+
 (defun nael-infoview-describe (&optional pos)
   "Describe the subterm at POS, or point, in the *Help* buffer.
 Show it with all its arguments made explicit, its type, its
@@ -357,7 +391,8 @@ the description can be described in turn."
   (let* ((node (or (nael-render-node-at (or pos (point)))
                    (user-error "No subterm at point")))
          (handle (nael-infoview--live-handle))
-         (owner (nael-rpc-make-owner)))
+         (owner (nael-rpc-make-owner))
+         (origin (selected-window)))
     (nael-rpc-info-to-interactive
      handle (nael-render-node-info node)
      (lambda (info)
@@ -368,7 +403,8 @@ the description can be described in turn."
                       :status (nael-render-node-diff-status node)
                       :source (nael-infoview--handle-marker handle))))
            (push page nael-infoview--pages)
-           (nael-infoview--show-page page t))))
+           (nael-infoview--show-page page t)
+           (nael-infoview--return-after-help origin))))
      :owner owner :slot 'infoview-describe
      :failure #'nael-infoview--report-failure)))
 

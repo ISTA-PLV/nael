@@ -117,6 +117,9 @@ nil when up to date, or one of `updating', `processing',
 (defvar-local nael-infoview--dim-cookie nil
   "Face remapping that dims outdated content, or nil.")
 
+(defvar nael-infoview--window nil
+  "The window in which `nael-infoview' displayed the infoview, or nil.")
+
 ;;;; The buffer:
 
 (defvar-keymap nael-infoview-mode-map
@@ -145,7 +148,7 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
 
 On a subterm, ElDoc shows it with its type, and so does its tooltip
 with `tooltip-mode'.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it in the *Help*
-buffer, and \\[xref-find-definitions] goes to its definition.
+buffer, and \\[xref-find-definitions] shows its definition in another window.
 
 \\{nael-infoview-mode-map}"
   (setq-local revert-buffer-function
@@ -162,6 +165,11 @@ buffer, and \\[xref-find-definitions] goes to its definition.
               outline-margin-width 2)
   (outline-minor-mode)
   (nael-infoview-hover-setup)
+  ;; Jumps from the infoview, as to a definition, show their target in
+  ;; another window: the infoview's window, a side window, refuses other
+  ;; buffers, but `switch-to-buffer' ignores that by default.
+  (setq-local switch-to-buffer-obey-display-actions t)
+  (add-hook 'post-command-hook #'nael-infoview--keep-window nil t)
   (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))
 
@@ -221,6 +229,23 @@ processes such as compilations show their state."
     (setq nael-infoview--owner nil)))
 
 ;;;; Windows:
+
+(defun nael-infoview--keep-window ()
+  "Show the infoview only in the window it was displayed in.
+Commands that return to the infoview, like `xref-go-back' or Doom Emacs'
+\\`C-o', switch to it in the selected window, which then shows it a
+second time.  Show that window's previous buffer again, and select the
+infoview's own window instead, at the same position."
+  (let ((window (selected-window))
+        (home nael-infoview--window))
+    (when (and (window-live-p home)
+               (not (eq window home))
+               (eq (window-buffer home) (current-buffer))
+               (eq (window-buffer window) (current-buffer)))
+      (let ((pos (window-point window)))
+        (switch-to-prev-buffer window)
+        (select-window home)
+        (goto-char pos)))))
 
 (defun nael-infoview--window-anchor (window)
   "Return where WINDOW looks into the infoview, to restore it later.

@@ -360,6 +360,41 @@ From the goals at Source.lean:2:2.
         (should (nael-rpc-owner-released (nael-infoview--page-owner first)))
         (should (equal (nael-infoview-hover-test-page-owners) '(nil)))))))
 
+(ert-deftest nael-infoview-hover-test-return-from-help ()
+  "Closing the help window, as Doom Emacs does, returns to the infoview."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-test-with-windows
+      (nael-infoview--show (list :goals (vector (nael-render-test-goal)))
+                           nil (nael-rpc-make-owner) "x"
+                           (nael-infoview-hover-test-handle))
+      (let ((home nael-infoview--window)
+            (main (get-buffer-window "Main")))
+        (nael-infoview-test-goto "n = 0")
+        (nael-infoview-describe)
+        (let ((help (get-buffer-window "*Help*")))
+          (should (window-live-p help))
+          (should-not (memq help (list home main)))
+          ;; Closed while selected: Emacs selects the main window.
+          (select-window help)
+          (delete-window help)
+          (should (eq (selected-window) main))
+          (cl-letf (((symbol-function 'old-selected-window)
+                     (lambda () help)))
+            (nael-infoview--return-from-help nil))
+          (should (eq (selected-window) home))
+          (should-not (memq #'nael-infoview--return-from-help
+                            (default-value
+                             'window-selection-change-functions))))
+        ;; Closed from elsewhere: no reason to go back.
+        (nael-infoview-describe)
+        (let ((help (get-buffer-window "*Help*")))
+          (select-window main)
+          (delete-window help)
+          (cl-letf (((symbol-function 'old-selected-window)
+                     (lambda () main)))
+            (nael-infoview--return-from-help nil))
+          (should (eq (selected-window) main)))))))
+
 (ert-deftest nael-infoview-hover-test-describe-dead ()
   "A subterm that Lean no longer knows is reported, not raised."
   (nael-infoview-hover-test-with-server

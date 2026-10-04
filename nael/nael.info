@@ -112,10 +112,11 @@ Language Server Protocol (LSP):
      its documentation, and how the tactic at point changes it.  Its
      subterms can be described in turn, and Help's history goes back and
      forth: ‘l’ and ‘r’, or ‘C-o’ and ‘C-i’ with Evil.  In Doom Emacs,
-     ‘K’ describes too.
-   • ‘M-.’ (‘xref-find-definitions’) goes to the definition of the
-     subterm, and ‘M-,’ (‘xref-go-back’) returns.  In Doom Emacs, these
-     are ‘gd’ and ‘C-o’.
+     ‘K’ describes too.  Closing the help window returns to the
+     infoview.
+   • ‘M-.’ (‘xref-find-definitions’) shows the definition of the subterm
+     in another window, and ‘M-,’ (‘xref-go-back’) returns to the
+     infoview.  In Doom Emacs, these are ‘gd’ and ‘C-o’.
 
    Abbreviations:
 
@@ -440,21 +441,21 @@ Tag Table:
 Node: Top192
 Node: Get Started2368
 Node: Usage2705
-Node: Configuration5883
-Node: Installation7249
-Node: Installation from Melpa7570
-Node: Installation from Sources8606
-Node: Manual Installation9014
-Node: Installation via package-vc9950
-Ref: Installation via package-vc-selected-packages10623
-Ref: Installation via use-package vc11720
-Node: Changelog12538
-Node: Version 082 from 2026-02-2212983
-Node: Version 080 from 2026-12-1613343
-Node: Version 070 from 2025-12-1513988
-Node: Version 062 from 2025-11-3014587
-Node: Version 060 from 2025-11-3014940
-Node: License and Maintenance16038
+Node: Configuration5970
+Node: Installation7336
+Node: Installation from Melpa7657
+Node: Installation from Sources8693
+Node: Manual Installation9101
+Node: Installation via package-vc10037
+Ref: Installation via package-vc-selected-packages10710
+Ref: Installation via use-package vc11807
+Node: Changelog12625
+Node: Version 082 from 2026-02-2213070
+Node: Version 080 from 2026-12-1613430
+Node: Version 070 from 2025-12-1514075
+Node: Version 062 from 2025-11-3014674
+Node: Version 060 from 2025-11-3015027
+Node: License and Maintenance16125
 
 End Tag Table
 

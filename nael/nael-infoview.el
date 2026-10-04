@@ -310,8 +310,9 @@ selected Nael buffer.  It is displayed with
   (if-let* ((window (nael-infoview-visible-p)))
       (quit-window nil window)
     (let ((source (current-buffer)))
-      (display-buffer (nael-infoview--get-buffer-create)
-                      nael-infoview-display-action)
+      (setq nael-infoview--window
+            (display-buffer (nael-infoview--get-buffer-create)
+                            nael-infoview-display-action))
       (nael-infoview--add-hooks)
       (when (nael-infoview--followed-p source)
         (with-current-buffer source
