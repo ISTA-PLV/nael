@@ -92,7 +92,7 @@ ElDoc echoes the subterm with all its arguments made explicit, and its type.  Wi
 @item
 With @code{tooltip-mode}, the tooltip of the subterm under the mouse shows it with its type and documentation.
 @item
-@samp{RET}, @samp{mouse-1} or @samp{C-h .} (@code{nael-infoview-describe}) describes the subterm in the @samp{*Help*} buffer: its explicit form, its type, its documentation, and how the tactic at point changes it.  Its subterms can be described in turn, and Help's history goes back and forth: @samp{l} and @samp{r}, or @samp{C-o} and @samp{C-i} with Evil.  In Doom Emacs, @samp{K} describes too.  Closing the help window returns to the infoview.
+@samp{RET}, @samp{mouse-1} or @samp{C-h .} (@code{nael-infoview-describe}) describes the subterm in the help buffer @samp{*Nael Help*}: its explicit form, its type, its documentation, and how the tactic at point changes it.  Its subterms can be described in turn, and the history goes back and forth: @samp{l} and @samp{r}, or @samp{C-o} and @samp{C-i} with Evil.  In Doom Emacs, @samp{K} describes too.  Closing the help window returns to the infoview.
 @item
 @samp{M-.} (@code{xref-find-definitions}) shows the definition of the subterm in another window, and @samp{M-,} (@code{xref-go-back}) returns to the infoview.  In Doom Emacs, these are @samp{gd} and @samp{C-o}.
 @end itemize

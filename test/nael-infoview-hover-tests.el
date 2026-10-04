@@ -72,8 +72,9 @@ Each is a function that delivers it.")
                           (push answer nael-infoview-hover-test-deferred)
                         (funcall answer)))))))
        (unwind-protect (progn ,@body)
-         (when-let* ((help (get-buffer "*Help*")))
-           (kill-buffer help))
+         (dolist (name (list nael-infoview-help-buffer-name "*Help*"))
+           (when-let* ((help (get-buffer name)))
+             (kill-buffer help)))
          (when-let* ((source (get-buffer "Source.lean")))
            (kill-buffer source))))))
 
@@ -238,8 +239,8 @@ The result is (DOC . ECHO), or nil if it reports nothing."
 ;;;; Descriptions:
 
 (defun nael-infoview-hover-test-help ()
-  "Return the text of the *Help* buffer."
-  (with-current-buffer (help-buffer)
+  "Return the text of the help buffer."
+  (with-current-buffer nael-infoview-help-buffer-name
     (buffer-substring-no-properties (point-min) (point-max))))
 
 (defun nael-infoview-hover-test-page-owners ()
@@ -249,7 +250,7 @@ The result is (DOC . ECHO), or nil if it reports nothing."
           nael-infoview--pages))
 
 (ert-deftest nael-infoview-hover-test-describe ()
-  "A subterm is described in the *Help* buffer."
+  "A subterm is described in the help buffer."
   (nael-infoview-hover-test-with-server
     (nael-infoview-hover-test-with-goal
       (should-error (nael-infoview-describe) :type 'user-error)
@@ -264,7 +265,7 @@ From the goals at Source.lean:2:2.
 "))
       (should (eq (plist-get (car nael-infoview-hover-test-calls) :slot)
                   'infoview-describe))
-      (with-current-buffer (help-buffer)
+      (with-current-buffer nael-infoview-help-buffer-name
         ;; The location leads to the source.
         (search-forward "Source.lean")
         (push-button)
@@ -292,7 +293,7 @@ From the goals at Source.lean:2:2.
     (nael-infoview-hover-test-with-goal
       (nael-infoview-test-goto "n = 0")
       (nael-infoview-describe)
-      (with-current-buffer (help-buffer)
+      (with-current-buffer nael-infoview-help-buffer-name
         (goto-char (point-min))
         (search-forward "Nat")
         (backward-char)
@@ -316,18 +317,12 @@ From the goals at Source.lean:2:2.
         (nael-infoview-describe)
         (should (equal (plist-get (car nael-infoview-hover-test-calls) :info)
                        '(:__rpcref "11")))
-        (should eldoc-mode)
-        ;; Other help leaves nothing of the description behind.
+        (should (eq major-mode 'nael-infoview-help-mode))
+        (should (eq (and eldoc-mode t) global-eldoc-mode))
+        ;; Emacs's own help is elsewhere, and leaves this alone.
+        (should-not (get-buffer "*Help*"))
         (describe-variable 'nael-infoview-delay)
-        (should-not (overlays-in (point-min) (point-max)))
-        (should-not (memq #'nael-infoview-eldoc-function
-                          eldoc-documentation-functions))
-        (should-not nael-infoview--handle)
-        (should-not eldoc-mode)
-        ;; And back.
-        (help-go-back)
         (should (string-prefix-p "0 : Nat\n" (nael-infoview-hover-test-help)))
-        (should eldoc-mode)
         (should nael-infoview--handle)))))
 
 (ert-deftest nael-infoview-hover-test-describe-release ()
@@ -336,7 +331,7 @@ From the goals at Source.lean:2:2.
     (nael-infoview-hover-test-with-goal
       (nael-infoview-test-goto "n = 0")
       (nael-infoview-describe)
-      (with-current-buffer (help-buffer)
+      (with-current-buffer nael-infoview-help-buffer-name
         (goto-char (point-min))
         (search-forward "Nat")
         (nael-infoview-describe 1))
@@ -344,7 +339,7 @@ From the goals at Source.lean:2:2.
       (let ((first (car (last nael-infoview--pages)))
             (second (car nael-infoview--pages)))
         ;; Going back and describing anew drops the way forward.
-        (with-current-buffer (help-buffer)
+        (with-current-buffer nael-infoview-help-buffer-name
           (help-go-back))
         ;; Help can still go forward to it.
         (should-not (nael-rpc-owner-released
@@ -354,10 +349,11 @@ From the goals at Source.lean:2:2.
         (should-not (memq second nael-infoview--pages))
         (should-not (nael-rpc-owner-released
                      (nael-infoview--page-owner first)))
-        ;; Without the *Help* buffer, nothing leads back.
-        (kill-buffer (help-buffer))
-        (nael-infoview-describe)
+        ;; Without the help buffer, nothing leads back.
+        (kill-buffer nael-infoview-help-buffer-name)
         (should (nael-rpc-owner-released (nael-infoview--page-owner first)))
+        (should-not nael-infoview--pages)
+        (nael-infoview-describe)
         (should (equal (nael-infoview-hover-test-page-owners) '(nil)))))))
 
 (ert-deftest nael-infoview-hover-test-return-from-help ()
@@ -371,7 +367,7 @@ From the goals at Source.lean:2:2.
             (main (get-buffer-window "Main")))
         (nael-infoview-test-goto "n = 0")
         (nael-infoview-describe)
-        (let ((help (get-buffer-window "*Help*")))
+        (let ((help (get-buffer-window nael-infoview-help-buffer-name)))
           (should (window-live-p help))
           (should-not (memq help (list home main)))
           ;; Closed while selected: Emacs selects the main window.
@@ -387,7 +383,7 @@ From the goals at Source.lean:2:2.
                              'window-selection-change-functions))))
         ;; Closed from elsewhere: no reason to go back.
         (nael-infoview-describe)
-        (let ((help (get-buffer-window "*Help*")))
+        (let ((help (get-buffer-window nael-infoview-help-buffer-name)))
           (select-window main)
           (delete-window help)
           (cl-letf (((symbol-function 'old-selected-window)
@@ -515,7 +511,7 @@ describe it again from the infoview")))
                     +lookup-documentation-functions))
       (should-not (default-value '+lookup-documentation-functions))
       (should-not (nael-infoview--lookup-documentation "goal"))
-      (should-not (get-buffer "*Help*"))
+      (should-not (get-buffer nael-infoview-help-buffer-name))
       (nael-infoview-test-goto "n = 0")
       (should (eq (nael-infoview--lookup-documentation "n") 'deferred))
       (should (string-prefix-p "n : Nat\n" (nael-infoview-hover-test-help))))))
@@ -527,8 +523,7 @@ describe it again from the infoview")))
     (unwind-protect
         (with-temp-buffer
           (nael-infoview-hover-setup)
-          (should-not (boundp '+lookup-documentation-functions))
-          (nael-infoview-hover-teardown))
+          (should-not (boundp '+lookup-documentation-functions)))
       (setq +lookup-documentation-functions value))))
 
 (provide 'nael-infoview-hover-tests)

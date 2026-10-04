@@ -147,7 +147,7 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
 `outline-minor-mode'.
 
 On a subterm, ElDoc shows it with its type, and so does its tooltip
-with `tooltip-mode'.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it in the *Help*
+with `tooltip-mode'.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it in a help
 buffer, and \\[xref-find-definitions] shows its definition in another window.
 
 \\{nael-infoview-mode-map}"

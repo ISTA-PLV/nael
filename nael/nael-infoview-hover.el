@@ -23,21 +23,20 @@
 ;;   the same documentation, as Flymake's tooltips show diagnostics.
 ;;
 ;; - `nael-infoview-describe', on RET, a click, or `C-h .', shows the
-;;   same and more in the *Help* buffer, like `describe-function'.  The
-;;   subterms shown there can be described in turn, and Help's history
-;;   leads back.  In Doom Emacs, `K' does the same.  Closing the help
-;;   window returns to the infoview.
+;;   same and more in a help buffer of its own, like `describe-function'
+;;   does in *Help*.  The subterms shown there can be described in turn,
+;;   and Help's history commands lead back.  In Doom Emacs, `K' does the
+;;   same.  Closing the help window returns to the infoview.
 ;;
 ;; - `xref-find-definitions', on `M-.' or Doom's `gd', goes to where the
 ;;   subterm's head is defined; `M-,' or Doom's `C-o' come back.
 ;;
 ;; The functions here work in any buffer that shows rendered nodes and
 ;; whose `nael-infoview--handle' is the RPC handle through which their
-;; references were obtained: the infoview and the descriptions in the
-;; *Help* buffer.
+;; references were obtained: the infoview and the help buffer.
 ;;
 ;; A description keeps the references of the subterms it shows for as
-;; long as Help's history can lead back to it.
+;; long as the help buffer's history can lead back to it.
 
 ;;; Code:
 
@@ -198,9 +197,12 @@ and show the tooltip once Lean answers, if the mouse is still there."
 
 ;;;; Descriptions:
 
+(defconst nael-infoview-help-buffer-name "*Nael Help*"
+  "Name of the buffer that describes subterms of the infoview.")
+
 (cl-defstruct (nael-infoview--page (:constructor nael-infoview--page-create)
                                    (:copier nil))
-  "The description of a subterm in the *Help* buffer."
+  "The description of a subterm in the help buffer."
   handle                                ; RPC handle of its references
   info                                  ; result of `infoToInteractive'
   owner                                 ; owner of the references in INFO
@@ -269,7 +271,7 @@ text properties also apply just after their end."
       (overlay-put overlay 'nael-infoview-node t))))
 
 (defun nael-infoview--insert-page (page)
-  "Insert the description PAGE at point in the *Help* buffer."
+  "Insert the description PAGE at point in the help buffer."
   (let* ((info (nael-infoview--page-info page))
          (rendered (nael-render-info info))
          (start (point))
@@ -291,64 +293,69 @@ text properties also apply just after their end."
                           'help-echo "mouse-1, RET: go there")
       (insert ".\n"))))
 
-(defun nael-infoview--help-buffer-pages ()
-  "Return the descriptions that the *Help* buffer shows or can go back to."
-  ;; Not `help-buffer', which creates the buffer.
-  (when-let* ((buffer (get-buffer "*Help*")))
+(define-derived-mode nael-infoview-help-mode help-mode "Nael Help"
+  "Major mode of the descriptions of subterms of Nael's infoview.
+The subterms shown can be described in turn with \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click.
+Help's history commands go back and forth, and \\[xref-find-definitions] goes to the
+definition of a subterm.
+
+\\{nael-infoview-help-mode-map}"
+  (nael-infoview-hover-setup)
+  (add-hook 'kill-buffer-hook #'nael-infoview--release-all-pages nil t))
+
+(defun nael-infoview--help-buffer ()
+  "Return the help buffer of the infoview, creating it if needed."
+  (or (get-buffer nael-infoview-help-buffer-name)
+      (with-current-buffer (get-buffer-create nael-infoview-help-buffer-name)
+        (nael-infoview-help-mode)
+        (current-buffer))))
+
+(defun nael-infoview--reachable-pages ()
+  "Return the descriptions that the help buffer shows or can go back to."
+  (when-let* ((buffer (get-buffer nael-infoview-help-buffer-name)))
     (with-current-buffer buffer
       (seq-filter #'nael-infoview--page-p
                   (flatten-tree (list help-xref-stack-item
                                       help-xref-stack
                                       help-xref-forward-stack))))))
 
+(defun nael-infoview--release-page (page)
+  "Release the references and the marker of the description PAGE."
+  (nael-rpc-owner-release (nael-infoview--page-owner page))
+  (when-let* ((source (nael-infoview--page-source page)))
+    (set-marker source nil)))
+
 (defun nael-infoview--release-pages ()
-  "Release the references of descriptions that Help cannot go back to."
-  (let ((reachable (nael-infoview--help-buffer-pages)))
+  "Release the references of descriptions that history cannot lead to."
+  (let ((reachable (nael-infoview--reachable-pages)))
     (setq nael-infoview--pages
           (seq-filter (lambda (page)
                         (or (memq page reachable)
-                            (progn
-                              (nael-rpc-owner-release
-                               (nael-infoview--page-owner page))
-                              (when-let* ((source (nael-infoview--page-source
-                                                   page)))
-                                (set-marker source nil))
-                              nil)))
+                            (ignore (nael-infoview--release-page page))))
                       nael-infoview--pages))))
 
-(defvar-local nael-infoview--eldoc-was nil
-  "Whether ElDoc was on in this *Help* buffer before it described subterms.")
+(defun nael-infoview--release-all-pages ()
+  "Release the references of all descriptions, as the help buffer is gone."
+  (mapc #'nael-infoview--release-page nael-infoview--pages)
+  (setq nael-infoview--pages nil))
 
 (defun nael-infoview--show-page (page &optional interactive)
-  "Show the description PAGE in the *Help* buffer.
-INTERACTIVE is non-nil if a command asked for it, rather than Help's
-history.  This is the function of PAGE's items in Help's history."
-  (help-setup-xref (list #'nael-infoview--show-page page) interactive)
-  (with-help-window (help-buffer)
-    (with-current-buffer standard-output
-      (nael-infoview--insert-page page)
-      (setq nael-infoview--handle (nael-infoview--page-handle page))
-      (unless (local-variable-p 'nael-infoview--eldoc-was)
-        (setq-local nael-infoview--eldoc-was eldoc-mode))
-      (nael-infoview-hover-setup)))
+  "Show the description PAGE in the help buffer.
+INTERACTIVE is non-nil if a command asked for it, rather than the
+history.  This is the function of PAGE's items in the history."
+  (let ((buffer (nael-infoview--help-buffer)))
+    (with-current-buffer buffer
+      ;; `help-setup-xref' records the history of the buffer that
+      ;; `help-buffer' names: this one, while it is current and followed.
+      (let ((help-xref-following t))
+        (help-setup-xref (list #'nael-infoview--show-page page) interactive)))
+    (with-help-window buffer
+      (with-current-buffer standard-output
+        (nael-infoview--insert-page page)
+        (setq nael-infoview--handle (nael-infoview--page-handle page)
+              nael-infoview--info-cache nil
+              nael-infoview--tooltip-node nil))))
   (nael-infoview--release-pages))
-
-(defun nael-infoview--help-cleanup ()
-  "Undo `nael-infoview-hover-setup' in a *Help* buffer showing other help.
-The *Help* buffer keeps its local variables from one help to the next."
-  (when (and (local-variable-p 'nael-infoview--eldoc-was)
-             (not (text-property-not-all (point-min) (point-max)
-                                         'nael-node nil)))
-    (nael-infoview-hover-teardown)
-    (unless nael-infoview--eldoc-was
-      (eldoc-mode -1))
-    (kill-local-variable 'nael-infoview--handle)
-    (kill-local-variable 'nael-infoview--info-cache)
-    (kill-local-variable 'nael-infoview--tooltip-node)
-    (kill-local-variable 'nael-infoview--eldoc-was)))
-
-;; Help runs this hook for each help it shows.
-(add-hook 'temp-buffer-window-setup-hook #'nael-infoview--help-cleanup)
 
 (defvar nael-infoview--return nil
   "Where to return when the help window closes, as (HELP . WINDOW).
@@ -364,7 +371,8 @@ not dedicated, so never the infoview, a side window.  Run from
 `window-selection-change-functions' while a description is shown."
   (pcase-let ((`(,help . ,origin) nael-infoview--return))
     (unless (and (window-live-p help)
-                 (eq (window-buffer help) (get-buffer "*Help*")))
+                 (eq (window-buffer help)
+                     (get-buffer nael-infoview-help-buffer-name)))
       (setq nael-infoview--return nil)
       (remove-hook 'window-selection-change-functions
                    #'nael-infoview--return-from-help)
@@ -376,7 +384,7 @@ not dedicated, so never the infoview, a side window.  Run from
 (defun nael-infoview--return-after-help (origin)
   "Return to ORIGIN once the help window, now showing a description, closes.
 ORIGIN is the window that asked for the description."
-  (when-let* ((help (get-buffer-window "*Help*" t)))
+  (when-let* ((help (get-buffer-window nael-infoview-help-buffer-name t)))
     ;; A description asked for from another keeps the way back.
     (unless (eq help origin)
       (setq nael-infoview--return (cons help origin))
@@ -384,7 +392,7 @@ ORIGIN is the window that asked for the description."
                 #'nael-infoview--return-from-help))))
 
 (defun nael-infoview-describe (&optional pos)
-  "Describe the subterm at POS, or point, in the *Help* buffer.
+  "Describe the subterm at POS, or point, in a help buffer.
 Show it with all its arguments made explicit, its type, its
 documentation, and how the tactic at point changes it.  The subterms in
 the description can be described in turn."
@@ -410,7 +418,7 @@ the description can be described in turn."
      :failure #'nael-infoview--report-failure)))
 
 (defun nael-infoview-describe-at-mouse (event)
-  "Describe the subterm clicked on with EVENT in the *Help* buffer."
+  "Describe the subterm clicked on with EVENT in a help buffer."
   (interactive "e")
   (mouse-set-point event)
   (nael-infoview-describe))
@@ -514,14 +522,6 @@ lookup must leave the windows alone until then."
   (when (bound-and-true-p global-eldoc-mode)
     (eldoc-mode)))
 
-(defun nael-infoview-hover-teardown ()
-  "Undo `nael-infoview-hover-setup' in the current buffer."
-  (remove-hook 'eldoc-documentation-functions #'nael-infoview-eldoc-function
-               t)
-  (remove-hook 'xref-backend-functions #'nael-infoview--xref-backend t)
-  (when (boundp '+lookup-documentation-functions)
-    (remove-hook '+lookup-documentation-functions
-                 #'nael-infoview--lookup-documentation t)))
 
 (defun nael-infoview-hover-reset (handle)
   "Forget what was found out about the nodes shown so far.

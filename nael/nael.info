@@ -108,11 +108,11 @@ Language Server Protocol (LSP):
    • With ‘tooltip-mode’, the tooltip of the subterm under the mouse
      shows it with its type and documentation.
    • ‘RET’, ‘mouse-1’ or ‘C-h .’ (‘nael-infoview-describe’) describes
-     the subterm in the ‘*Help*’ buffer: its explicit form, its type,
-     its documentation, and how the tactic at point changes it.  Its
-     subterms can be described in turn, and Help's history goes back and
-     forth: ‘l’ and ‘r’, or ‘C-o’ and ‘C-i’ with Evil.  In Doom Emacs,
-     ‘K’ describes too.  Closing the help window returns to the
+     the subterm in the help buffer ‘*Nael Help*’: its explicit form,
+     its type, its documentation, and how the tactic at point changes
+     it.  Its subterms can be described in turn, and the history goes
+     back and forth: ‘l’ and ‘r’, or ‘C-o’ and ‘C-i’ with Evil.  In Doom
+     Emacs, ‘K’ describes too.  Closing the help window returns to the
      infoview.
    • ‘M-.’ (‘xref-find-definitions’) shows the definition of the subterm
      in another window, and ‘M-,’ (‘xref-go-back’) returns to the
@@ -441,21 +441,21 @@ Tag Table:
 Node: Top192
 Node: Get Started2368
 Node: Usage2705
-Node: Configuration5970
-Node: Installation7336
-Node: Installation from Melpa7657
-Node: Installation from Sources8693
-Node: Manual Installation9101
-Node: Installation via package-vc10037
-Ref: Installation via package-vc-selected-packages10710
-Ref: Installation via use-package vc11807
-Node: Changelog12625
-Node: Version 082 from 2026-02-2213070
-Node: Version 080 from 2026-12-1613430
-Node: Version 070 from 2025-12-1514075
-Node: Version 062 from 2025-11-3014674
-Node: Version 060 from 2025-11-3015027
-Node: License and Maintenance16125
+Node: Configuration5977
+Node: Installation7343
+Node: Installation from Melpa7664
+Node: Installation from Sources8700
+Node: Manual Installation9108
+Node: Installation via package-vc10044
+Ref: Installation via package-vc-selected-packages10717
+Ref: Installation via use-package vc11814
+Node: Changelog12632
+Node: Version 082 from 2026-02-2213077
+Node: Version 080 from 2026-12-1613437
+Node: Version 070 from 2025-12-1514082
+Node: Version 062 from 2025-11-3014681
+Node: Version 060 from 2025-11-3015034
+Node: License and Maintenance16132
 
 End Tag Table
 
