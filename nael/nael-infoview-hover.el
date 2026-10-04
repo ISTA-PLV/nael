@@ -19,6 +19,9 @@
 ;;   Packages that show ElDoc elsewhere, such as in a child frame, show
 ;;   it there.
 ;;
+;; - With `tooltip-mode', the tooltip of a subterm under the mouse shows
+;;   the same documentation, as Flymake's tooltips show diagnostics.
+;;
 ;; - `nael-infoview-describe', on RET, a click, or `C-h .', shows the
 ;;   same and more in the *Help* buffer, like `describe-function'.  The
 ;;   subterms shown there can be described in turn, and Help's history
@@ -53,9 +56,18 @@ References belong to an RPC session, so calls about them must use it.")
 
 (defvar nael-infoview-node-map)
 
-(defvar-local nael-infoview--eldoc-cache nil
-  "The node that ElDoc documented last and its documentation.
-The format is (NODE DOC . ECHO), see `nael-infoview-eldoc-function'.")
+(defvar-local nael-infoview--info-cache nil
+  "Documentation of the nodes shown, as far as asked for, or nil.
+Maps nodes to (DOC . ECHO), see `nael-infoview--info-strings'.")
+
+(defun nael-infoview--info-cache ()
+  "Return the documentation of nodes of the current buffer, a table."
+  (or nael-infoview--info-cache
+      (setq nael-infoview--info-cache
+            (make-hash-table :test #'eq :weakness 'key))))
+
+(defvar-local nael-infoview--tooltip-node nil
+  "The node whose documentation is being fetched for its tooltip.")
 
 ;;;; Content:
 
@@ -82,8 +94,8 @@ Markdown is shown as Eglot shows it, with `markdown-mode' if installed."
     (remove-list-of-text-properties 0 (length string) '(nael-node) string)
     string))
 
-(defun nael-infoview--eldoc-strings (info status)
-  "Return the documentation of INFO for ElDoc, as (DOC . ECHO).
+(defun nael-infoview--info-strings (info status)
+  "Return the documentation of INFO, as (DOC . ECHO).
 ECHO is the subterm and its type; DOC adds the documentation and an
 explanation of STATUS, the diff status of the subterm."
   (let ((echo (nael-infoview--without-nodes
@@ -94,6 +106,37 @@ explanation of STATUS, the diff status of the subterm."
                        "\n\n")
           echo)))
 
+;;;; Documentation of nodes:
+
+(defun nael-infoview--usable-handle ()
+  "Return the RPC handle of the current buffer if it is live, or nil."
+  (when-let* ((handle nael-infoview--handle)
+              ((nael-rpc-handle-live-p handle)))
+    handle))
+
+(defun nael-infoview--fetch-info (node slot callback &optional failure)
+  "Call CALLBACK with the documentation of NODE, as (DOC . ECHO).
+Take it from the cache, at once, or ask Lean in the RPC slot SLOT and
+cache the answer.  Call FAILURE, if non-nil, if Lean cannot answer."
+  (if-let* ((strings (gethash node (nael-infoview--info-cache))))
+      (funcall callback strings)
+    (let ((cache (nael-infoview--info-cache))
+          (owner (nael-rpc-make-owner)))
+      (nael-rpc-info-to-interactive
+       nael-infoview--handle (nael-render-node-info node)
+       (lambda (info)
+         (let ((strings (and info
+                             (nael-infoview--info-strings
+                              info (nael-render-node-diff-status node)))))
+           ;; The strings refer to nothing on the server.
+           (nael-rpc-owner-release owner)
+           (if strings
+               (progn (puthash node strings cache)
+                      (funcall callback strings))
+             (when failure (funcall failure nil)))))
+       :owner owner :slot slot
+       :failure (or failure #'ignore)))))
+
 ;;;; ElDoc:
 
 (defun nael-infoview-eldoc-function (callback &rest _)
@@ -102,29 +145,55 @@ The echo area shows the subterm with all its arguments made explicit,
 and its type.  The documentation buffer of ElDoc also shows the
 documentation of the subterm and how the tactic at point changes it."
   (when-let* ((node (nael-render-node-at (point)))
-              (handle nael-infoview--handle)
-              ((nael-rpc-handle-live-p handle)))
-    (if (eq node (car nael-infoview--eldoc-cache))
-        (pcase-let ((`(,_ ,doc . ,echo) nael-infoview--eldoc-cache))
-          (funcall callback doc :echo echo))
-      (let ((buffer (current-buffer))
-            (owner (nael-rpc-make-owner)))
-        (nael-rpc-info-to-interactive
-         handle (nael-render-node-info node)
-         (lambda (info)
-           (when info
-             (pcase-let ((`(,doc . ,echo)
-                          (nael-infoview--eldoc-strings
-                           info (nael-render-node-diff-status node))))
-               (when (buffer-live-p buffer)
-                 (with-current-buffer buffer
-                   (setq nael-infoview--eldoc-cache
-                         (cons node (cons doc echo)))))
-               (funcall callback doc :echo echo)))
-           ;; The strings refer to nothing on the server.
-           (nael-rpc-owner-release owner))
-         :owner owner :slot 'infoview-eldoc)))
+              ((nael-infoview--usable-handle)))
+    (nael-infoview--fetch-info node 'infoview-eldoc
+                               (pcase-lambda (`(,doc . ,echo))
+                                 (funcall callback doc :echo echo)))
     t))
+
+;;;; Tooltips:
+
+(defun nael-infoview--node-under-mouse ()
+  "Return the node under the mouse pointer, or nil."
+  (pcase (mouse-pixel-position)
+    (`(,frame ,(and x (pred numberp)) . ,y)
+     (let* ((posn (posn-at-x-y x y frame))
+            (window (posn-window posn))
+            (pos (posn-point posn)))
+       (when (and (windowp window) pos)
+         (with-current-buffer (window-buffer window)
+           (nael-render-node-at pos)))))))
+
+(defun nael-infoview--tooltip-done (buffer node)
+  "Note in BUFFER that the tooltip of NODE is no longer being fetched."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (eq nael-infoview--tooltip-node node)
+        (setq nael-infoview--tooltip-node nil)))))
+
+(defun nael-infoview--node-help-echo (window _object pos)
+  "Return the tooltip for the subterm at POS in WINDOW, if there is one.
+It is the documentation of the subterm, as in the documentation buffer
+of ElDoc.  Without `tooltip-mode', Emacs would show it in the echo
+area, where ElDoc shows the subterm at point; then there is none.
+If the documentation is not known yet, ask Lean for it, return nil,
+and show the tooltip once Lean answers, if the mouse is still there."
+  (when (bound-and-true-p tooltip-mode)
+    (with-current-buffer (if window (window-buffer window) (current-buffer))
+      (when-let* ((node (nael-render-node-at pos))
+                  ((nael-infoview--usable-handle)))
+        (or (car (gethash node (nael-infoview--info-cache)))
+            (let ((buffer (current-buffer)))
+              (unless (eq node nael-infoview--tooltip-node)
+                (setq nael-infoview--tooltip-node node)
+                (nael-infoview--fetch-info
+                 node 'infoview-tooltip
+                 (lambda (strings)
+                   (nael-infoview--tooltip-done buffer node)
+                   (when (eq node (nael-infoview--node-under-mouse))
+                     (funcall show-help-function (car strings))))
+                 (lambda (_) (nael-infoview--tooltip-done buffer node))))
+              nil))))))
 
 ;;;; Descriptions:
 
@@ -194,7 +263,7 @@ text properties also apply just after their end."
     (let ((overlay (make-overlay (nael-render-node-beg node)
                                  (nael-render-node-end node))))
       (overlay-put overlay 'mouse-face 'highlight)
-      (overlay-put overlay 'help-echo "mouse-1, RET: describe this subterm")
+      (overlay-put overlay 'help-echo #'nael-infoview--node-help-echo)
       (overlay-put overlay 'keymap nael-infoview-node-map))))
 
 (defun nael-infoview--insert-page (page)
@@ -272,7 +341,8 @@ The *Help* buffer keeps its local variables from one help to the next."
     (unless nael-infoview--eldoc-was
       (eldoc-mode -1))
     (kill-local-variable 'nael-infoview--handle)
-    (kill-local-variable 'nael-infoview--eldoc-cache)
+    (kill-local-variable 'nael-infoview--info-cache)
+    (kill-local-variable 'nael-infoview--tooltip-node)
     (kill-local-variable 'nael-infoview--eldoc-was)))
 
 ;; Help runs this hook for each help it shows.
@@ -420,7 +490,8 @@ lookup must leave the windows alone until then."
   "Forget what was found out about the nodes shown so far.
 HANDLE is the RPC handle of the references shown from now on."
   (setq nael-infoview--handle handle
-        nael-infoview--eldoc-cache nil))
+        nael-infoview--info-cache nil
+        nael-infoview--tooltip-node nil))
 
 (provide 'nael-infoview-hover)
 

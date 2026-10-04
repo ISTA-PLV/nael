@@ -32,6 +32,7 @@ Language Server Protocol (LSP):
 Infoview, on a subterm of a goal:
 
 - ElDoc echoes the subterm with all its arguments made explicit, and its type.  With [[https://github.com/casouri/eldoc-box][eldoc-box]], this appears in a popup.
+- With ~tooltip-mode~, the tooltip of the subterm under the mouse shows it with its type and documentation.
 - =RET=, =mouse-1= or =C-h .= (~nael-infoview-describe~) describes the subterm in the =*Help*= buffer: its explicit form, its type, its documentation, and how the tactic at point changes it.  Its subterms can be described in turn, and Help's history goes back and forth: =l= and =r=, or =C-o= and =C-i= with Evil.  In Doom Emacs, =K= describes too.
 - =M-.= (~xref-find-definitions~) goes to the definition of the subterm, and =M-,= (~xref-go-back~) returns.  In Doom Emacs, these are =gd= and =C-o=.
 

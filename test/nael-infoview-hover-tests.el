@@ -40,11 +40,16 @@ Each is a plist of the method, the reference asked about, and the keys.")
 (defvar nael-infoview-hover-test-error nil
   "If non-nil, the error code with which the stub server fails calls.")
 
+(defvar nael-infoview-hover-test-deferred nil
+  "If non-nil, the stub server keeps answers here instead of answering.
+Each is a function that delivers it.")
+
 (defmacro nael-infoview-hover-test-with-server (&rest body)
   "Run BODY with RPC calls answered at once by a stub server."
   (declare (indent 0) (debug t))
   `(let ((nael-infoview-hover-test-calls nil)
          (nael-infoview-hover-test-error nil)
+         (nael-infoview-hover-test-deferred nil)
          (nael-infoview--pages nil))
      (cl-letf (((symbol-function 'nael-rpc-handle-live-p) #'always)
                ((symbol-function 'nael-rpc-info-to-interactive)
@@ -55,11 +60,17 @@ Each is a plist of the method, the reference asked about, and the keys.")
                       (funcall (plist-get keys :failure)
                                (list :code nael-infoview-hover-test-error
                                      :message "fake error"))
-                    (let ((result (nael-infoview-hover-test-info info)))
-                      (when-let* ((owner (plist-get keys :owner)))
-                        (setf (nael-rpc-owner-refs owner)
-                              (nael-rpc-collect-refs result :__rpcref)))
-                      (funcall success result))))))
+                    (let* ((result (nael-infoview-hover-test-info info))
+                           (answer
+                            (lambda ()
+                              (when-let* ((owner (plist-get keys :owner)))
+                                (setf (nael-rpc-owner-refs owner)
+                                      (nael-rpc-collect-refs result
+                                                             :__rpcref)))
+                              (funcall success result))))
+                      (if nael-infoview-hover-test-deferred
+                          (push answer nael-infoview-hover-test-deferred)
+                        (funcall answer)))))))
        (unwind-protect (progn ,@body)
          (when-let* ((help (get-buffer "*Help*")))
            (kill-buffer help))
@@ -139,7 +150,7 @@ The result is (DOC . ECHO), or nil if it reports nothing."
                              nil (nael-rpc-make-owner) "x"
                              nael-infoview--handle)
         ;; The old nodes are not kept.
-        (should-not nael-infoview--eldoc-cache)
+        (should-not nael-infoview--info-cache)
         (nael-infoview-test-goto "n = 0")
         (should (equal (nael-infoview-hover-test-eldoc) report))
         (should (= (length nael-infoview-hover-test-calls) 2))))))
@@ -173,6 +184,56 @@ The result is (DOC . ECHO), or nil if it reports nothing."
       (setq nael-infoview--handle nil)
       (should-not (nael-infoview-eldoc-function #'ignore))
       (should-not nael-infoview-hover-test-calls))))
+
+;;;; Tooltips:
+
+(ert-deftest nael-infoview-hover-test-tooltip ()
+  "With `tooltip-mode', the tooltip of a subterm documents it."
+  (nael-infoview-hover-test-with-server
+    (nael-infoview-hover-test-with-goal
+      (nael-infoview-test-goto "n = 0")
+      (let ((help-echo (get-char-property (point) 'help-echo))
+            (pos (point))
+            (under-mouse (nael-render-node-at (point)))
+            shown)
+        (cl-letf (((symbol-function 'nael-infoview--node-under-mouse)
+                   (lambda () under-mouse))
+                  (show-help-function (lambda (text) (push text shown))))
+          ;; Not in the echo area, where ElDoc shows the subterm at point.
+          (let ((tooltip-mode nil))
+            (should-not (funcall help-echo nil nil pos))
+            (should-not nael-infoview-hover-test-calls))
+          (let ((tooltip-mode t))
+            ;; Asked for once, while Lean has not answered.
+            (setq nael-infoview-hover-test-deferred (list #'ignore))
+            (should-not (funcall help-echo nil nil pos))
+            (should-not (funcall help-echo nil nil pos))
+            (should (= (length nael-infoview-hover-test-calls) 1))
+            (should (eq (plist-get (car nael-infoview-hover-test-calls) :slot)
+                        'infoview-tooltip))
+            ;; Shown when Lean answers, as the mouse is still there.
+            (funcall (car nael-infoview-hover-test-deferred))
+            (setq nael-infoview-hover-test-deferred nil)
+            (should (equal (mapcar #'substring-no-properties shown)
+                           '("n : Nat\n\nThe `n` of the test.")))
+            ;; Then known.
+            (should (equal (substring-no-properties
+                            (funcall help-echo nil nil pos))
+                           "n : Nat\n\nThe `n` of the test."))
+            ;; ElDoc knows it too.
+            (should (equal (nael-infoview-hover-test-eldoc)
+                           '("n : Nat\n\nThe `n` of the test." . "n : Nat")))
+            (should (= (length nael-infoview-hover-test-calls) 1))
+            ;; Not shown if the mouse has moved on.
+            (setq shown nil under-mouse nil)
+            (nael-infoview--show (list :goals (vector (nael-render-test-goal)))
+                                 nil (nael-rpc-make-owner) "x"
+                                 nael-infoview--handle)
+            (nael-infoview-test-goto "n = 0")
+            (should-not (funcall (get-char-property (point) 'help-echo)
+                                 nil nil (point)))
+            (should (= (length nael-infoview-hover-test-calls) 2))
+            (should-not shown)))))))
 
 ;;;; Descriptions:
 

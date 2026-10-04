@@ -105,6 +105,8 @@ Language Server Protocol (LSP):
    • ElDoc echoes the subterm with all its arguments made explicit, and
      its type.  With eldoc-box (https://github.com/casouri/eldoc-box),
      this appears in a popup.
+   • With ‘tooltip-mode’, the tooltip of the subterm under the mouse
+     shows it with its type and documentation.
    • ‘RET’, ‘mouse-1’ or ‘C-h .’ (‘nael-infoview-describe’) describes
      the subterm in the ‘*Help*’ buffer: its explicit form, its type,
      its documentation, and how the tactic at point changes it.  Its
@@ -438,21 +440,21 @@ Tag Table:
 Node: Top192
 Node: Get Started2368
 Node: Usage2705
-Node: Configuration5761
-Node: Installation7127
-Node: Installation from Melpa7448
-Node: Installation from Sources8484
-Node: Manual Installation8892
-Node: Installation via package-vc9828
-Ref: Installation via package-vc-selected-packages10501
-Ref: Installation via use-package vc11598
-Node: Changelog12416
-Node: Version 082 from 2026-02-2212861
-Node: Version 080 from 2026-12-1613221
-Node: Version 070 from 2025-12-1513866
-Node: Version 062 from 2025-11-3014465
-Node: Version 060 from 2025-11-3014818
-Node: License and Maintenance15916
+Node: Configuration5883
+Node: Installation7249
+Node: Installation from Melpa7570
+Node: Installation from Sources8606
+Node: Manual Installation9014
+Node: Installation via package-vc9950
+Ref: Installation via package-vc-selected-packages10623
+Ref: Installation via use-package vc11720
+Node: Changelog12538
+Node: Version 082 from 2026-02-2212983
+Node: Version 080 from 2026-12-1613343
+Node: Version 070 from 2025-12-1513988
+Node: Version 062 from 2025-11-3014587
+Node: Version 060 from 2025-11-3014940
+Node: License and Maintenance16038
 
 End Tag Table
 
