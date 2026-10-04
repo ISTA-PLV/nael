@@ -116,7 +116,7 @@ Lean 4.30 and later announce their RPC wire format."
         (location (nael-infoview--location buffer pos))
         (goals 'pending)
         (term-goal 'pending)
-        error)
+        handle error)
     (when nael-infoview--pending-owner
       (nael-rpc-owner-release nael-infoview--pending-owner))
     (setq nael-infoview--pending-owner owner)
@@ -131,21 +131,22 @@ Lean 4.30 and later announce their RPC wire format."
                      (nael-infoview--set-status
                       (cons 'error (or (plist-get error :message)
                                        (format "%S" error)))))
-                 (nael-infoview--show goals term-goal owner location)))))
+                 (nael-infoview--show goals term-goal owner location
+                                      handle)))))
          (fail (e)
            (setq error e)))
       (nael-infoview--set-status 'updating)
-      (let ((handle (with-current-buffer buffer (nael-rpc-open pos))))
+      (setq handle (with-current-buffer buffer (nael-rpc-open pos)))
         (nael-rpc-get-interactive-goals
-         handle (lambda (result) (setq goals result) (finish))
-         :owner owner :slot 'infoview-goals
-         :failure (lambda (e) (fail e) (setq goals nil) (finish)))
-        (if (eq nael-infoview-expected-type 'hidden)
-            (setq term-goal nil)
-          (nael-rpc-get-interactive-term-goal
-           handle (lambda (result) (setq term-goal result) (finish))
-           :owner owner :slot 'infoview-term-goal
-           :failure (lambda (e) (fail e) (setq term-goal nil) (finish))))))))
+       handle (lambda (result) (setq goals result) (finish))
+       :owner owner :slot 'infoview-goals
+       :failure (lambda (e) (fail e) (setq goals nil) (finish)))
+      (if (eq nael-infoview-expected-type 'hidden)
+          (setq term-goal nil)
+        (nael-rpc-get-interactive-term-goal
+         handle (lambda (result) (setq term-goal result) (finish))
+         :owner owner :slot 'infoview-term-goal
+         :failure (lambda (e) (fail e) (setq term-goal nil) (finish)))))))
 
 (defun nael-infoview--update (&optional force)
   "Update the infoview for `nael-infoview--target' now.

@@ -20,6 +20,7 @@
 (require 'face-remap)
 (require 'outline)
 
+(require 'nael-infoview-hover)
 (require 'nael-render)
 (require 'nael-rpc)
 
@@ -156,6 +157,7 @@ in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer
               ;; the text.
               outline-margin-width 2)
   (outline-minor-mode)
+  (nael-infoview-hover-setup)
   (add-hook 'post-command-hook #'nael-infoview--highlight-point nil t)
   (add-hook 'kill-buffer-hook #'nael-infoview--killed nil t))
 
@@ -346,14 +348,16 @@ so that folds survive moving to another tactic."
       (nael-infoview--restore-window window anchors))
     (nael-infoview--highlight-point)))
 
-(defun nael-infoview--show (goals term-goal owner location)
+(defun nael-infoview--show (goals term-goal owner location &optional handle)
   "Show GOALS and TERM-GOAL, whose references OWNER keeps.
-LOCATION describes where they were requested."
+LOCATION describes where they were requested.  HANDLE is the RPC handle
+through which they came, for asking about their subterms."
   (with-current-buffer (nael-infoview--get-buffer-create)
     (let ((previous nael-infoview--owner))
       (setq nael-infoview--results (list goals term-goal)
             nael-infoview--owner owner
             nael-infoview--location location)
+      (nael-infoview-hover-reset handle)
       (nael-infoview--render)
       ;; Only now is nothing shown any longer that uses the old
       ;; references.
@@ -463,6 +467,8 @@ See `nael-infoview-expected-type'."
                     (get-text-property pos 'nael-goal)))
         (previous-single-property-change pos 'nael-goal nil (point-min))
       pos)))
+
+(eldoc-add-command 'nael-infoview-next-goal 'nael-infoview-previous-goal)
 
 (defun nael-infoview-next-goal (&optional n)
   "Move to the start of the Nth next goal in the infoview."

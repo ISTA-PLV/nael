@@ -11,9 +11,11 @@
 
 ;; This file turns the results of the Lean RPC methods
 ;; `Lean.Widget.getInteractiveGoals' and
-;; `Lean.Widget.getInteractiveTermGoal' into propertized text.  It has
-;; no side effects: it makes no requests and touches no buffer but a
-;; temporary one, so that it can be tested on recorded results.
+;; `Lean.Widget.getInteractiveTermGoal', and the hover information of
+;; `Lean.Widget.InteractiveDiagnostics.infoToInteractive', into
+;; propertized text.  It has no side effects: it makes no requests and
+;; touches no buffer but a temporary one, so that it can be tested on
+;; recorded results.
 ;;
 ;; Code in a goal is `TaggedText': strings in which some substrings are
 ;; tagged with information about the subterm they display.  The server
@@ -334,11 +336,32 @@ OPTIONS is a plist of view options:
         (unless (bobp) (insert "\n"))
         (nael-render--heading "Expected type" 'term-goal)
         (nael-render--goal term-goal nil 'term-goal options))
-      (nael-render--apply-faces)
-      (nael-render--put-nodes)
-      (nael-render--result-create
-       :text (buffer-string)
-       :nodes (nreverse nael-render--nodes)))))
+      (nael-render--finish))))
+
+(defun nael-render--finish ()
+  "Return the rendered contents of the current buffer as a result."
+  (nael-render--apply-faces)
+  (nael-render--put-nodes)
+  (nael-render--result-create
+   :text (buffer-string)
+   :nodes (reverse nael-render--nodes)))
+
+(defun nael-render-info (info)
+  "Render INFO, a result of `infoToInteractive', as a `nael-render-result'.
+The text is the expression with all its arguments made explicit, then
+its type, as in \"EXPR : TYPE\"; either may be missing.  The
+documentation in INFO is not rendered."
+  (let ((nael-render--diffs nil)
+        (nael-render--nodes nil)
+        (nael-render--faces nil)
+        (expr (plist-get info :exprExplicit))
+        (type (plist-get info :type)))
+    (with-temp-buffer
+      (when expr (nael-render--code expr))
+      (when (and expr type) (insert " : "))
+      (when type (nael-render--code type))
+      (nael-render--fontify (point-min) (point-max))
+      (nael-render--finish))))
 
 (defun nael-render-node-at (pos &optional object)
   "Return the innermost node at POS in OBJECT, a buffer or string."

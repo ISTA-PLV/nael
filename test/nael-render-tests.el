@@ -238,6 +238,42 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
   (should (eq (nael-render-diff-face "willDelete") 'nael-render-diff-removed))
   (should-not (nael-render-diff-face nil)))
 
+;;;; Hover information:
+
+(ert-deftest nael-render-test-info ()
+  "Hover information renders as the subterm and its type, both with nodes."
+  (let* ((result (nael-render-info
+                  (list :exprExplicit (nael-render-test-code '("x.isLt" "1"))
+                        :type (nael-render-test-code '("↑x" "2") " < 3")
+                        :doc "Not rendered.")))
+         (text (nael-render-result-text result)))
+    (should (equal (substring-no-properties text) "x.isLt : ↑x < 3"))
+    (should (equal (mapcar (lambda (node)
+                             (substring-no-properties
+                              text (1- (nael-render-node-beg node))
+                              (1- (nael-render-node-end node))))
+                           (nael-render-result-nodes result))
+                   '("x.isLt" "↑x")))
+    (should (equal (nael-render-node-info (nael-render-node-at 0 text))
+                   '(:__rpcref "1")))
+    (should-not (nael-render-node-at 7 text))
+    ;; Fontified as Lean code.
+    (should (memq 'font-lock-type-face
+                  (nael-render-test-faces
+                   (nael-render-result-text
+                    (nael-render-info
+                     (list :type (nael-render-test-code "Type → Prop"))))
+                   0)))))
+
+(ert-deftest nael-render-test-info-partial ()
+  "Missing parts of hover information are left out."
+  (should (equal (substring-no-properties
+                  (nael-render-result-text
+                   (nael-render-info
+                    (list :type (nael-render-test-code "Nat")))))
+                 "Nat"))
+  (should (equal (nael-render-result-text (nael-render-info nil)) "")))
+
 (provide 'nael-render-tests)
 
 ;;; nael-render-tests.el ends here
