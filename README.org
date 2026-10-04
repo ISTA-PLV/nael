@@ -29,6 +29,12 @@ Language Server Protocol (LSP):
 - =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point, unless the infoview shows them.
 - =C-c C-l= (~lsp~) starts lsp-mode, an alternative LSP client.  The key is only bound if ~nael-lsp~ is (auto)loaded.
 
+Infoview, on a subterm of a goal:
+
+- ElDoc echoes the subterm with all its arguments made explicit, and its type.  With [[https://github.com/casouri/eldoc-box][eldoc-box]], this appears in a popup.
+- =RET=, =mouse-1= or =C-h .= (~nael-infoview-describe~) describes the subterm in the =*Help*= buffer: its explicit form, its type, its documentation, and how the tactic at point changes it.  Its subterms can be described in turn, and Help's history goes back and forth: =l= and =r=, or =C-o= and =C-i= with Evil.  In Doom Emacs, =K= describes too.
+- =M-.= (~xref-find-definitions~) goes to the definition of the subterm, and =M-,= (~xref-go-back~) returns.  In Doom Emacs, these are =gd= and =C-o=.
+
 Abbreviations:
 
 - =C-c C-a= (~abbrev-mode~) enables abbreviations.

@@ -84,6 +84,17 @@ Language Server Protocol (LSP):
 @samp{C-c C-l} (@code{lsp}) starts lsp-mode, an alternative LSP client.  The key is only bound if @code{nael-lsp} is (auto)loaded.
 @end itemize
 
+Infoview, on a subterm of a goal:
+
+@itemize
+@item
+ElDoc echoes the subterm with all its arguments made explicit, and its type.  With @uref{https://github.com/casouri/eldoc-box, eldoc-box}, this appears in a popup.
+@item
+@samp{RET}, @samp{mouse-1} or @samp{C-h .} (@code{nael-infoview-describe}) describes the subterm in the @samp{*Help*} buffer: its explicit form, its type, its documentation, and how the tactic at point changes it.  Its subterms can be described in turn, and Help's history goes back and forth: @samp{l} and @samp{r}, or @samp{C-o} and @samp{C-i} with Evil.  In Doom Emacs, @samp{K} describes too.
+@item
+@samp{M-.} (@code{xref-find-definitions}) goes to the definition of the subterm, and @samp{M-,} (@code{xref-go-back}) returns.  In Doom Emacs, these are @samp{gd} and @samp{C-o}.
+@end itemize
+
 Abbreviations:
 
 @itemize
