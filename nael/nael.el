@@ -559,6 +559,14 @@ least evaluated an autoload statement for
 (add-to-list 'project-vc-extra-root-markers
              "lakefile.toml")
 
+;; Projectile, which Doom Emacs uses to find projects, takes the nearest
+;; directory with one of these files as the root, so that a Lake project
+;; inside a larger repository gets its own Lean server.
+(with-eval-after-load 'projectile
+  (defvar projectile-project-root-files-bottom-up)
+  (add-to-list 'projectile-project-root-files-bottom-up "lakefile.lean")
+  (add-to-list 'projectile-project-root-files-bottom-up "lakefile.toml"))
+
 (with-eval-after-load 'org-src
   (add-to-list 'org-src-lang-modes
                (cons "lean" 'nael)))
