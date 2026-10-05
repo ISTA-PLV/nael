@@ -33,8 +33,22 @@
 ;; occurrence of MVARID.  Metavariables change with every tactic, so
 ;; goals also carry `nael-key', which identifies them by their place
 ;; instead: (case NAME . N) for the Nth goal named NAME, (goal . N) for
-;; the Nth goal without a name, and `term-goal' for the expected type.  Headings carry `outline-level';
-;; section headings also carry `nael-section', `goals' or `term-goal'.
+;; the Nth goal without a name, and `term-goal' for the expected type.
+;; Headings carry `outline-level'; section headings also carry
+;; `nael-section', `goals', `term-goal' or `messages'.
+;;
+;; Messages, the results of `Lean.Widget.getInteractiveDiagnostics',
+;; are `TaggedText' too, whose tags embed code, goals, traces and
+;; widgets.  Each message is a heading of level 2 with the `nael-key'
+;; (message LINE CHARACTER SEVERITY), and each trace in it a heading of
+;; level 3 or deeper, with the key of the message followed by the
+;; trace's path: its index among the traces of its parent, for each
+;; enclosing trace.  Headings that a buffer should fold at first carry
+;; `nael-folded'.  The server sends the children of a trace on request
+;; only: its heading then carries `nael-trace-lazy', the reference for
+;; `Lean.Widget.lazyTraceChildrenToInteractive'.  The position of a
+;; message carries `nael-message-range', and a suggestion to apply
+;; carries `nael-suggestion'.
 
 ;;; Code:
 
@@ -56,6 +70,31 @@
 (defface nael-render-goals-accomplished
   '((t :inherit success))
   "Face of the line that says that the proof at point is complete."
+  :group 'nael-render)
+
+(defface nael-render-message-error
+  '((t :inherit compilation-error))
+  "Face of the severity of an error in the messages."
+  :group 'nael-render)
+
+(defface nael-render-message-warning
+  '((t :inherit compilation-warning))
+  "Face of the severity of a warning in the messages."
+  :group 'nael-render)
+
+(defface nael-render-message-info
+  '((t :inherit compilation-info))
+  "Face of the severity of information or a hint in the messages."
+  :group 'nael-render)
+
+(defface nael-render-trace-class
+  '((t :inherit shadow))
+  "Face of the class of a trace, such as \"[Meta.synthInstance]\"."
+  :group 'nael-render)
+
+(defface nael-render-suggestion
+  '((t :inherit button))
+  "Face of a suggestion that can be applied, such as \"[apply]\"."
   :group 'nael-render)
 
 (defface nael-render-case
@@ -300,6 +339,161 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
          (push name names)))
      goals)))
 
+;;;; Messages:
+
+(defvar nael-render--trace-children nil
+  "Hash table of the fetched children of traces, by key, or nil.")
+
+(defvar nael-render--trace-key nil
+  "Key of the enclosing message or trace.")
+
+(defvar nael-render--trace-count nil
+  "A list whose car counts the traces rendered under the enclosing one.")
+
+(defvar nael-render--options nil
+  "The view options of the current rendering.")
+
+(defun nael-render--severity (severity)
+  "Return the name and face of the LSP SEVERITY as a cons."
+  (pcase severity
+    (2 '("warning" . nael-render-message-warning))
+    (3 '("information" . nael-render-message-info))
+    (4 '("hint" . nael-render-message-info))
+    (_ '("error" . nael-render-message-error))))
+
+(defun nael-render--fontify-code (beg end)
+  "Fontify the code between BEG and END on its own.
+Narrowed, so that text around it, like quotes in a message, does not
+change how it is parsed."
+  (save-restriction
+    (narrow-to-region beg end)
+    (nael-render--fontify beg end)))
+
+(defun nael-render--msg (tagged)
+  "Insert TAGGED, a `TaggedText' of message embeds, at point."
+  (cond
+   ((plist-member tagged :text)
+    (insert (plist-get tagged :text)))
+   ((plist-member tagged :append)
+    (seq-doseq (child (plist-get tagged :append))
+      (nael-render--msg child)))
+   ((plist-member tagged :tag)
+    (nael-render--embed (aref (plist-get tagged :tag) 0)))))
+
+(defun nael-render--embed (embed)
+  "Insert EMBED, a `MsgEmbed', at point."
+  (cond
+   ((plist-member embed :expr)
+    (let ((beg (point)))
+      (nael-render--code (plist-get embed :expr))
+      (nael-render--fontify-code beg (point))))
+   ((plist-member embed :goal)
+    (let ((goal (plist-get embed :goal)))
+      (unless (bolp) (insert "\n"))
+      ;; The case as a line, not a heading: it belongs to the message.
+      (when-let* ((name (plist-get goal :userName)))
+        (nael-render--insert (format "case %s" name) 'nael-render-case)
+        (insert "\n"))
+      (nael-render--goal goal nil (cons 'message-goal nael-render--trace-key)
+                         nael-render--options)))
+   ((plist-member embed :trace)
+    (nael-render--trace (plist-get embed :trace)))
+   ((plist-member embed :widget)
+    (nael-render--widget (plist-get embed :widget)))))
+
+(defun nael-render--trace (trace)
+  "Insert TRACE, a trace embed, as a heading with its children below.
+Children that the server sends on request only are taken from
+`nael-render--trace-children' if they were fetched."
+  (let* ((key (append nael-render--trace-key
+                      (list (prog1 (car nael-render--trace-count)
+                              (cl-incf (car nael-render--trace-count))))))
+         (children (plist-get trace :children))
+         (lazy (plist-get children :lazy))
+         (fetched (and lazy nael-render--trace-children
+                       (gethash key nael-render--trace-children)))
+         (kids (or (plist-get children :strict) fetched))
+         (beg (progn (unless (bolp) (insert "\n")) (point))))
+    (insert (make-string (* 2 (max 0 (- (length key) 5))) ?\s))
+    (nael-render--insert (format "[%s] " (plist-get trace :cls))
+                         'nael-render-trace-class)
+    (nael-render--msg (plist-get trace :msg))
+    ;; The heading is the trace's own line; its children follow.
+    (add-text-properties
+     beg (point)
+     (append (list 'outline-level (- (length key) 2) 'nael-key key)
+             (when (and kids (nael-render--true-p (plist-get trace :collapsed)))
+               (list 'nael-folded t))
+             (when (and lazy (not fetched))
+               (list 'nael-trace-lazy lazy))))
+    (insert "\n")
+    (let ((nael-render--trace-key key)
+          (nael-render--trace-count (list 0)))
+      (seq-doseq (child kids)
+        (nael-render--msg child)
+        (unless (bolp) (insert "\n"))))))
+
+(defun nael-render--widget (widget)
+  "Insert WIDGET, a widget embed.
+Lean's suggestions to replace code, such as \"Try this\", become text
+with the property `nael-suggestion', a plist with the `:range' to
+replace, the `:suggestion' and the `:help' to show.  Other widgets are
+programs for VS Code; their alternative text is inserted instead."
+  (let* ((instance (plist-get widget :wi))
+         (props (plist-get instance :props)))
+    (if (equal (plist-get instance :id) "Lean.Meta.Hint.textInsertionWidget")
+        (let ((accept (plist-get props :acceptSuggestionProps))
+              (beg (point)))
+          (nael-render--insert (or (plist-get accept :linkText) "[apply]")
+                               'nael-render-suggestion)
+          (put-text-property beg (point) 'nael-suggestion
+                             (list :range (plist-get props :range)
+                                   :suggestion (plist-get props :suggestion)
+                                   :help (plist-get accept :hoverText))))
+      (nael-render--msg (plist-get widget :alt)))))
+
+(defun nael-render--message (diagnostic line)
+  "Insert DIAGNOSTIC, an `InteractiveDiagnostic', as a heading and text.
+LINE is the 0-based line at which the messages were requested; a
+message that starts on another line is folded at first."
+  (let* ((range (or (plist-get diagnostic :fullRange)
+                    (plist-get diagnostic :range)))
+         (start (plist-get range :start))
+         (severity (nael-render--severity (plist-get diagnostic :severity)))
+         (key (list 'message (plist-get start :line) (plist-get start :character)
+                    (car severity)))
+         (beg (point)))
+    (insert (propertize (format "%d:%d" (1+ (plist-get start :line))
+                                (plist-get start :character))
+                        'nael-message-range range)
+            " ")
+    (nael-render--insert (car severity) (cdr severity))
+    (add-text-properties beg (point)
+                         (append (list 'outline-level 2 'nael-key key)
+                                 (unless (eql (plist-get start :line) line)
+                                   (list 'nael-folded t))))
+    (insert "\n")
+    (let ((nael-render--trace-key key)
+          (nael-render--trace-count (list 0)))
+      (nael-render--msg (plist-get diagnostic :message)))
+    (unless (bolp) (insert "\n"))))
+
+(defun nael-render--messages-section (messages)
+  "Insert the section for MESSAGES; see `nael-render-goals'.
+That a proof is complete is shown above the goals, so its message is
+left out."
+  (let ((diagnostics (seq-remove
+                      (lambda (diagnostic)
+                        (seq-contains-p (plist-get diagnostic :leanTags) 2))
+                      (plist-get messages :diagnostics)))
+        (nael-render--trace-children (plist-get messages :trace-children)))
+    (when diagnostics
+      (unless (bobp) (insert "\n"))
+      (nael-render--heading (format "Messages (%d)" (length diagnostics))
+                            'messages)
+      (dolist (diagnostic diagnostics)
+        (nael-render--message diagnostic (plist-get messages :line))))))
+
 (defun nael-render--apply-faces ()
   "Add the noted faces, then the diff faces of the rendered nodes."
   (pcase-dolist (`(,beg ,end ,face) (reverse nael-render--faces))
@@ -324,12 +518,17 @@ Outer nodes come first, so that inner ones win."
                        (nael-render-node-end node)
                        'nael-node node)))
 
-(defun nael-render-goals (goals term-goal &optional options)
-  "Render GOALS and TERM-GOAL as a `nael-render-result'.
+(defun nael-render-goals (goals term-goal &optional options messages)
+  "Render GOALS, TERM-GOAL and MESSAGES as a `nael-render-result'.
 
 GOALS is the result of `Lean.Widget.getInteractiveGoals' and TERM-GOAL
 that of `Lean.Widget.getInteractiveTermGoal'; either may be nil.  A
 section is rendered for each of them that is non-nil.
+
+MESSAGES, if non-nil, is a plist: `:diagnostics', the result of
+`Lean.Widget.getInteractiveDiagnostics'; `:line', the 0-based line at
+which they were requested; and `:trace-children', a hash table of the
+children of traces that were fetched, by the key of the trace.
 
 OPTIONS is a plist of view options:
   :hide-instances    hide instance hypotheses, such as `inst✝ : Ring R';
@@ -342,6 +541,7 @@ OPTIONS is a plist of view options:
                      complete, such as \"Goals accomplished\"; it
                      replaces the section of GOALS when there are none."
   (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
+        (nael-render--options options)
         (nael-render--nodes nil)
         (nael-render--goal-ids nil)
         (nael-render--faces nil))
@@ -359,6 +559,8 @@ OPTIONS is a plist of view options:
         (unless (bobp) (insert "\n"))
         (nael-render--heading "Expected type" 'term-goal)
         (nael-render--goal term-goal nil 'term-goal options))
+      (when messages
+        (nael-render--messages-section messages))
       (nael-render--finish))))
 
 (defun nael-render--put-wrap-prefixes ()

@@ -9,11 +9,11 @@
 
 ;;; Commentary:
 
-;; The infoview is a buffer that shows the goals and the expected type
-;; at point in the selected Nael buffer, like the infoview of the Lean
-;; extension for VS Code.  It is fetched over Lean RPC (`nael-rpc'), so
-;; it needs Lean 4.30 or later; with older servers, ElDoc keeps
-;; displaying the goals.
+;; The infoview is a buffer that shows the goals, the expected type and
+;; the messages at point in the selected Nael buffer, like the infoview
+;; of the Lean extension for VS Code.  It is fetched over Lean RPC
+;; (`nael-rpc'), so it needs Lean 4.30 or later; with older servers,
+;; ElDoc keeps displaying the goals.
 ;;
 ;; `nael-infoview' toggles the infoview.  It is shown with
 ;; `display-buffer' in the category `nael-infoview', by default in a side
@@ -25,10 +25,11 @@
 ;; Updates are throttled: the first one is immediate, then at most one
 ;; per `nael-infoview-delay'.  While the server is still processing the
 ;; line of point, no goals are requested; the infoview then shows its
-;; previous content, dimmed.  Goals and expected type are requested
-;; together and shown together; an answer to a superseded request is
-;; never shown.  The previous content stays until the new one is ready,
-;; and its RPC references are released only then.
+;; previous content, dimmed.  Goals, expected type and the messages of
+;; the line of point are requested together and shown together; an
+;; answer to a superseded request is never shown.  The previous content
+;; stays until the new one is ready, and its RPC references are released
+;; only then.
 ;;
 ;; Subterms in the infoview can be asked about, see
 ;; `nael-infoview-hover'.
@@ -125,19 +126,27 @@ Return nil if it is not, as far as the server has said."
                  (nael-margin-sign 'nael-margin-goals-accomplished)))))))
 
 (defun nael-infoview--request (buffer pos)
-  "Request goals and expected type at POS in BUFFER and show them."
+  "Request goals, expected type and messages at POS in BUFFER; show them.
+The messages are those of the line of POS.  If they cannot be had, the
+goals are shown without them."
   (let ((generation (cl-incf nael-infoview--generation))
         (owner (nael-rpc-make-owner))
         (location (nael-infoview--location buffer pos))
+        (line (with-current-buffer buffer
+                (save-excursion (goto-char pos)
+                                (1- (line-number-at-pos nil t)))))
+        (tick (buffer-chars-modified-tick buffer))
         (goals 'pending)
         (term-goal 'pending)
+        (messages 'pending)
         handle error)
     (when nael-infoview--pending-owner
       (nael-rpc-owner-release nael-infoview--pending-owner))
     (setq nael-infoview--pending-owner owner)
     (cl-labels
         ((finish ()
-           (unless (or (eq goals 'pending) (eq term-goal 'pending))
+           (unless (or (eq goals 'pending) (eq term-goal 'pending)
+                       (eq messages 'pending))
              (when (= generation nael-infoview--generation)
                (setq nael-infoview--pending-owner nil)
                (if error
@@ -149,12 +158,14 @@ Return nil if it is not, as far as the server has said."
                  (nael-infoview--show goals term-goal owner location
                                       handle
                                       (nael-infoview--accomplished-title
-                                       buffer pos))))))
+                                       buffer pos)
+                                      (list :diagnostics messages :line line
+                                            :buffer buffer :tick tick))))))
          (fail (e)
            (setq error e)))
       (nael-infoview--set-status 'updating)
       (setq handle (with-current-buffer buffer (nael-rpc-open pos)))
-        (nael-rpc-get-interactive-goals
+      (nael-rpc-get-interactive-goals
        handle (lambda (result) (setq goals result) (finish))
        :owner owner :slot 'infoview-goals
        :failure (lambda (e) (fail e) (setq goals nil) (finish)))
@@ -163,7 +174,11 @@ Return nil if it is not, as far as the server has said."
         (nael-rpc-get-interactive-term-goal
          handle (lambda (result) (setq term-goal result) (finish))
          :owner owner :slot 'infoview-term-goal
-         :failure (lambda (e) (fail e) (setq term-goal nil) (finish)))))))
+         :failure (lambda (e) (fail e) (setq term-goal nil) (finish))))
+      (nael-rpc-get-interactive-diagnostics
+       handle line (lambda (result) (setq messages result) (finish))
+       :owner owner :slot 'infoview-messages
+       :failure (lambda (_) (setq messages nil) (finish))))))
 
 (defun nael-infoview--update (&optional force)
   "Update the infoview for `nael-infoview--target' now.

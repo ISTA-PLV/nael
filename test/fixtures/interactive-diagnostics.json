@@ -1,0 +1,983 @@
+[
+ {
+  "fullRange": {
+   "end": {
+    "character": 19,
+    "line": 69
+   },
+   "start": {
+    "character": 0,
+    "line": 68
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 69
+   },
+   "start": {
+    "character": 0,
+    "line": 68
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 20,
+    "line": 90
+   },
+   "start": {
+    "character": 0,
+    "line": 72
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 73
+   },
+   "start": {
+    "character": 0,
+    "line": 72
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 10,
+    "line": 117
+   },
+   "start": {
+    "character": 0,
+    "line": 99
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 100
+   },
+   "start": {
+    "character": 0,
+    "line": 99
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 56,
+    "line": 150
+   },
+   "start": {
+    "character": 0,
+    "line": 120
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 121
+   },
+   "start": {
+    "character": 0,
+    "line": 120
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 10,
+    "line": 167
+   },
+   "start": {
+    "character": 0,
+    "line": 153
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 154
+   },
+   "start": {
+    "character": 0,
+    "line": 153
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 24,
+    "line": 183
+   },
+   "start": {
+    "character": 0,
+    "line": 170
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 171
+   },
+   "start": {
+    "character": 0,
+    "line": 170
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 12,
+    "line": 212
+   },
+   "start": {
+    "character": 0,
+    "line": 212
+   }
+  },
+  "message": {
+   "append": [
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Invalid `end`: There is no current scope to end"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "\n"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "\n"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Note: "
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Scopes are introduced using `namespace` and `section`"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 12,
+    "line": 212
+   },
+   "start": {
+    "character": 0,
+    "line": 212
+   }
+  },
+  "severity": 1,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 17,
+    "line": 213
+   },
+   "start": {
+    "character": 0,
+    "line": 213
+   }
+  },
+  "message": {
+   "append": [
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Invalid `end`: There is no current scope to end"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "\n"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "\n"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Note: "
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Scopes are introduced using `namespace` and `section`"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 17,
+    "line": 213
+   },
+   "start": {
+    "character": 0,
+    "line": 213
+   }
+  },
+  "severity": 1,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 40,
+    "line": 215
+   },
+   "start": {
+    "character": 27,
+    "line": 215
+   }
+  },
+  "message": {
+   "tag": [
+    {
+     "trace": {
+      "children": {
+       "lazy": {
+        "__rpcref": "2"
+       }
+      },
+      "cls": "Meta.synthInstance",
+      "collapsed": true,
+      "indent": 0,
+      "msg": {
+       "append": [
+        {
+         "text": "✅️ "
+        },
+        {
+         "tag": [
+          {
+           "expr": {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "0"
+              },
+              "subexprPos": "/"
+             },
+             {
+              "append": [
+               {
+                "text": "Inhabited "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "1"
+                  },
+                  "subexprPos": "/1"
+                 },
+                 {
+                  "text": "Nat"
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          },
+          {
+           "text": ""
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 40,
+    "line": 215
+   },
+   "start": {
+    "character": 27,
+    "line": 215
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 8,
+    "line": 217
+   },
+   "start": {
+    "character": 2,
+    "line": 217
+   }
+  },
+  "message": {
+   "append": [
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "Try this:"
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "\n  "
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "widget": {
+        "alt": {
+         "tag": [
+          {
+           "expr": {
+            "text": "[apply]"
+           }
+          },
+          {
+           "text": ""
+          }
+         ]
+        },
+        "wi": {
+         "id": "Lean.Meta.Hint.textInsertionWidget",
+         "javascriptHash": "14102652505372521831",
+         "props": {
+          "acceptSuggestionProps": {
+           "hoverText": "Apply suggestion",
+           "kind": "text",
+           "linkText": "[apply]"
+          },
+          "range": {
+           "end": {
+            "character": 8,
+            "line": 217
+           },
+           "start": {
+            "character": 2,
+            "line": 217
+           }
+          },
+          "suggestion": "exact Nat.add_comm a b"
+         }
+        }
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": " "
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": "exact "
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "3"
+          },
+          "subexprPos": "/"
+         },
+         {
+          "append": [
+           {
+            "text": "Nat.add_comm "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "4"
+              },
+              "subexprPos": "/0/1"
+             },
+             {
+              "text": "a"
+             }
+            ]
+           },
+           {
+            "text": " "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "5"
+              },
+              "subexprPos": "/1"
+             },
+             {
+              "text": "b"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    },
+    {
+     "tag": [
+      {
+       "expr": {
+        "text": ""
+       }
+      },
+      {
+       "text": ""
+      }
+     ]
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 8,
+    "line": 217
+   },
+   "start": {
+    "character": 2,
+    "line": 217
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 8,
+    "line": 217
+   },
+   "start": {
+    "character": 0,
+    "line": 216
+   }
+  },
+  "isSilent": true,
+  "leanTags": [
+   2
+  ],
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "text": "Goals accomplished!"
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 0,
+    "line": 217
+   },
+   "start": {
+    "character": 0,
+    "line": 216
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ },
+ {
+  "fullRange": {
+   "end": {
+    "character": 6,
+    "line": 218
+   },
+   "start": {
+    "character": 0,
+    "line": 218
+   }
+  },
+  "message": {
+   "tag": [
+    {
+     "expr": {
+      "append": [
+       {
+        "text": "Nat.add_comm ("
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "6"
+          },
+          "subexprPos": "/"
+         },
+         {
+          "text": "n "
+         }
+        ]
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "7"
+          },
+          "subexprPos": "/"
+         },
+         {
+          "text": "m"
+         }
+        ]
+       },
+       {
+        "text": " : "
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "8"
+          },
+          "subexprPos": "/1/1/0"
+         },
+         {
+          "text": "Nat"
+         }
+        ]
+       },
+       {
+        "text": ") : "
+       },
+       {
+        "tag": [
+         {
+          "info": {
+           "__rpcref": "9"
+          },
+          "subexprPos": "/1/1/1"
+         },
+         {
+          "append": [
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "10"
+              },
+              "subexprPos": "/1/1/1/0/1"
+             },
+             {
+              "append": [
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "11"
+                  },
+                  "subexprPos": "/1/1/1/0/1/0/1"
+                 },
+                 {
+                  "text": "n"
+                 }
+                ]
+               },
+               {
+                "text": " + "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "12"
+                  },
+                  "subexprPos": "/1/1/1/0/1/1"
+                 },
+                 {
+                  "text": "m"
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "text": " = "
+           },
+           {
+            "tag": [
+             {
+              "info": {
+               "__rpcref": "13"
+              },
+              "subexprPos": "/1/1/1/1"
+             },
+             {
+              "append": [
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "14"
+                  },
+                  "subexprPos": "/1/1/1/1/0/1"
+                 },
+                 {
+                  "text": "m"
+                 }
+                ]
+               },
+               {
+                "text": " + "
+               },
+               {
+                "tag": [
+                 {
+                  "info": {
+                   "__rpcref": "15"
+                  },
+                  "subexprPos": "/1/1/1/1/1"
+                 },
+                 {
+                  "text": "n"
+                 }
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "text": ""
+    }
+   ]
+  },
+  "range": {
+   "end": {
+    "character": 6,
+    "line": 218
+   },
+   "start": {
+    "character": 0,
+    "line": 218
+   }
+  },
+  "severity": 3,
+  "source": "Lean 4"
+ }
+]

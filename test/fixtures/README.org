@@ -6,3 +6,14 @@
   wire format v1: 3 goals and 66 references.  The goal text is derived from
   iris-lean, which is licensed under the Apache License, Version 2.0; see
   =../../nael/LICENSE.APACHE2=.
+- =interactive-diagnostics.json= :: The result of
+  =Lean.Widget.getInteractiveDiagnostics= for the whole of
+  =Iris/HeapLang/Lib/SpinLock.lean= of iris-lean (same commit and Lean
+  version), with a few lines appended in the server's memory only: a
+  =set_option trace.Meta.synthInstance true in= example, an example
+  proved by =exact?=, and a =#check=.  The server ran with
+  =silentDiagnosticSupport= and =hasWidgets=, so it contains silent
+  "Goals accomplished!" messages, a trace with lazy children, and a "Try
+  this" widget (=Lean.Meta.Hint.textInsertionWidget=).  Derived from
+  iris-lean, which is licensed under the Apache License, Version 2.0; see
+  =../../nael/LICENSE.APACHE2=.

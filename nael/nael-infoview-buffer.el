@@ -9,14 +9,15 @@
 
 ;;; Commentary:
 
-;; The buffer in which `nael-infoview' shows goals: its major mode,
-;; rendering results into it while keeping folds and window positions,
-;; its status, and the commands that act on its content.  When and what
-;; to show is decided by `nael-infoview'.
+;; The buffer in which `nael-infoview' shows goals and messages: its
+;; major mode, rendering results into it while keeping folds and window
+;; positions, its status, and the commands that act on its content.
+;; When and what to show is decided by `nael-infoview'.
 
 ;;; Code:
 
 (require 'cl-lib)
+(require 'eglot)
 (require 'face-remap)
 (require 'outline)
 (require 'transient)
@@ -112,6 +113,32 @@ nil when up to date, or one of `updating', `processing',
 (defvar-local nael-infoview--results nil
   "The shown results, as (GOALS TERM-GOAL), for rendering them again.")
 
+(defvar-local nael-infoview--messages nil
+  "The shown messages, or nil.
+A plist with the `:diagnostics' and the `:line' of `nael-render-goals',
+and the source `:buffer' with its `buffer-chars-modified-tick' as
+`:tick' at the time of the request.")
+
+(defvar-local nael-infoview--trace-children nil
+  "Hash table of the children of shown traces, fetched on request, by key.")
+
+(defvar-local nael-infoview--expanded-traces nil
+  "Keys of the traces whose children were fetched, newest first.
+Where such traces are shown again after an update, their children are
+fetched again.")
+
+(defvar-local nael-infoview--fetching nil
+  "Keys of the traces whose children are being fetched.")
+
+(defvar-local nael-infoview--unfold nil
+  "Keys of headings to unfold at the next rendering.")
+
+(defvar-local nael-infoview--fold-defaults nil
+  "Alist (KEY . FOLDED) of how the last rendering folded its headings.
+A heading that is still as it was rendered keeps following its default,
+so that a message unfolds once point is on its first line.  Once the
+user folds or unfolds it, it stays so while it is shown.")
+
 (defvar-local nael-infoview--accomplished nil
   "Line shown above the goals if their proof is complete, or nil.")
 
@@ -145,11 +172,16 @@ nil when up to date, or one of `updating', `processing',
   (or (get-text-property (point) 'outline-level) 1))
 
 (define-derived-mode nael-infoview-mode special-mode "Nael Infoview"
-  "Major mode of the Nael infoview, which shows goals at point.
+  "Major mode of the Nael infoview, which shows goals and messages at point.
 
-Headings of sections and goals can be folded by clicking the triangle
-in the margin before them, or with \\[outline-cycle] and \\[outline-cycle-buffer], as in
-`outline-minor-mode'.
+Headings of sections, goals, messages and traces can be folded by
+clicking the triangle in the margin before them, or with \\[outline-cycle]
+and \\[outline-cycle-buffer], as in `outline-minor-mode'.
+\\<nael-infoview-trace-map>
+On a trace whose children are not shown yet, \\[nael-infoview-expand-trace]
+fetches them.  \\<nael-infoview-message-map>\\[nael-infoview-goto-message] on the position of a message goes to it
+in the source, and \\<nael-infoview-suggestion-map>\\[nael-infoview-apply-suggestion] on a suggestion such as \"[apply]\"
+applies it.
 
 On a subterm, ElDoc shows it with its type, and so does its tooltip
 with `tooltip-mode'.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it in a help
@@ -329,16 +361,56 @@ so that folds survive moving to another tactic."
         (outline-next-heading))
       keys)))
 
-(defun nael-infoview--heading-keys ()
-  "Return the keys of all headings of the current buffer."
+(defun nael-infoview--heading-states ()
+  "Return an alist (KEY . FOLDED) of the headings of the current buffer."
   (save-excursion
     (goto-char (point-min))
-    (let (keys)
+    (let (states)
       (unless (outline-on-heading-p) (outline-next-heading))
       (while (not (eobp))
-        (push (nael-infoview--heading-key) keys)
+        (push (cons (nael-infoview--heading-key)
+                    (outline-invisible-p (line-end-position)))
+              states)
         (outline-next-heading))
-      keys)))
+      (nreverse states))))
+
+(defun nael-infoview--default-folded-p ()
+  "Return non-nil if the heading at point should start folded.
+Messages that start on another line than point and traces that the
+server sends collapsed are marked by the renderer; the expected type is
+folded as `nael-infoview-expected-type' says."
+  (or (get-text-property (point) 'nael-folded)
+      (and (eq (nael-infoview--heading-key) 'term-goal)
+           (eq nael-infoview-expected-type 'collapsed))))
+
+(defun nael-infoview--fold-as-before (states)
+  "Fold the headings of the newly rendered buffer.
+STATES are those of the buffer before, from
+`nael-infoview--heading-states'.  A heading that the user folded or
+unfolded stays so; others follow their default, and those in
+`nael-infoview--unfold' unfold."
+  (let (defaults folded)
+    (save-excursion
+      (goto-char (point-min))
+      (unless (outline-on-heading-p) (outline-next-heading))
+      (while (not (eobp))
+        (let* ((key (nael-infoview--heading-key))
+               (default (and (nael-infoview--default-folded-p) t))
+               (before (assoc key states))
+               (rendered (assoc key nael-infoview--fold-defaults)))
+          (push (cons key default) defaults)
+          (when (cond ((member key nael-infoview--unfold) nil)
+                      ;; Changed by the user since it was rendered.
+                      ((and before
+                            (not (eq (and (cdr before) t)
+                                     (and (cdr rendered) t))))
+                       (cdr before))
+                      (t default))
+            (push key folded)))
+        (outline-next-heading)))
+    (nael-infoview--fold folded)
+    (setq nael-infoview--fold-defaults defaults
+          nael-infoview--unfold nil)))
 
 (defun nael-infoview--fold (keys)
   "Fold the headings of the current buffer whose key is in KEYS."
@@ -352,16 +424,20 @@ so that folds survive moving to another tactic."
         (outline-next-heading)))))
 
 (defun nael-infoview--render ()
-  "Render the shown results again, keeping folds and window positions."
-  (let* ((rendered (apply #'nael-render-goals
-                          (append nael-infoview--results
-                                  (list (append
-                                         (list :accomplished
-                                               nael-infoview--accomplished)
-                                         (nael-infoview--options))))))
+  "Render the shown results again, keeping folds and window positions.
+Each heading starts as `nael-infoview--default-folded-p' says, and
+keeps following it until the user folds or unfolds it."
+  (let* ((rendered (nael-render-goals
+                    (nth 0 nael-infoview--results)
+                    (nth 1 nael-infoview--results)
+                    (append (list :accomplished nael-infoview--accomplished)
+                            (nael-infoview--options))
+                    (when nael-infoview--messages
+                      (append (list :trace-children
+                                    nael-infoview--trace-children)
+                              nael-infoview--messages))))
          (inhibit-read-only t)
-         (folded (nael-infoview--folded-keys))
-         (present (nael-infoview--heading-keys))
+         (states (nael-infoview--heading-states))
          (windows (mapcar (lambda (window)
                             (cons window
                                   (nael-infoview--window-anchor window)))
@@ -370,6 +446,7 @@ so that folds survive moving to another tactic."
     ;; Outline replaces its buttons itself, and others are other
     ;; packages' business.
     (remove-overlays nil nil 'nael-infoview-node t)
+    (remove-overlays nil nil 'nael-infoview-control t)
     (when nael-infoview--point-overlay
       (delete-overlay nael-infoview--point-overlay))
     (erase-buffer)
@@ -380,27 +457,27 @@ so that folds survive moving to another tactic."
       (insert (nael-render-result-text rendered)))
     (setq nael-infoview--point-overlay nil)
     (nael-infoview--decorate (nael-render-result-nodes rendered) 0)
-    (nael-infoview--fold
-     ;; The expected type starts folded if so customized, and remembers
-     ;; being unfolded only while it stays.
-     (if (and (eq nael-infoview-expected-type 'collapsed)
-              (not (memq 'term-goal present)))
-         (cons 'term-goal folded)
-       folded))
+    (nael-infoview--decorate-controls)
+    (nael-infoview--fold-as-before states)
     (pcase-dolist (`(,window . ,anchors) windows)
       (nael-infoview--restore-window window anchors))
-    (nael-infoview--highlight-point)))
+    (nael-infoview--highlight-point)
+    (nael-infoview--fetch-expanded-traces)))
 
 (defun nael-infoview--show (goals term-goal owner location
-                                   &optional handle accomplished)
-  "Show GOALS and TERM-GOAL, whose references OWNER keeps.
+                                   &optional handle accomplished messages)
+  "Show GOALS, TERM-GOAL and MESSAGES, whose references OWNER keeps.
 LOCATION describes where they were requested.  HANDLE is the RPC handle
 through which they came, for asking about their subterms.  ACCOMPLISHED
-is the line to show above them if their proof is complete."
+is the line to show above them if their proof is complete.  MESSAGES
+is as `nael-infoview--messages'."
   (with-current-buffer (nael-infoview--get-buffer-create)
     (let ((previous nael-infoview--owner))
       (setq nael-infoview--results (list goals term-goal)
             nael-infoview--accomplished accomplished
+            nael-infoview--messages messages
+            nael-infoview--trace-children (make-hash-table :test #'equal)
+            nael-infoview--fetching nil
             nael-infoview--owner owner
             nael-infoview--location location)
       (nael-infoview-hover-reset handle)
@@ -425,6 +502,167 @@ is the line to show above them if their proof is complete."
     (when nael-infoview--point-overlay
       (delete-overlay nael-infoview--point-overlay)
       (setq nael-infoview--point-overlay nil))))
+
+;;;; Messages:
+
+(defvar-keymap nael-infoview-message-map
+  :doc "Keymap of the position of a message in the infoview."
+  "RET" #'nael-infoview-goto-message
+  "<mouse-2>" #'nael-infoview-goto-message
+  "<follow-link>" 'mouse-face)
+
+(defvar-keymap nael-infoview-suggestion-map
+  :doc "Keymap of a suggestion in the infoview, such as \"[apply]\"."
+  "RET" #'nael-infoview-apply-suggestion
+  "<mouse-2>" #'nael-infoview-apply-suggestion
+  "<follow-link>" 'mouse-face)
+
+(defvar-keymap nael-infoview-trace-map
+  :doc "Keymap of the heading of a trace whose children are not shown yet."
+  "TAB" #'nael-infoview-expand-trace
+  "<tab>" #'nael-infoview-expand-trace
+  "RET" #'nael-infoview-expand-trace
+  "<mouse-2>" #'nael-infoview-expand-trace
+  "<follow-link>" 'mouse-face)
+
+(defun nael-infoview--decorate-controls ()
+  "Make positions of messages, suggestions and unexpanded traces react.
+Each gets an overlay with a keymap, as subterms do."
+  (pcase-dolist (`(,property ,keymap ,help)
+                 `((nael-message-range ,nael-infoview-message-map
+                                       "RET, mouse-1: go to the message")
+                   (nael-suggestion ,nael-infoview-suggestion-map nil)
+                   (nael-trace-lazy ,nael-infoview-trace-map
+                                    "TAB, mouse-1: show the trace")))
+    (save-excursion
+      (goto-char (point-min))
+      (let (match)
+        (while (setq match (text-property-search-forward property))
+          (let ((overlay (make-overlay (prop-match-beginning match)
+                                       (prop-match-end match))))
+            (overlay-put overlay 'nael-infoview-control t)
+            (overlay-put overlay 'keymap keymap)
+            (overlay-put overlay 'mouse-face 'highlight)
+            (overlay-put overlay 'help-echo
+                         (or help
+                             (plist-get (prop-match-value match) :help)))))))))
+
+(defun nael-infoview--event-position (event)
+  "Return the position in the infoview at which EVENT, or a key, acts.
+For a mouse EVENT, select its window first."
+  (if (mouse-event-p event)
+      (progn (select-window (posn-window (event-start event)))
+             (posn-point (event-start event)))
+    (point)))
+
+(defun nael-infoview--source-buffer ()
+  "Return the live source buffer of the shown messages, or signal."
+  (let ((buffer (plist-get nael-infoview--messages :buffer)))
+    (unless (buffer-live-p buffer)
+      (user-error "The buffer of these messages is gone"))
+    buffer))
+
+(defun nael-infoview--show-source (buffer pos)
+  "Select a window that shows BUFFER and go to POS there."
+  (pop-to-buffer buffer)
+  (goto-char pos))
+
+(defun nael-infoview-goto-message (&optional event)
+  "Go to the source of the message whose position is at point or EVENT."
+  (interactive (list last-nonmenu-event))
+  (let* ((pos (nael-infoview--event-position event))
+         (range (or (get-text-property pos 'nael-message-range)
+                    (user-error "No message here")))
+         (buffer (nael-infoview--source-buffer)))
+    (nael-infoview--show-source
+     buffer (with-current-buffer buffer (car (eglot-range-region range))))))
+
+(defun nael-infoview-apply-suggestion (&optional event)
+  "Apply the suggestion at point or EVENT, such as Lean's \"Try this\".
+Replace its range in the source with it, if the source has not changed
+since the suggestion was made, and go there."
+  (interactive (list last-nonmenu-event))
+  (let* ((pos (nael-infoview--event-position event))
+         (suggestion (or (get-text-property pos 'nael-suggestion)
+                         (user-error "No suggestion here")))
+         (buffer (nael-infoview--source-buffer))
+         (tick (plist-get nael-infoview--messages :tick)))
+    (with-current-buffer buffer
+      (unless (eql (buffer-chars-modified-tick) tick)
+        (user-error "The file has changed since; update the infoview first"))
+      (pcase-let ((`(,beg . ,end)
+                   (eglot-range-region (plist-get suggestion :range))))
+        (save-excursion
+          (goto-char beg)
+          (delete-region beg end)
+          (insert (plist-get suggestion :suggestion))
+          (setq pos (point)))))
+    (nael-infoview--show-source buffer pos)))
+
+(defun nael-infoview--fetch-trace (key children &optional interactive)
+  "Fetch CHILDREN, the reference of the trace with KEY, and show them.
+If INTERACTIVE is non-nil, report failures."
+  (let ((owner nael-infoview--owner)
+        (buffer (current-buffer)))
+    (cond
+     ((nael-rpc-handle-live-p nael-infoview--handle)
+      (push key nael-infoview--fetching)
+      (nael-infoview--request-trace key children owner buffer interactive))
+     (interactive
+      (user-error "Lean no longer knows this trace; update the infoview")))))
+
+(defun nael-infoview--request-trace (key children owner buffer interactive)
+  "Request CHILDREN of the trace with KEY for OWNER, shown in BUFFER.
+See `nael-infoview--fetch-trace' for INTERACTIVE."
+  (nael-rpc-lazy-trace-children
+   nael-infoview--handle children
+   (lambda (result)
+     (when (buffer-live-p buffer)
+       (with-current-buffer buffer
+         (setq nael-infoview--fetching (delete key nael-infoview--fetching))
+         ;; Only for the rendering that asked.
+         (when (eq owner nael-infoview--owner)
+           (puthash key result nael-infoview--trace-children)
+           (push key nael-infoview--unfold)
+           (let ((inhibit-read-only t))
+             (nael-infoview--render))))))
+   :owner owner
+   :failure
+   (lambda (error)
+     (when (buffer-live-p buffer)
+       (with-current-buffer buffer
+         (setq nael-infoview--fetching
+               (delete key nael-infoview--fetching))))
+     (when interactive
+       (message "Lean could not show the trace: %s"
+                (plist-get error :message))))))
+
+(defun nael-infoview-expand-trace (&optional event)
+  "Show the children of the trace whose heading is at point or EVENT.
+The server sends them on request only."
+  (interactive (list last-nonmenu-event))
+  (let* ((pos (nael-infoview--event-position event))
+         (children (or (get-text-property pos 'nael-trace-lazy)
+                       (user-error "No trace to show here")))
+         (key (get-text-property pos 'nael-key)))
+    (unless (member key nael-infoview--fetching)
+      (setq nael-infoview--expanded-traces
+            (seq-take (cons key (delete key nael-infoview--expanded-traces))
+                      100))
+      (nael-infoview--fetch-trace key children t))))
+
+(defun nael-infoview--fetch-expanded-traces ()
+  "Fetch the children of shown traces that were expanded before.
+After an update, the references of the earlier children are gone."
+  (save-excursion
+    (goto-char (point-min))
+    (let (match)
+      (while (setq match (text-property-search-forward 'nael-trace-lazy))
+        (let ((key (get-text-property (prop-match-beginning match)
+                                      'nael-key)))
+          (when (and (member key nael-infoview--expanded-traces)
+                     (not (member key nael-infoview--fetching)))
+            (nael-infoview--fetch-trace key (prop-match-value match))))))))
 
 ;;;; Commands:
 
