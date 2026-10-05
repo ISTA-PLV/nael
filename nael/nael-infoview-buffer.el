@@ -177,11 +177,12 @@ user folds or unfolds it, it stays so while it is shown.")
 Headings of sections, goals, messages and traces can be folded by
 clicking the triangle in the margin before them, or with \\[outline-cycle]
 and \\[outline-cycle-buffer], as in `outline-minor-mode'.
-\\<nael-infoview-trace-map>
-On a trace whose children are not shown yet, \\[nael-infoview-expand-trace]
-fetches them.  \\<nael-infoview-message-map>\\[nael-infoview-goto-message] on the position of a message goes to it
-in the source, and \\<nael-infoview-suggestion-map>\\[nael-infoview-apply-suggestion] on a suggestion such as \"[apply]\"
-applies it.
+
+In messages, positions, suggestions such as \"[apply]\", codes of errors
+and the button to restart the file are buttons: \\<nael-infoview-button-map>\\[push-button] or a click
+goes to the message in the source, applies the suggestion, shows the
+explanation or restarts the file.  On a trace whose children are not
+shown yet, \\<nael-infoview-trace-map>\\[push-button] fetches them.
 
 On a subterm, ElDoc shows it with its type, and so does its tooltip
 with `tooltip-mode'.  \\<nael-infoview-node-map>\\[nael-infoview-describe] or a click describes it in a help
@@ -485,73 +486,65 @@ is as `nael-infoview--messages'."
 
 ;;;; Messages:
 
-(defvar-keymap nael-infoview-message-map
-  :doc "Keymap of the position of a message in the infoview."
-  "RET" #'nael-infoview-goto-message
-  "<mouse-2>" #'nael-infoview-goto-message
-  "<follow-link>" 'mouse-face)
-
-(defvar-keymap nael-infoview-suggestion-map
-  :doc "Keymap of a suggestion in the infoview, such as \"[apply]\"."
-  "RET" #'nael-infoview-apply-suggestion
-  "<mouse-2>" #'nael-infoview-apply-suggestion
-  "<follow-link>" 'mouse-face)
-
-(defvar-keymap nael-infoview-explanation-map
-  :doc "Keymap of a link to the explanation of an error in the infoview."
-  "RET" #'nael-infoview-browse-explanation
-  "<mouse-2>" #'nael-infoview-browse-explanation
-  "<follow-link>" 'mouse-face)
-
-(defvar-keymap nael-infoview-restart-map
-  :doc "Keymap of the button that restarts the file in the infoview."
-  "RET" #'nael-infoview-restart-file
-  "<mouse-2>" #'nael-infoview-restart-file
+(defvar-keymap nael-infoview-button-map
+  :doc "Keymap of the buttons in the infoview.
+Like `button-map', but without its \\`TAB', which moves between buttons:
+in the infoview, \\`TAB' folds headings."
+  "RET" #'push-button
+  "<mouse-2>" #'push-button
   "<follow-link>" 'mouse-face)
 
 (defvar-keymap nael-infoview-trace-map
   :doc "Keymap of the heading of a trace whose children are not shown yet."
-  "TAB" #'nael-infoview-expand-trace
-  "<tab>" #'nael-infoview-expand-trace
-  "RET" #'nael-infoview-expand-trace
-  "<mouse-2>" #'nael-infoview-expand-trace
-  "<follow-link>" 'mouse-face)
+  :parent nael-infoview-button-map
+  "TAB" #'push-button
+  "<tab>" #'push-button)
+
+(define-button-type 'nael-infoview-message
+  'action (lambda (button) (nael-infoview-goto-message (button-start button)))
+  'help-echo "RET, mouse-1: go to the message"
+  'keymap nael-infoview-button-map 'face nil 'follow-link t)
+
+(define-button-type 'nael-infoview-suggestion
+  'action (lambda (button)
+            (nael-infoview-apply-suggestion (button-start button)))
+  'keymap nael-infoview-button-map 'face nil 'follow-link t)
+
+(define-button-type 'nael-infoview-explanation
+  'action (lambda (button)
+            (nael-infoview-browse-explanation (button-start button)))
+  'help-echo "RET, mouse-1: read the explanation of this error"
+  'keymap nael-infoview-button-map 'face nil 'follow-link t)
+
+(define-button-type 'nael-infoview-restart
+  'action (lambda (_) (nael-infoview-restart-file))
+  'help-echo "RET, mouse-1: restart the file, which rebuilds its imports"
+  'keymap nael-infoview-button-map 'face nil 'follow-link t)
+
+(define-button-type 'nael-infoview-trace
+  'action (lambda (button) (nael-infoview-expand-trace (button-start button)))
+  'help-echo "TAB, mouse-1: show the trace"
+  'keymap nael-infoview-trace-map 'face nil 'follow-link t)
 
 (defun nael-infoview--decorate-controls ()
-  "Make positions of messages, suggestions and unexpanded traces react.
-Each gets an overlay with a keymap, as subterms do."
-  (pcase-dolist (`(,property ,keymap ,help)
-                 `((nael-message-range ,nael-infoview-message-map
-                                       "RET, mouse-1: go to the message")
-                   (nael-suggestion ,nael-infoview-suggestion-map nil)
-                   (nael-explanation
-                    ,nael-infoview-explanation-map
-                    "RET, mouse-1: read the explanation of this error")
-                   (nael-restart-file
-                    ,nael-infoview-restart-map
-                    "RET, mouse-1: restart the file, which rebuilds its imports")
-                   (nael-trace-lazy ,nael-infoview-trace-map
-                                    "TAB, mouse-1: show the trace")))
+  "Make buttons of what the renderer marked as actions in messages.
+Overlay buttons, so that the text keeps the renderer's faces."
+  (pcase-dolist (`(,property . ,type)
+                 '((nael-message-range . nael-infoview-message)
+                   (nael-suggestion . nael-infoview-suggestion)
+                   (nael-explanation . nael-infoview-explanation)
+                   (nael-restart-file . nael-infoview-restart)
+                   (nael-trace-lazy . nael-infoview-trace)))
     (save-excursion
       (goto-char (point-min))
       (let (match)
         (while (setq match (text-property-search-forward property))
-          (let ((overlay (make-overlay (prop-match-beginning match)
-                                       (prop-match-end match))))
-            (overlay-put overlay 'nael-infoview-control t)
-            (overlay-put overlay 'keymap keymap)
-            (overlay-put overlay 'mouse-face 'highlight)
-            (overlay-put overlay 'help-echo
-                         (or help
-                             (plist-get (prop-match-value match) :help)))))))))
-
-(defun nael-infoview--event-position (event)
-  "Return the position in the infoview at which EVENT, or a key, acts.
-For a mouse EVENT, select its window first."
-  (if (mouse-event-p event)
-      (progn (select-window (posn-window (event-start event)))
-             (posn-point (event-start event)))
-    (point)))
+          (let ((button (make-button (prop-match-beginning match)
+                                     (prop-match-end match)
+                                     'type type 'nael-infoview-control t)))
+            (when (eq property 'nael-suggestion)
+              (button-put button 'help-echo
+                          (plist-get (prop-match-value match) :help)))))))))
 
 (defun nael-infoview--source-buffer ()
   "Return the live source buffer of the shown messages, or signal."
@@ -565,22 +558,22 @@ For a mouse EVENT, select its window first."
   (pop-to-buffer buffer)
   (goto-char pos))
 
-(defun nael-infoview-goto-message (&optional event)
-  "Go to the source of the message whose position is at point or EVENT."
-  (interactive (list last-nonmenu-event))
-  (let* ((pos (nael-infoview--event-position event))
+(defun nael-infoview-goto-message (&optional pos)
+  "Go to the source of the message whose position is at POS or point."
+  (interactive)
+  (let* ((pos (or pos (point)))
          (range (or (get-text-property pos 'nael-message-range)
                     (user-error "No message here")))
          (buffer (nael-infoview--source-buffer)))
     (nael-infoview--show-source
      buffer (with-current-buffer buffer (car (eglot-range-region range))))))
 
-(defun nael-infoview-apply-suggestion (&optional event)
-  "Apply the suggestion at point or EVENT, such as Lean's \"Try this\".
+(defun nael-infoview-apply-suggestion (&optional pos)
+  "Apply the suggestion at POS or point, such as Lean's \"Try this\".
 Replace its range in the source with it, if the source has not changed
 since the suggestion was made, and go there."
-  (interactive (list last-nonmenu-event))
-  (let* ((pos (nael-infoview--event-position event))
+  (interactive)
+  (let* ((pos (or pos (point)))
          (suggestion (or (get-text-property pos 'nael-suggestion)
                          (user-error "No suggestion here")))
          (buffer (nael-infoview--source-buffer))
@@ -597,20 +590,18 @@ since the suggestion was made, and go there."
           (setq pos (point)))))
     (nael-infoview--show-source buffer pos)))
 
-(defun nael-infoview-browse-explanation (&optional event)
-  "Show the explanation of the error whose code is at point or EVENT.
+(defun nael-infoview-browse-explanation (&optional pos)
+  "Show the explanation of the error whose code is at POS or point.
 The explanations are in Lean's reference manual, on the web."
-  (interactive (list last-nonmenu-event))
-  (browse-url (or (get-text-property (nael-infoview--event-position event)
-                                     'nael-explanation)
+  (interactive)
+  (browse-url (or (get-text-property (or pos (point)) 'nael-explanation)
                   (user-error "No explanation here"))))
 
-(defun nael-infoview-restart-file (&optional event)
+(defun nael-infoview-restart-file ()
   "Restart the file of the shown messages, which rebuilds its imports.
-For the button in a message that the imports are out of date, at point
-or EVENT.  See `nael-eglot-restart-file'."
-  (interactive (list last-nonmenu-event))
-  (nael-infoview--event-position event)
+For the button in a message that the imports are out of date.  See
+`nael-eglot-restart-file'."
+  (interactive)
   (with-current-buffer (nael-infoview--source-buffer)
     (nael-eglot-restart-file)))
 
@@ -652,11 +643,11 @@ See `nael-infoview--fetch-trace' for INTERACTIVE."
        (message "Lean could not show the trace: %s"
                 (plist-get error :message))))))
 
-(defun nael-infoview-expand-trace (&optional event)
-  "Show the children of the trace whose heading is at point or EVENT.
+(defun nael-infoview-expand-trace (&optional pos)
+  "Show the children of the trace whose heading is at POS or point.
 The server sends them on request only."
-  (interactive (list last-nonmenu-event))
-  (let* ((pos (nael-infoview--event-position event))
+  (interactive)
+  (let* ((pos (or pos (point)))
          (children (or (get-text-property pos 'nael-trace-lazy)
                        (user-error "No trace to show here")))
          (key (get-text-property pos 'nael-key)))

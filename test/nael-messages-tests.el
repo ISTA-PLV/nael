@@ -420,13 +420,10 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
           (plist-put nael-infoview--messages :line-count 20))
     (nael-infoview--render)
     (nael-infoview-test-goto "[restart file]")
-    (should (eq (seq-some (lambda (overlay) (overlay-get overlay 'keymap))
-                          (overlays-at (point)))
-                nael-infoview-restart-map))
     (let (restarted)
       (cl-letf (((symbol-function 'nael-eglot-restart-file)
                  (lambda () (setq restarted (current-buffer)))))
-        (nael-infoview-restart-file))
+        (push-button))
       (should (eq restarted source)))))
 
 (ert-deftest nael-messages-test-folds-follow-point ()
@@ -454,15 +451,16 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 (ert-deftest nael-messages-test-controls ()
   "Positions, suggestions and unexpanded traces react to keys and clicks."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 8 9) 215
-    (cl-flet ((map-at (string)
+    (cl-flet ((type-at (string)
                 (nael-infoview-test-goto string)
-                (seq-some (lambda (overlay) (overlay-get overlay 'keymap))
-                          (overlays-at (point)))))
-      (should (eq (map-at "216:27") nael-infoview-message-map))
-      (should (eq (map-at "[apply]") nael-infoview-suggestion-map))
-      (should (eq (map-at "[Meta.synthInstance]") nael-infoview-trace-map))
+                (button-type (button-at (point)))))
+      (should (eq (type-at "216:27") 'nael-infoview-message))
+      (should (eq (type-at "[apply]") 'nael-infoview-suggestion))
+      (should (eq (type-at "[Meta.synthInstance]") 'nael-infoview-trace))
+      ;; TAB on a trace fetches it; on other buttons it still folds.
       (should (eq (lookup-key nael-infoview-trace-map (kbd "TAB"))
-                  #'nael-infoview-expand-trace)))
+                  #'push-button))
+      (should-not (lookup-key nael-infoview-button-map (kbd "TAB"))))
     ;; Rendering again replaces them.
     (let ((count (seq-count (lambda (overlay)
                               (overlay-get overlay 'nael-infoview-control))
@@ -559,13 +557,10 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                                            :explanationUrl "https://example.org/x")))
       3
     (nael-infoview-test-goto "[lean.invalidField]")
-    (should (eq (seq-some (lambda (overlay) (overlay-get overlay 'keymap))
-                          (overlays-at (point)))
-                nael-infoview-explanation-map))
     (let (browsed)
       (cl-letf (((symbol-function 'browse-url)
                  (lambda (url &rest _) (setq browsed url))))
-        (nael-infoview-browse-explanation))
+        (push-button))
       (should (equal browsed "https://example.org/x")))))
 
 (ert-deftest nael-messages-test-expand-trace ()
