@@ -280,10 +280,12 @@ This is the option `hasWidgets' of the Lean server."
   :group 'nael-eglot)
 
 (defun nael-eglot-lean-version (directory)
-  "Return the Lean version that the `lean-toolchain' in DIRECTORY names.
-The value is a list (MAJOR MINOR), the symbol `nightly', or nil if the
-file is missing or names something else."
-  (let ((file (expand-file-name "lean-toolchain" directory)))
+  "Return the Lean version that the `lean-toolchain' for DIRECTORY names.
+The file is looked for in DIRECTORY and its parents.  The value is a
+list (MAJOR MINOR), the symbol `nightly', or nil if there is no such
+file or it names something else."
+  (when-let* ((found (locate-dominating-file directory "lean-toolchain"))
+              (file (expand-file-name "lean-toolchain" found)))
     (when (file-readable-p file)
       (with-temp-buffer
         (insert-file-contents file)

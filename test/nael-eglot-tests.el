@@ -207,7 +207,10 @@ TOOLCHAIN nil means no such file."
                   (nil nil)))
     (nael-eglot-test-with-toolchain (car case)
       (should (equal (nael-eglot-lean-version default-directory)
-                     (cadr case))))))
+                     (cadr case)))
+      ;; Also from a directory below.
+      (make-directory "sub")
+      (should (equal (nael-eglot-lean-version "sub/") (cadr case))))))
 
 (defvar nael-eglot-test-base-options nil
   "Initialization options of the test server before Nael adds its own.")
