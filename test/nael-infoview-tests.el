@@ -88,6 +88,22 @@
                               (overlays-in (point-min) (point-max)))
                    1))))))
 
+(ert-deftest nael-infoview-test-wrap ()
+  "Long lines wrap in the infoview, even where Emacs truncates by default."
+  (let ((default (default-value 'truncate-lines)))
+    (setq-default truncate-lines t)
+    (unwind-protect
+        (nael-infoview-test-with-goals
+          (should-not truncate-lines)
+          (should word-wrap)
+          (should (get-text-property (point-min) 'wrap-prefix))
+          (with-current-buffer (nael-infoview--help-buffer)
+            (unwind-protect
+                (progn (should-not truncate-lines)
+                       (should word-wrap))
+              (kill-buffer))))
+      (setq-default truncate-lines default))))
+
 (ert-deftest nael-infoview-test-fold-survives-render ()
   "Folded goals and sections stay folded when the goals are shown again."
   (nael-infoview-test-with-goals

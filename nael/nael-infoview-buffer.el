@@ -165,6 +165,10 @@ buffer, and \\[xref-find-definitions] shows its definition in another window.
               ;; One column for the button and one to separate it from
               ;; the text.
               outline-margin-width 2)
+  ;; Wrap long lines, as VS Code and lean.nvim do: Lean breaks them at
+  ;; `format.width', but the window may be narrower.
+  (setq-local truncate-lines nil
+              word-wrap t)
   (outline-minor-mode)
   (nael-infoview-hover-setup)
   ;; Jumps from the infoview, as to a definition, show their target in

@@ -301,6 +301,8 @@ Help's history commands go back and forth, and \\[xref-find-definitions] goes to
 definition of a subterm.
 
 \\{nael-infoview-help-mode-map}"
+  (setq-local truncate-lines nil
+              word-wrap t)
   (nael-infoview-hover-setup)
   (add-hook 'kill-buffer-hook #'nael-infoview--release-all-pages nil t))
 

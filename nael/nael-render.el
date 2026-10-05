@@ -73,6 +73,14 @@
   "Face of the turnstile before the target of a goal."
   :group 'nael-render)
 
+(defcustom nael-render-wrap-indent 4
+  "Columns by which a wrapped line of code continues further in.
+When a window is too narrow for a line, its continuation is indented
+by this much more than the line itself, so that it reads as part of
+it.  See `wrap-prefix'."
+  :type 'natnum
+  :group 'nael-render)
+
 (defface nael-render-diff-inserted
   '((t :inherit diff-added :extend nil))
   "Face of what the tactic at point has added or changed."
@@ -338,10 +346,25 @@ OPTIONS is a plist of view options:
         (nael-render--goal term-goal nil 'term-goal options))
       (nael-render--finish))))
 
+(defun nael-render--put-wrap-prefixes ()
+  "Indent the continuations of wrapped lines in the current buffer.
+See `nael-render-wrap-indent'."
+  (goto-char (point-min))
+  (while (not (eobp))
+    (let ((beg (point)))
+      (skip-chars-forward " ")
+      (put-text-property beg (min (1+ (line-end-position)) (point-max))
+                         'wrap-prefix
+                         (make-string (+ (- (point) beg)
+                                         nael-render-wrap-indent)
+                                      ?\s))
+      (forward-line))))
+
 (defun nael-render--finish ()
   "Return the rendered contents of the current buffer as a result."
   (nael-render--apply-faces)
   (nael-render--put-nodes)
+  (nael-render--put-wrap-prefixes)
   (nael-render--result-create
    :text (buffer-string)
    :nodes (reverse nael-render--nodes)))

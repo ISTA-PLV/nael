@@ -238,6 +238,20 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
   (should (eq (nael-render-diff-face "willDelete") 'nael-render-diff-removed))
   (should-not (nael-render-diff-face nil)))
 
+(ert-deftest nael-render-test-wrap-prefix ()
+  "Wrapped lines of code continue further in than their line."
+  (let* ((nael-render-wrap-indent 4)
+         (goal (nael-render-test-goal
+                :type (nael-render-test-code "n =\n  0")))
+         (result (nael-render-goals (list :goals (vector goal)) nil))
+         (text (nael-render-result-text result)))
+    (cl-flet ((prefix (string)
+                (get-text-property (string-search string text) 'wrap-prefix
+                                   text)))
+      (should (equal (prefix "Tactic") "    "))
+      (should (equal (prefix "⊢ n") "    "))
+      (should (equal (prefix "0") "      ")))))
+
 ;;;; Hover information:
 
 (ert-deftest nael-render-test-info ()
