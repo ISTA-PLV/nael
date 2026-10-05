@@ -438,24 +438,43 @@ Leave it alone if someone else has changed it since."
   (when (and (bound-and-true-p flycheck-mode) (fboundp 'flycheck-buffer))
     (flycheck-buffer)))
 
+(defconst nael-margin--indicator-variables
+  '(flymake-diagnostic-types-alist flymake-autoresize-margins
+    flycheck-indication-mode)
+  "Variables that `nael-margin--hide-indicators' sets buffer-locally.")
+
+(defvar-local nael-margin--saved-indicators nil
+  "Non-nil while `nael-margin--hide-indicators' hides the indicators.
+The value is then a cons (t . SAVED), where SAVED has a cons (VARIABLE
+. VALUE) for each of `nael-margin--indicator-variables' that was
+buffer-local before.")
+
 (defun nael-margin--hide-indicators ()
   "Hide the indicators of Flymake and Flycheck in the current buffer.
 Also keep Flymake from resizing the margin, which it would do for its
 indicators."
-  (with-suppressed-warnings ((obsolete flymake-diagnostic-types-alist))
-    (setq-local flymake-diagnostic-types-alist
-                (append nael-margin--hidden-indicators
-                        (default-value 'flymake-diagnostic-types-alist))))
-  (setq-local flymake-autoresize-margins nil)
-  (setq-local flycheck-indication-mode nil)
+  (unless nael-margin--saved-indicators
+    (setq nael-margin--saved-indicators
+          (cons t (seq-keep (lambda (variable)
+                              (and (local-variable-p variable)
+                                   (cons variable (symbol-value variable))))
+                            nael-margin--indicator-variables)))
+    (with-suppressed-warnings ((obsolete flymake-diagnostic-types-alist))
+      (setq-local flymake-diagnostic-types-alist
+                  (append nael-margin--hidden-indicators
+                          flymake-diagnostic-types-alist)))
+    (setq-local flymake-autoresize-margins nil)
+    (setq-local flycheck-indication-mode nil))
   (nael-margin--redo-checkers))
 
 (defun nael-margin--show-indicators ()
-  "Show the indicators of Flymake and Flycheck in the current buffer again."
-  (with-suppressed-warnings ((obsolete flymake-diagnostic-types-alist))
-    (kill-local-variable 'flymake-diagnostic-types-alist))
-  (kill-local-variable 'flymake-autoresize-margins)
-  (kill-local-variable 'flycheck-indication-mode)
+  "Show the indicators of Flymake and Flycheck in the current buffer again.
+Settings that were buffer-local before they were hidden come back."
+  (when nael-margin--saved-indicators
+    (mapc #'kill-local-variable nael-margin--indicator-variables)
+    (pcase-dolist (`(,variable . ,value) (cdr nael-margin--saved-indicators))
+      (set (make-local-variable variable) value))
+    (setq nael-margin--saved-indicators nil))
   (nael-margin--redo-checkers))
 
 ;;;; The mode:

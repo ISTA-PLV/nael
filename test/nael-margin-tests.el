@@ -389,6 +389,21 @@ The buffer has LINE-COUNT lines, 20 by default."
     (should-not (local-variable-p 'flymake-autoresize-margins))
     (should-not (local-variable-p 'flycheck-indication-mode))))
 
+(ert-deftest nael-margin-test-indicators-restored ()
+  "The mode gives back the buffer's own settings, even when enabled twice."
+  (nael-margin-test-with-buffer nil
+    (with-suppressed-warnings ((obsolete flymake-diagnostic-types-alist))
+      (setq-local flymake-diagnostic-types-alist '((mine)))
+      (setq-local flymake-autoresize-margins 'mine)
+      (nael-margin-mode)
+      (nael-margin-mode)
+      (should (equal (car (last flymake-diagnostic-types-alist)) '(mine)))
+      (should-not flymake-autoresize-margins)
+      (nael-margin-mode -1)
+      (should (equal flymake-diagnostic-types-alist '((mine))))
+      (should (eq flymake-autoresize-margins 'mine))
+      (should-not (local-variable-p 'flycheck-indication-mode)))))
+
 (defun nael-margin-test-empty-display-p (display)
   "Return non-nil if DISPLAY shows nothing, in the margin or the fringe.
 Flymake 1.4 chooses between both with `when' specifications."
