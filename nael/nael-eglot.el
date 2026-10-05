@@ -24,7 +24,9 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'eglot)
+(require 'seq)
 
 (require 'nael)
 (require 'nael-eglot-compat)
@@ -247,9 +249,12 @@ Wire format \"v1\" encodes a reference as {\"__rpcref\": ID}.  Servers
 of Lean versions before 4.30 do not know it and use \"v0\", {\"p\": ID}.")
 
 (cl-defmethod eglot-client-capabilities :around ((_server nael-eglot-server))
-  "Add the Lean-specific client capabilities to those of Eglot."
+  "Add the Lean-specific client capabilities to those of Eglot.
+Besides the RPC wire format, ask for silent diagnostics, such as the
+one that says that a proof is complete; see `nael-eglot-diagnostics'."
   (append (cl-call-next-method)
-          (list :lean (list :rpcWireFormat nael-eglot-rpc-wire-format))))
+          (list :lean (list :rpcWireFormat nael-eglot-rpc-wire-format
+                            :silentDiagnosticSupport t))))
 
 (defun nael-eglot-uri-buffer (uri)
   "Return the live buffer visiting the file of URI, or nil."
@@ -266,10 +271,18 @@ processing and 2 means a fatal error.  An empty vector means done.")
 Each function is called in that buffer with the new value of
 `nael-eglot-file-progress' as argument.")
 
+(defvar-local nael-eglot-diagnostics nil
+  "The diagnostics that the server published last for the current buffer.
+This is a vector of LSP diagnostics with Lean's extensions: a diagnostic
+may have a `:fullRange' besides its `:range', `:leanTags' (see
+`nael-eglot-diagnostic-tag-p'), and `:isSilent'.  Silent diagnostics are
+kept here, but Eglot, and so Flymake, never sees them.")
+
 (defvar nael-eglot-diagnostics-functions nil
   "Abnormal hook run when the server publishes diagnostics for a buffer.
 Each function is called in that buffer with the vector of LSP
-diagnostics as argument, after Eglot has handled them.")
+diagnostics as argument, after Eglot has handled them.  The vector
+includes the silent diagnostics; see `nael-eglot-diagnostics'.")
 
 (cl-defmethod eglot-handle-notification
   ((_server nael-eglot-server) (_method (eql $/lean/fileProgress))
@@ -282,15 +295,63 @@ diagnostics as argument, after Eglot has handled them.")
       (run-hook-with-args 'nael-eglot-file-progress-functions
                           processing))))
 
-(cl-defmethod eglot-handle-notification :after
-  ((_server nael-eglot-server)
-   (_method (eql textDocument/publishDiagnostics))
-   &key uri diagnostics &allow-other-keys)
-  "Run `nael-eglot-diagnostics-functions' with DIAGNOSTICS for URI."
+(cl-defmethod eglot-handle-notification :around
+  ((server nael-eglot-server)
+   (method (eql textDocument/publishDiagnostics))
+   &rest args &key uri diagnostics &allow-other-keys)
+  "Hand the DIAGNOSTICS for URI to Eglot without the silent ones.
+Silent diagnostics would be shown as notes otherwise.  Keep all in
+`nael-eglot-diagnostics' and run `nael-eglot-diagnostics-functions'.
+SERVER, METHOD and ARGS are passed on."
+  (apply #'cl-call-next-method server method
+         (plist-put (copy-sequence args) :diagnostics
+                    (seq-into (seq-remove (lambda (diagnostic)
+                                            (eq (plist-get diagnostic :isSilent)
+                                                t))
+                                          diagnostics)
+                              'vector)))
   (when-let* ((buffer (nael-eglot-uri-buffer uri)))
     (with-current-buffer buffer
+      (setq nael-eglot-diagnostics diagnostics)
       (run-hook-with-args 'nael-eglot-diagnostics-functions
                           diagnostics))))
+
+(defconst nael-eglot-diagnostic-tags
+  '((unsolved-goals . 1) (goals-accomplished . 2))
+  "Lean's tags of diagnostics, as in the `:leanTags' of a diagnostic.")
+
+(defun nael-eglot-diagnostic-tag-p (diagnostic tag)
+  "Return non-nil if DIAGNOSTIC has TAG, a key of `nael-eglot-diagnostic-tags'."
+  (seq-contains-p (plist-get diagnostic :leanTags)
+                  (alist-get tag nael-eglot-diagnostic-tags)))
+
+(defun nael-eglot-diagnostic-lines (diagnostic &optional full)
+  "Return the first and last line of DIAGNOSTIC, 0-based, as a cons.
+The server shortens a diagnostic's `:range' to its first line; with
+FULL non-nil, use its `:fullRange' instead, when it has one.  A range
+that ends at the start of a line ends on the line before."
+  (let* ((range (or (and full (plist-get diagnostic :fullRange))
+                    (plist-get diagnostic :range)))
+         (start (plist-get range :start))
+         (end (plist-get range :end))
+         (first (plist-get start :line))
+         (last (plist-get end :line)))
+    (when (and (> last first) (zerop (plist-get end :character)))
+      (cl-decf last))
+    (cons first last)))
+
+(defun nael-eglot-goals-accomplished-p (&optional line)
+  "Return non-nil if LINE lies in a proof that the server found complete.
+LINE is 0-based and defaults to the line of point.  The answer comes
+from the silent diagnostics in `nael-eglot-diagnostics'."
+  (let ((line (or line (1- (line-number-at-pos nil t)))))
+    (seq-some (lambda (diagnostic)
+                (and (nael-eglot-diagnostic-tag-p diagnostic
+                                                  'goals-accomplished)
+                     (pcase-let ((`(,first . ,last)
+                                  (nael-eglot-diagnostic-lines diagnostic t)))
+                       (<= first line last))))
+              nael-eglot-diagnostics)))
 
 (defun nael-eglot-processing-line-p (&optional line)
   "Return non-nil if the server is still processing LINE.
