@@ -106,7 +106,7 @@ Below the goals and the expected type, the section @emph{Messages} shows Lean's 
 @item
 Traces, as with @samp{set_option trace.Meta.synthInstance true in}, are headings: @samp{TAB} on one shows its children, which Lean sends on request only.
 @item
-Suggestions such as Lean's "Try this" have an @samp{[apply]} button that replaces the code in the source with the suggestion.
+Suggestions such as Lean's "Try this" have an @samp{[apply]} button that replaces the code in the source with the suggestion; this includes the tactics of libraries that suggest through Lean's @samp{TryThis}.  Lean's hints show the change they suggest as a diff, which applies the same way.  The code of an error, such as @samp{[lean.invalidField]}, opens its explanation in Lean's reference manual.
 @item
 @samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 

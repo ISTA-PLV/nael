@@ -132,7 +132,11 @@ Language Server Protocol (LSP):
      headings: ‘TAB’ on one shows its children, which Lean sends on
      request only.
    • Suggestions such as Lean's "Try this" have an ‘[apply]’ button that
-     replaces the code in the source with the suggestion.
+     replaces the code in the source with the suggestion; this includes
+     the tactics of libraries that suggest through Lean's ‘TryThis’.
+     Lean's hints show the change they suggest as a diff, which applies
+     the same way.  The code of an error, such as ‘[lean.invalidField]’,
+     opens its explanation in Lean's reference manual.
    • ‘v’ (‘nael-infoview-view-options’) opens a menu of what the
      infoview shows: which hypotheses to hide, whether to show the
      target first and the changes of the tactic at point, and how to
@@ -516,22 +520,22 @@ Tag Table:
 Node: Top192
 Node: Get Started2399
 Node: Usage2736
-Node: Configuration8528
-Node: Installation10768
-Node: Installation from Melpa11120
-Node: Installation from Sources12156
-Node: Manual Installation12599
-Node: Installation via package-vc13535
-Ref: Installation via package-vc-selected-packages14208
-Ref: Installation via use-package vc15305
-Node: Installation in Doom Emacs16123
-Node: Changelog16576
-Node: Version 082 from 2026-02-2217021
-Node: Version 080 from 2026-12-1617381
-Node: Version 070 from 2025-12-1518026
-Node: Version 062 from 2025-11-3018625
-Node: Version 060 from 2025-11-3018978
-Node: License and Maintenance20076
+Node: Configuration8819
+Node: Installation11059
+Node: Installation from Melpa11411
+Node: Installation from Sources12447
+Node: Manual Installation12890
+Node: Installation via package-vc13826
+Ref: Installation via package-vc-selected-packages14499
+Ref: Installation via use-package vc15596
+Node: Installation in Doom Emacs16414
+Node: Changelog16867
+Node: Version 082 from 2026-02-2217312
+Node: Version 080 from 2026-12-1617672
+Node: Version 070 from 2025-12-1518317
+Node: Version 062 from 2025-11-3018916
+Node: Version 060 from 2025-11-3019269
+Node: License and Maintenance20367
 
 End Tag Table
 

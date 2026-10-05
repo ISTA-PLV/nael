@@ -518,6 +518,12 @@ is as `nael-infoview--messages'."
   "<mouse-2>" #'nael-infoview-apply-suggestion
   "<follow-link>" 'mouse-face)
 
+(defvar-keymap nael-infoview-explanation-map
+  :doc "Keymap of a link to the explanation of an error in the infoview."
+  "RET" #'nael-infoview-browse-explanation
+  "<mouse-2>" #'nael-infoview-browse-explanation
+  "<follow-link>" 'mouse-face)
+
 (defvar-keymap nael-infoview-restart-map
   :doc "Keymap of the button that restarts the file in the infoview."
   "RET" #'nael-infoview-restart-file
@@ -539,6 +545,9 @@ Each gets an overlay with a keymap, as subterms do."
                  `((nael-message-range ,nael-infoview-message-map
                                        "RET, mouse-1: go to the message")
                    (nael-suggestion ,nael-infoview-suggestion-map nil)
+                   (nael-explanation
+                    ,nael-infoview-explanation-map
+                    "RET, mouse-1: read the explanation of this error")
                    (nael-restart-file
                     ,nael-infoview-restart-map
                     "RET, mouse-1: restart the file, which rebuilds its imports")
@@ -608,6 +617,14 @@ since the suggestion was made, and go there."
           (insert (plist-get suggestion :suggestion))
           (setq pos (point)))))
     (nael-infoview--show-source buffer pos)))
+
+(defun nael-infoview-browse-explanation (&optional event)
+  "Show the explanation of the error whose code is at point or EVENT.
+The explanations are in Lean's reference manual, on the web."
+  (interactive (list last-nonmenu-event))
+  (browse-url (or (get-text-property (nael-infoview--event-position event)
+                                     'nael-explanation)
+                  (user-error "No explanation here"))))
 
 (defun nael-infoview-restart-file (&optional event)
   "Restart the file of the shown messages, which rebuilds its imports.

@@ -9,3 +9,10 @@ example : Inhabited Nat := inferInstance
 
 example (a b : Nat) : a + b = b + a := by
   exact?
+
+namespace Probe
+end Prob
+
+example : Nat := Nat.succ (m := 1)
+
+example (n : Nat) : Nat := n.foo

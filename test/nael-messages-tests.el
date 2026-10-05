@@ -297,6 +297,62 @@ Boom
     (should-not (string-search "[restart file]" text))
     (should (nth 3 (cadr (nael-messages-test-headings text))))))
 
+(defun nael-messages-test-widget (id props &optional alt)
+  "Return a message embedding the widget ID with PROPS and ALT."
+  (nael-messages-test-message
+   (list :tag (vector (list :widget (list :wi (list :id id :props props)
+                                          :alt (or alt '(:text ""))))
+                      '(:text "")))))
+
+(defconst nael-messages-test-diff-props
+  '(:diff [(:text "end Prob" :type "unchanged") (:text "x" :type "deletion")
+           (:text "e" :type "insertion")]
+    :range (:end (:character 9 :line 3) :start (:character 0 :line 3))
+    :suggestion "end Probe")
+  "Props of a diff suggestion, as Lean sends them for `end Probx'.")
+
+(ert-deftest nael-messages-test-diff-suggestion ()
+  "Lean's hints show the change they suggest as a diff, to be applied."
+  (let* ((text (nael-render-result-text
+                (nael-messages-test-render
+                 (vector (nael-messages-test-widget
+                          "Lean.Meta.Hint.tryThisDiffWidget"
+                          nael-messages-test-diff-props
+                          '(:text "end Prob̲")))
+                 3)))
+         (pos (string-search "end Probxe" text)))
+    (should pos)
+    (should (memq 'nael-render-suggestion-deleted
+                  (nael-render-test-faces text (+ pos 8))))
+    (should (memq 'nael-render-suggestion-inserted
+                  (nael-render-test-faces text (+ pos 9))))
+    (should-not (memq 'nael-render-suggestion-inserted
+                      (nael-render-test-faces text pos)))
+    (should (equal (get-text-property pos 'nael-suggestion text)
+                   '(:range (:end (:character 9 :line 3)
+                             :start (:character 0 :line 3))
+                     :suggestion "end Probe" :help "Apply suggestion")))
+    (should (get-text-property (+ pos 9) 'nael-suggestion text))))
+
+(ert-deftest nael-messages-test-explanation ()
+  "The code of an error links to its explanation."
+  (let* ((url "https://lean-lang.org/doc/reference/4.34.1/find/?domain=Manual.errorExplanation&name=lean.invalidField")
+         (text (nael-render-result-text
+                (nael-messages-test-render
+                 (vector (nael-messages-test-message
+                          (list :append
+                                (vector '(:text "Invalid field `foo`")
+                                        (list :tag (vector (list :widget (list :wi (list :id "Lean.errorDescriptionWidget"
+                                                                                         :props (list :code "lean.invalidField"
+                                                                                                      :explanationUrl url))
+                                                                               :alt '(:text "")))
+                                                           '(:text "")))))))
+                 3))))
+    (should (string-search "Invalid field `foo` [lean.invalidField]\n" text))
+    (should (equal (get-text-property (string-search "[lean" text)
+                                      'nael-explanation text)
+                   url))))
+
 ;;;; The infoview:
 
 (defvar nael-messages-test-requests nil
@@ -471,6 +527,46 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (with-current-buffer (nael-infoview--buffer)
       (nael-infoview-test-goto "[apply]")
       (should-error (nael-infoview-apply-suggestion) :type 'user-error))))
+
+(ert-deftest nael-messages-test-apply-diff ()
+  "A diff suggestion is applied like \"Try this\"."
+  (nael-messages-test-with-infoview
+      (vector (nael-messages-test-widget "Lean.Meta.Hint.tryThisDiffWidget"
+                                         nael-messages-test-diff-props))
+      3
+    (with-current-buffer source
+      (goto-char (point-min))
+      (forward-line 3)
+      (delete-region (point) (line-end-position))
+      (insert "end Probx")
+      (setq nael-infoview--messages nil))
+    (nael-messages-test-show (vector (nael-messages-test-widget
+                                      "Lean.Meta.Hint.tryThisDiffWidget"
+                                      nael-messages-test-diff-props))
+                             3 source)
+    (nael-infoview-test-goto "end Prob")
+    (should (equal (get-char-property (point) 'help-echo) "Apply suggestion"))
+    (nael-infoview-apply-suggestion)
+    (should (eq (current-buffer) source))
+    (should (equal (buffer-substring (line-beginning-position) (line-end-position))
+                   "end Probe"))))
+
+(ert-deftest nael-messages-test-browse-explanation ()
+  "The link of an error code opens its explanation in a browser."
+  (nael-messages-test-with-infoview
+      (vector (nael-messages-test-widget "Lean.errorDescriptionWidget"
+                                         '(:code "lean.invalidField"
+                                           :explanationUrl "https://example.org/x")))
+      3
+    (nael-infoview-test-goto "[lean.invalidField]")
+    (should (eq (seq-some (lambda (overlay) (overlay-get overlay 'keymap))
+                          (overlays-at (point)))
+                nael-infoview-explanation-map))
+    (let (browsed)
+      (cl-letf (((symbol-function 'browse-url)
+                 (lambda (url &rest _) (setq browsed url))))
+        (nael-infoview-browse-explanation))
+      (should (equal browsed "https://example.org/x")))))
 
 (ert-deftest nael-messages-test-expand-trace ()
   "A trace's children are fetched on request, shown unfolded and kept."

@@ -11,7 +11,8 @@
 
 ;; Tests for the messages in `nael-infoview' against a real Lean server
 ;; on the Lake project in `test/lean/', on `Tiny/Messages.lean': a
-;; `#check', a proof with unsolved goals, a trace and `exact?'.  The
+;; `#check', a proof with unsolved goals, a trace, `exact?', two of
+;; Lean's hints, and an error with an explanation.  The
 ;; toolchain of the project is recent, so the server sends widgets.
 ;;
 ;; Run with: emacs -Q --batch -l build.el test-live
@@ -137,6 +138,24 @@
     (should (equal (buffer-substring (line-beginning-position)
                                      (line-end-position))
                    "  exact Nat.add_comm a b"))))
+
+(ert-deftest nael-messages-live-hints ()
+  "Lean's hints with diffs can be applied; error codes link to explanations."
+  (with-current-buffer (nael-messages-live-open)
+    (nael-messages-live-move 18 29 "[lean.invalidField]")
+    (with-current-buffer (nael-infoview--buffer)
+      (nael-infoview-test-goto "[lean.invalidField]")
+      (should (string-search "lean.invalidField"
+                             (get-text-property (point) 'nael-explanation))))
+    (nael-messages-live-move 14 0 "end Probe")
+    (with-current-buffer (nael-infoview--buffer)
+      (nael-infoview-test-goto "end Prob")
+      (should (get-text-property (point) 'nael-suggestion))
+      (nael-infoview-apply-suggestion))
+    (should (equal (buffer-name) "Messages.lean"))
+    (should (equal (buffer-substring (line-beginning-position)
+                                     (line-end-position))
+                   "end Probe"))))
 
 (provide 'nael-messages-live)
 

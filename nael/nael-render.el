@@ -48,7 +48,8 @@
 ;; only: its heading then carries `nael-trace-lazy', the reference for
 ;; `Lean.Widget.lazyTraceChildrenToInteractive'.  The position of a
 ;; message carries `nael-message-range', a suggestion to apply carries
-;; `nael-suggestion', and a button to restart the file, in a message
+;; `nael-suggestion', a link to the explanation of an error carries
+;; `nael-explanation', and a button to restart the file, in a message
 ;; that its imports are out of date, carries `nael-restart-file'.
 
 ;;; Code:
@@ -96,6 +97,16 @@
 (defface nael-render-suggestion
   '((t :inherit button))
   "Face of a suggestion that can be applied, such as \"[apply]\"."
+  :group 'nael-render)
+
+(defface nael-render-suggestion-inserted
+  '((t :inherit diff-refine-added))
+  "Face of what a suggestion inserts, in its diff."
+  :group 'nael-render)
+
+(defface nael-render-suggestion-deleted
+  '((t :inherit diff-refine-removed :strike-through t))
+  "Face of what a suggestion deletes, in its diff."
   :group 'nael-render)
 
 (defface nael-render-case
@@ -434,24 +445,57 @@ Children that the server sends on request only are taken from
         (nael-render--msg child)
         (unless (bolp) (insert "\n"))))))
 
+(defun nael-render--suggestion (beg props help)
+  "Mark the text from BEG to point as a suggestion with PROPS to apply.
+PROPS are those of Lean's widget, with the `:range' to replace and the
+`:suggestion'.  HELP is shown in its tooltip."
+  (put-text-property beg (point) 'nael-suggestion
+                     (list :range (plist-get props :range)
+                           :suggestion (plist-get props :suggestion)
+                           :help help)))
+
 (defun nael-render--widget (widget)
   "Insert WIDGET, a widget embed.
-Lean's suggestions to replace code, such as \"Try this\", become text
-with the property `nael-suggestion', a plist with the `:range' to
-replace, the `:suggestion' and the `:help' to show.  Other widgets are
-programs for VS Code; their alternative text is inserted instead."
+Widgets are programs for VS Code; the few that Lean itself uses in
+messages are rendered here, and others show their alternative text:
+
+- `Lean.Meta.Hint.textInsertionWidget', as in \"Try this\" of `exact?'
+  and of tactics of other libraries that use Lean's `TryThis', is the
+  link \"[apply]\";
+- `Lean.Meta.Hint.tryThisDiffWidget', as in Lean's hints, shows the
+  change it suggests as a diff;
+- `Lean.errorDescriptionWidget' links the code of an error to its
+  explanation in Lean's reference manual.
+
+Suggestions carry `nael-suggestion', a plist with the `:range' to
+replace, the `:suggestion' and the `:help' to show; links carry
+`nael-explanation', the URL."
   (let* ((instance (plist-get widget :wi))
-         (props (plist-get instance :props)))
-    (if (equal (plist-get instance :id) "Lean.Meta.Hint.textInsertionWidget")
-        (let ((accept (plist-get props :acceptSuggestionProps))
-              (beg (point)))
-          (nael-render--insert (or (plist-get accept :linkText) "[apply]")
-                               'nael-render-suggestion)
-          (put-text-property beg (point) 'nael-suggestion
-                             (list :range (plist-get props :range)
-                                   :suggestion (plist-get props :suggestion)
-                                   :help (plist-get accept :hoverText))))
-      (nael-render--msg (plist-get widget :alt)))))
+         (props (plist-get instance :props))
+         (beg (point)))
+    (pcase (plist-get instance :id)
+      ("Lean.Meta.Hint.textInsertionWidget"
+       (let ((accept (plist-get props :acceptSuggestionProps)))
+         (nael-render--insert (or (plist-get accept :linkText) "[apply]")
+                              'nael-render-suggestion)
+         (nael-render--suggestion beg props (plist-get accept :hoverText))))
+      ("Lean.Meta.Hint.tryThisDiffWidget"
+       (seq-doseq (part (plist-get props :diff))
+         (nael-render--insert (plist-get part :text)
+                              (pcase (plist-get part :type)
+                                ("insertion" 'nael-render-suggestion-inserted)
+                                ("deletion" 'nael-render-suggestion-deleted)
+                                (_ 'default))))
+       (nael-render--suggestion beg props "Apply suggestion"))
+      ("Lean.errorDescriptionWidget"
+       (unless (or (bolp) (memql (char-before) '(?\s ?\n)))
+         (insert " "))
+       (setq beg (point))
+       (nael-render--insert (format "[%s]" (plist-get props :code))
+                            'nael-render-suggestion)
+       (put-text-property beg (point) 'nael-explanation
+                          (plist-get props :explanationUrl)))
+      (_ (nael-render--msg (plist-get widget :alt))))))
 
 (defun nael-render--whole-file-p (diagnostic line-count)
   "Return non-nil if DIAGNOSTIC is about the whole file of LINE-COUNT lines.
