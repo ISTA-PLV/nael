@@ -48,6 +48,7 @@
 
 (defcustom nael-eldoc-idle-delay 0.05
   "Buffer-local value of `eldoc-idle-delay' in Nael buffers.
+It also applies to the infoview and its help buffer.
 If nil, leave `eldoc-idle-delay' alone."
   :type '(choice (number :tag "Seconds")
                  (const :tag "Keep global value" nil))

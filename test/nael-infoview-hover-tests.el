@@ -124,6 +124,7 @@ The result is (DOC . ECHO), or nil if it reports nothing."
       (should (memq #'nael-infoview-eldoc-function
                     eldoc-documentation-functions))
       (should (eq (and eldoc-mode t) global-eldoc-mode))
+      (should (eql eldoc-idle-delay nael-eldoc-idle-delay))
       (should (nael-rpc-handle-p nael-infoview--handle))
       (nael-infoview-test-goto "n = 0")
       (should (equal (nael-infoview-hover-test-eldoc)

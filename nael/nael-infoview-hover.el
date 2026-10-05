@@ -46,6 +46,7 @@
 (require 'help-mode)
 (require 'xref)
 
+(require 'nael-eglot)
 (require 'nael-eglot-compat)
 (require 'nael-render)
 (require 'nael-rpc)
@@ -513,6 +514,9 @@ lookup must leave the windows alone until then."
   "Make the subterms shown in the current buffer report on themselves."
   (add-hook 'eldoc-documentation-functions #'nael-infoview-eldoc-function
             nil t)
+  ;; As quick as in Nael buffers.
+  (when nael-eldoc-idle-delay
+    (setq-local eldoc-idle-delay nael-eldoc-idle-delay))
   (add-hook 'xref-backend-functions #'nael-infoview--xref-backend nil t)
   ;; Only with Doom's lookup module loaded: adding to the hook would
   ;; define it, and the module's own definition would not take effect.
