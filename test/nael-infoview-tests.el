@@ -35,6 +35,8 @@
   "Rendering again replaces the infoview's overlays, and only those."
   (nael-test-with-goals
     (cl-flet ((count (property)
+                ;; Since Emacs 31, Outline makes its buttons on redisplay.
+                (when jit-lock-mode (jit-lock-fontify-now))
                 (seq-count (lambda (overlay) (overlay-get overlay property))
                            (overlays-in (point-min) (point-max)))))
       (let ((foreign (make-overlay 1 5))
@@ -74,6 +76,8 @@
 (defun nael-infoview-test-button ()
   "Return the icon of the outline button of the heading at point, or nil.
 In the margin, the button is a space displaying the icon there."
+  ;; Since Emacs 31, Outline makes its buttons on redisplay.
+  (when jit-lock-mode (jit-lock-fontify-now))
   (when-let* ((overlay (seq-find (lambda (o) (overlay-get o 'outline-button))
                                  (overlays-at (line-beginning-position))))
               (string (overlay-get overlay 'before-string)))
