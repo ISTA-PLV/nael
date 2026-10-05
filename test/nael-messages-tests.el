@@ -82,7 +82,7 @@ It is an error on line 3 unless KEYS say otherwise."
 (ert-deftest nael-messages-test-fixture-text ()
   "Recorded messages: an error, a trace, a suggestion and a #check."
   (should (equal (nael-messages-test-text
-                  (nael-messages-test-fixture 6 8 9 11) 215)
+                  (nael-messages-test-fixture 2 3 4 5) 215)
                  "Messages (4)
 213:0 error
 Invalid `end`: There is no current scope to end
@@ -100,7 +100,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
 (ert-deftest nael-messages-test-headings ()
   "Messages and traces are headings; those not on the line start folded."
   (let ((result (nael-messages-test-render
-                 (nael-messages-test-fixture 6 8 9) 215)))
+                 (nael-messages-test-fixture 2 3 4) 215)))
     (should (equal (nael-messages-test-headings
                     (nael-render-result-text result))
                    '((1 1 nil nil nil)
@@ -116,7 +116,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
 
 (ert-deftest nael-messages-test-goals-accomplished ()
   "Messages that a proof is complete are left out; the goals say it."
-  (should (string-prefix-p "Messages (5)\n"
+  (should (string-prefix-p "Messages (4)\n"
                            (nael-messages-test-text
                             (nael-messages-test-fixture) 215)))
   (should (equal (nael-messages-test-text (nael-messages-test-fixture 0 1) 68)
@@ -125,7 +125,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
 
 (ert-deftest nael-messages-test-nodes ()
   "Code in messages is made of nodes, as in goals."
-  (let* ((result (nael-messages-test-render (nael-messages-test-fixture 11) 218))
+  (let* ((result (nael-messages-test-render (nael-messages-test-fixture 5) 218))
          (text (nael-render-result-text result))
          (nodes (nael-render-result-nodes result)))
     (should nodes)
@@ -240,7 +240,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
 (ert-deftest nael-messages-test-suggestion ()
   "Lean's suggestions become text that knows what to replace."
   (let* ((text (nael-render-result-text
-                (nael-messages-test-render (nael-messages-test-fixture 9) 217)))
+                (nael-messages-test-render (nael-messages-test-fixture 4) 217)))
          (pos (string-search "[apply]" text)))
     (should (equal (get-text-property pos 'nael-suggestion text)
                    '(:range (:end (:character 8 :line 217)
@@ -425,7 +425,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 
 (ert-deftest nael-messages-test-folds ()
   "Messages from other lines start folded; folds are kept after that."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 6 8 9) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 2 3 4) 215
     (should (nael-messages-test-visible-p "[Meta.synthInstance]"))
     (should-not (nael-messages-test-visible-p "Invalid `end`"))
     (should-not (nael-messages-test-visible-p "Try this"))
@@ -451,29 +451,29 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 
 (ert-deftest nael-messages-test-folds-follow-point ()
   "A message folds and unfolds with point, until the user folds it."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 6) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 2) 215
     (should-not (nael-messages-test-visible-p "Invalid `end`"))
     ;; Point on its first line: unfolded.
-    (nael-messages-test-show (nael-messages-test-fixture 6) 212 source)
+    (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
     (should (nael-messages-test-visible-p "Invalid `end`"))
     ;; Elsewhere again: folded.
-    (nael-messages-test-show (nael-messages-test-fixture 6) 213 source)
+    (nael-messages-test-show (nael-messages-test-fixture 2) 213 source)
     (should-not (nael-messages-test-visible-p "Invalid `end`"))
     ;; Unfolded by the user, it stays so wherever point is.
     (nael-infoview-test-goto "213:0")
     (outline-show-subtree)
-    (nael-messages-test-show (nael-messages-test-fixture 6) 214 source)
+    (nael-messages-test-show (nael-messages-test-fixture 2) 214 source)
     (should (nael-messages-test-visible-p "Invalid `end`"))
     ;; Folded by the user on its own line, too.
-    (nael-messages-test-show (nael-messages-test-fixture 6) 212 source)
+    (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
     (nael-infoview-test-goto "213:0")
     (outline-hide-subtree)
-    (nael-messages-test-show (nael-messages-test-fixture 6) 212 source)
+    (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
     (should-not (nael-messages-test-visible-p "Invalid `end`"))))
 
 (ert-deftest nael-messages-test-controls ()
   "Positions, suggestions and unexpanded traces react to keys and clicks."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 8 9) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 3 4) 215
     (cl-flet ((type-at (string)
                 (nael-infoview-test-goto string)
                 (button-type (button-at (point)))))
@@ -588,7 +588,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 
 (ert-deftest nael-messages-test-expand-trace ()
   "A trace's children are fetched on request, shown unfolded and kept."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 8) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
     (nael-infoview-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     ;; Asking again while the answer is pending sends nothing.
@@ -613,12 +613,12 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 
 (ert-deftest nael-messages-test-expand-after-update ()
   "After an update, expanded traces are fetched again; late answers drop."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 8) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
     (nael-infoview-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     (let ((late (nth 1 (car nael-messages-test-requests))))
       ;; New results arrive before the answer.
-      (nael-messages-test-show (nael-messages-test-fixture 8) 215 source)
+      (nael-messages-test-show (nael-messages-test-fixture 3) 215 source)
       (should (= (length nael-messages-test-requests) 2))
       (should (eq (nth 3 (car nael-messages-test-requests))
                   nael-infoview--owner))
@@ -632,7 +632,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 
 (ert-deftest nael-messages-test-expand-failures ()
   "Failures are reported; a dead session asks for an update."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 8) 215
+  (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
     (nael-infoview-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     (let ((messages nil))
