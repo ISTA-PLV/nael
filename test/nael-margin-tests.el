@@ -33,7 +33,6 @@ The buffer has LINE-COUNT lines, 20 by default."
           (nael-margin-signs (vconcat diagnostics) (vconcat processing)
                              (or line-count 20))))
 
-
 ;;;; Signs:
 
 (ert-deftest nael-margin-test-single-line ()

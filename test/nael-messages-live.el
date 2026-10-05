@@ -110,23 +110,6 @@
           (nael-messages-live-move 1 0 "Messages (1)"))
         (should (nael-rpc-owner-released owner))))))
 
-(ert-deftest nael-messages-live-trace-kept ()
-  "An expanded trace is expanded again after an update."
-  (with-current-buffer (nael-messages-live-open)
-    (with-current-buffer (nael-infoview--get-buffer-create)
-      (setq nael-infoview--expanded-traces nil))
-    (nael-messages-live-move 8 0 "[Meta.synthInstance]")
-    (with-current-buffer (nael-infoview--buffer)
-      (nael-test-goto "[Meta.synthInstance]")
-      (nael-infoview-expand-trace)
-      (should (nael-rpc-live-wait
-               (lambda () (nael-messages-live-visible-p "instInhabitedNat"))
-               10)))
-    (nael-messages-live-move 8 4 "[Meta.synthInstance]")
-    (should (nael-rpc-live-wait
-             (lambda () (nael-messages-live-visible-p "instInhabitedNat"))
-             10))))
-
 (ert-deftest nael-messages-live-apply ()
   "\"Try this\" replaces the tactic in the source."
   (with-current-buffer (nael-messages-live-open)

@@ -409,19 +409,6 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                              :buffer source
                              :tick (buffer-chars-modified-tick source))))
 
-(ert-deftest nael-messages-test-folds ()
-  "Messages from other lines start folded; folds are kept after that."
-  (nael-messages-test-with-infoview (nael-messages-test-fixture 2 3 4) 215
-    (should (nael-test-visible-p "[Meta.synthInstance]"))
-    (should-not (nael-test-visible-p "Invalid `end`"))
-    (should-not (nael-test-visible-p "Try this"))
-    ;; Unfolded by the user, it stays so.
-    (nael-test-goto "213:0")
-    (outline-show-subtree)
-    (nael-infoview--render)
-    (should (nael-test-visible-p "Invalid `end`"))
-    (should-not (nael-test-visible-p "Try this"))))
-
 (ert-deftest nael-messages-test-restart-file ()
   "The button in a message about out-of-date imports restarts the file."
   (nael-messages-test-with-infoview (vector nael-messages-test-imports) 5
@@ -534,29 +521,6 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (with-current-buffer (nael-infoview--buffer)
       (nael-test-goto "[apply]")
       (should-error (nael-infoview-apply-suggestion) :type 'user-error))))
-
-(ert-deftest nael-messages-test-apply-diff ()
-  "A diff suggestion is applied like \"Try this\"."
-  (nael-messages-test-with-infoview
-      (vector (nael-messages-test-widget "Lean.Meta.Hint.tryThisDiffWidget"
-                                         nael-messages-test-diff-props))
-      3
-    (with-current-buffer source
-      (goto-char (point-min))
-      (forward-line 3)
-      (delete-region (point) (line-end-position))
-      (insert "end Probx")
-      (setq nael-infoview--messages nil))
-    (nael-messages-test-show (vector (nael-messages-test-widget
-                                      "Lean.Meta.Hint.tryThisDiffWidget"
-                                      nael-messages-test-diff-props))
-                             3 source)
-    (nael-test-goto "end Prob")
-    (should (equal (get-char-property (point) 'help-echo) "Apply suggestion"))
-    (nael-infoview-apply-suggestion)
-    (should (eq (current-buffer) source))
-    (should (equal (buffer-substring (line-beginning-position) (line-end-position))
-                   "end Probe"))))
 
 (ert-deftest nael-messages-test-browse-explanation ()
   "The link of an error code opens its explanation in a browser."

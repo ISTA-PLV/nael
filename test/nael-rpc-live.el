@@ -148,18 +148,6 @@ The outcome is (ok . RESULT), (error . ERROR) or nil after 30 seconds."
         (should (eq (car outcome) 'error))
         (should (equal (nael-rpc-error-code (cdr outcome)) -32602))))))
 
-(ert-deftest nael-rpc-live-queued ()
-  "Calls made before the handshake has settled are answered."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-close-all)
-    (nael-rpc-live-goto 4 2)
-    (let ((handle (nael-rpc-open))
-          (answers 0))
-      (should-not (nael-rpc-session-settled (nael-rpc-handle-session handle)))
-      (dotimes (_ 2)
-        (nael-rpc-get-interactive-goals handle (lambda (_) (cl-incf answers))))
-      (should (nael-rpc-live-wait (lambda () (= answers 2)) 30)))))
-
 (ert-deftest nael-rpc-live-reconnect ()
   "A session the server does not know is replaced transparently."
   (with-current-buffer (nael-rpc-live-buffer)

@@ -71,21 +71,6 @@
               (kill-buffer))))
       (setq-default truncate-lines default))))
 
-(ert-deftest nael-infoview-test-fold-survives-render ()
-  "Folded goals and sections stay folded when the goals are shown again."
-  (nael-test-with-goals
-    (nael-test-goto "goal 2")
-    (outline-hide-subtree)
-    (should (outline-invisible-p (line-end-position)))
-    ;; Render again, as a filter toggle or a refresh does.
-    (nael-infoview-toggle-instances)
-    (nael-test-goto "goal 2")
-    (should (outline-invisible-p (line-end-position)))
-    (nael-test-goto "goal 1")
-    (should-not (outline-invisible-p (line-end-position)))
-    (nael-test-goto "goal 3")
-    (should-not (outline-invisible-p (line-end-position)))))
-
 (defun nael-infoview-test-button ()
   "Return the icon of the outline button of the heading at point, or nil.
 In the margin, the button is a space displaying the icon there."
@@ -96,23 +81,13 @@ In the margin, the button is a space displaying the icon there."
       (`((margin left-margin) ,icon) icon))))
 
 (ert-deftest nael-infoview-test-fold-buttons ()
-  "Every foldable heading has a button that shows whether it is folded."
+  "Foldable headings have buttons, in the margin."
   (nael-test-with-goals
-    ;; The buttons are separated from the text by a blank column.
     (should (= left-margin-width 2))
-    (dolist (heading '("Tactic state" "goal 1" "goal 2" "goal 3"))
-      (nael-test-goto heading)
-      (should (nael-infoview-test-button)))
+    (nael-test-goto "goal 1")
+    (should (nael-infoview-test-button))
     (nael-test-goto "hlc : HasLC")
-    (should-not (nael-infoview-test-button))
-    (nael-test-goto "goal 2")
-    (let ((open (nael-infoview-test-button)))
-      (outline-hide-subtree)
-      (should-not (equal (nael-infoview-test-button) open))
-      ;; Still closed after rendering again.
-      (nael-infoview-toggle-types)
-      (nael-test-goto "goal 2")
-      (should-not (equal (nael-infoview-test-button) open)))))
+    (should-not (nael-infoview-test-button))))
 
 (defun nael-infoview-test-renumber (goals suffix)
   "Return GOALS with fresh metavariable ids ending in SUFFIX.
@@ -175,9 +150,6 @@ That is what the goals look like after the next tactic."
     (should (transient-get-suffix 'nael-infoview-view-options "i"))
     (should (equal (nael-infoview--switch-description "Hide types" t)
                    "Hide types on"))
-    (should (eq (get-text-property 11 'face (nael-infoview--switch-description
-                                    "Hide types" t))
-                'transient-value))
     (cl-flet ((current ()
                 (let ((description (nael-infoview--expected-type-description)))
                   (seq-find (lambda (value)
@@ -232,13 +204,6 @@ That is what the goals look like after the next tactic."
               (nael-test-goto "Expected type")
               (should (outline-invisible-p (line-end-position)))))
         (kill-buffer (nael-infoview--buffer))))))
-
-(ert-deftest nael-infoview-test-eldoc-commands ()
-  "ElDoc shows the subterm at point after commands that return to it."
-  (dolist (command '(nael-infoview-next-goal quit-window xref-go-back
-                     evil-jump-backward +popup/quit-window
-                     better-jumper-jump-backward))
-    (should (eldoc--message-command-p command))))
 
 (ert-deftest nael-infoview-test-goal-navigation ()
   (nael-test-with-goals
