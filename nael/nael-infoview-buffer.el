@@ -742,21 +742,16 @@ After an update, the references of the earlier children are gone."
   (interactive)
   (nael-infoview--toggle-option 'nael-infoview-show-diffs))
 
-(defun nael-infoview-set-expected-type (visibility)
-  "Set how the infoview shows the expected type to VISIBILITY.
-See `nael-infoview-expected-type'."
-  (setq nael-infoview-expected-type visibility)
-  (nael-infoview-refresh))
-
 (defun nael-infoview-cycle-expected-type ()
   "Show the expected type expanded, collapsed, or not at all, in turn.
 See `nael-infoview-expected-type'."
   (interactive)
-  (nael-infoview-set-expected-type
-   (pcase nael-infoview-expected-type
-     ('expanded 'collapsed)
-     ('collapsed 'hidden)
-     (_ 'expanded)))
+  (setq nael-infoview-expected-type
+        (pcase nael-infoview-expected-type
+          ('expanded 'collapsed)
+          ('collapsed 'hidden)
+          (_ 'expanded)))
+  (nael-infoview-refresh)
   (message "Expected type %s" nael-infoview-expected-type))
 
 (defun nael-infoview--switch-description (label on)
@@ -811,38 +806,6 @@ The menu stays open for further choices; \\`C-g' closes it."
                      "Show diffs" nael-infoview-show-diffs)))
     ("e" nael-infoview-cycle-expected-type :transient t
      :description nael-infoview--expected-type-description)]])
-
-(easy-menu-define nael-infoview-mode-menu nael-infoview-mode-map
-  "Menu for the Nael infoview."
-  '("Infoview"
-    ["Refresh" nael-infoview-refresh]
-    ["View options..." nael-infoview-view-options]
-    "---"
-    ["Hide instances" nael-infoview-toggle-instances
-     :style toggle :selected nael-infoview-hide-instances]
-    ["Hide types" nael-infoview-toggle-types
-     :style toggle :selected nael-infoview-hide-types]
-    ["Hide inaccessible names" nael-infoview-toggle-inaccessible
-     :style toggle :selected nael-infoview-hide-inaccessible]
-    ["Hide let values" nael-infoview-toggle-let-values
-     :style toggle :selected nael-infoview-hide-let-values]
-    ["Target first" nael-infoview-toggle-reverse
-     :style toggle :selected nael-infoview-reverse]
-    ["Show diffs" nael-infoview-toggle-diffs
-     :style toggle :selected nael-infoview-show-diffs]
-    ("Expected type"
-     ["Expanded" (nael-infoview-set-expected-type 'expanded)
-      :style radio :selected (eq nael-infoview-expected-type 'expanded)]
-     ["Collapsed" (nael-infoview-set-expected-type 'collapsed)
-      :style radio :selected (eq nael-infoview-expected-type 'collapsed)]
-     ["Hidden" (nael-infoview-set-expected-type 'hidden)
-      :style radio :selected (eq nael-infoview-expected-type 'hidden)])
-    "---"
-    ["Next goal" nael-infoview-next-goal]
-    ["Previous goal" nael-infoview-previous-goal]
-    ["Copy goal" nael-infoview-copy-goal]
-    "---"
-    ["Customize" (customize-group 'nael-infoview)]))
 
 (defun nael-infoview--goal-start (pos)
   "Return the start of the goal at POS, or nil if POS is in no goal."
