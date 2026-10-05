@@ -22,7 +22,7 @@
   "Run BODY with the default signs, all of which can be displayed."
   (declare (indent 0) (debug t))
   `(let ((nael-margin-goals-accomplished "🎉")
-         (nael-margin-unsolved-goals "⚒")
+         (nael-margin-unsolved-goals "🔨")
          (nael-margin-admitted "🚧")
          (nael-margin-bar '("┌" "│" "└"))
          (nael-margin-processing "│")
@@ -152,9 +152,9 @@ The buffer has LINE-COUNT lines, 20 by default."
                    '((0 "🎉" nael-margin-goals-accomplished)
                      (3 "┌" nael-margin-error)
                      (4 "│" nael-margin-error)
-                     (5 "⚒" nael-margin-unsolved-goals)
+                     (5 "🔨" nael-margin-unsolved-goals)
                      (7 "🚧" nael-margin-admitted)
-                     (9 "⚒" nael-margin-unsolved-goals)
+                     (9 "🔨" nael-margin-unsolved-goals)
                      (11 "🚧" nael-margin-admitted))))
     ;; Other silent diagnostics and other warnings get no such sign.
     (should (equal (nael-margin-test-signs
@@ -234,17 +234,18 @@ The buffer has LINE-COUNT lines, 20 by default."
              (lambda (char) (< char #x2000))))
     (with-temp-buffer
       (should (equal (nael-margin-sign 'nael-margin-goals-accomplished) "*"))
-      (should (equal (nael-margin-sign 'nael-margin-unsolved-goals) ""))
+      (should (equal (nael-margin-sign 'nael-margin-unsolved-goals) "x"))
       (should (equal (nael-margin-sign 'nael-margin-admitted) ""))
       (should (equal (nael-margin--severity-sign 'error) "!!"))
       (setq-local nael-margin-goals-accomplished "🐣")
       (should (equal (nael-margin-sign 'nael-margin-goals-accomplished)
                      "🐣"))))
   (cl-letf (((symbol-function 'char-displayable-p)
-             (lambda (char) (/= char ?🎉))))
+             (lambda (char) (not (memq char '(?🎉 ?🔨))))))
     (with-temp-buffer
       (should (equal (nael-margin-sign 'nael-margin-goals-accomplished)
-                     "✓")))))
+                     "✓"))
+      (should (equal (nael-margin-sign 'nael-margin-unsolved-goals) "✗")))))
 
 ;;;; Drawing and the margin:
 

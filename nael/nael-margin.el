@@ -59,7 +59,7 @@ string shows no sign.  The margin has room for two columns."
   :safe #'stringp
   :group 'nael-margin)
 
-(defcustom nael-margin-unsolved-goals "⚒"
+(defcustom nael-margin-unsolved-goals "🔨"
   "Sign on the last line of a proof that has unsolved goals.
 That is where the proof goes on.  An empty string shows the sign of the
 error instead.  The margin has room for two columns."
@@ -134,7 +134,7 @@ diagnostics a few at a time; this draws once for each burst.")
 
 (defconst nael-margin--fallbacks
   '((nael-margin-goals-accomplished "✓" "*")
-    (nael-margin-unsolved-goals "")
+    (nael-margin-unsolved-goals "✗" "x")
     (nael-margin-admitted ""))
   "Signs to use instead of a default that cannot be displayed.")
 

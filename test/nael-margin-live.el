@@ -63,7 +63,7 @@ Return them as (LINE STRING), LINE 0-based."
 
 (defconst nael-margin-live-expected
   '((0 "🎉")                            ; done
-    (3 "┌") (4 "│") (5 "⚒")            ; open_goal, unsolved
+    (3 "┌") (4 "│") (5 "🔨")            ; open_goal, unsolved
     (7 "🚧")                            ; admitted, sorry
     (11 "┌") (12 "│") (13 "└")         ; example, failed instance
     (15 "‼"))                           ; #check
