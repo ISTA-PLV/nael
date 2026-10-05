@@ -126,7 +126,8 @@ Return nil if it is not, as far as the server has said."
              (save-excursion (goto-char pos) (1- (line-number-at-pos nil t))))
         (string-trim-right
          (concat "Goals accomplished "
-                 (nael-margin-sign 'nael-margin-goals-accomplished)))))))
+                 (nael-margin-scale-emoji
+                  (nael-margin-sign 'nael-margin-goals-accomplished))))))))
 
 (defun nael-infoview--request (buffer pos)
   "Request goals, expected type and messages at POS in BUFFER; show them.

@@ -212,6 +212,30 @@ The buffer has LINE-COUNT lines, 20 by default."
                        (2 "W" nael-margin-warning)
                        (3 "I" nael-margin-info)))))))
 
+(ert-deftest nael-margin-test-emoji-height ()
+  "Emoji in signs, and only they, are drawn at `nael-margin-emoji-height'."
+  (cl-flet ((height (string &optional (pos 0))
+              (let ((face (get-text-property pos 'face string)))
+                (if (keywordp (car-safe face))
+                    (plist-get face :height)
+                  (seq-some (lambda (face) (plist-get face :height)) face))))
+            (sign (string)
+              (cadr (get-text-property
+                     0 'display
+                     (nael-margin--string string 'nael-margin-admitted "Help")))))
+    (let ((nael-margin-emoji-height 0.7))
+      (dolist (chick '("🐣" "🥚" "🍗"))
+        (should (equal (height (sign chick)) 0.7))
+        ;; The rest of the sign stays as it was.
+        (should (eq (get-text-property 0 'keymap (sign chick))
+                    nael-margin-sign-map)))
+      (should-not (height (sign "✓")))
+      (let ((title (nael-margin-scale-emoji "Goals accomplished 🐣")))
+        (should-not (height title))
+        (should (equal (height title (1- (length title))) 0.7))))
+    (let ((nael-margin-emoji-height 1.0))
+      (should-not (height (sign "🐣"))))))
+
 (ert-deftest nael-margin-test-fallbacks ()
   "Defaults that cannot be displayed fall back; users' values stay."
   (cl-letf (((symbol-function 'char-displayable-p)

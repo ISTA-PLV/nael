@@ -79,6 +79,17 @@ they make their lines taller."
   :safe #'stringp
   :group 'nael-margin)
 
+(defcustom nael-margin-emoji-height 1.0
+  "Height of emoji in signs, relative to the text around them.
+Emoji come from fonts of their own, which with most fonts make lines
+taller than the others.  A smaller height can keep the lines as tall
+as the others; which height does depends on the fonts, such as 0.7
+for Apple Color Emoji next to a font of 12 points.  It also applies
+to the sign after \"Goals accomplished\" in the infoview."
+  :type 'number
+  :safe #'numberp
+  :group 'nael-margin)
+
 (defcustom nael-margin-bar '("┌" "│" "└")
   "Signs for a diagnostic that spans several lines.
 The first is shown on its first line, the second on the lines between,
@@ -161,6 +172,17 @@ are returned as they are."
       (or (seq-find #'nael-margin--displayable-p
                     (alist-get option nael-margin--fallbacks))
           ""))))
+
+(defun nael-margin-scale-emoji (string)
+  "Return STRING with its emoji at the height `nael-margin-emoji-height'."
+  (let ((string (copy-sequence string)))
+    (unless (= nael-margin-emoji-height 1)
+      (dotimes (i (length string))
+        (when (eq (aref char-script-table (aref string i)) 'emoji)
+          (add-face-text-property i (1+ i)
+                                  (list :height nael-margin-emoji-height)
+                                  nil string))))
+    string))
 
 (defun nael-margin--severity (diagnostic)
   "Return the Flymake type and face for the severity of DIAGNOSTIC.
@@ -288,15 +310,17 @@ LINE, which is 0-based; each line occurs at most once."
 (defun nael-margin--string (string face help)
   "Return a string that shows STRING in FACE in the left margin.
 HELP is shown in its tooltip."
-  (propertize
-   " " 'display
-   `((margin left-margin)
-     ,(propertize (truncate-string-to-width string nael-margin-width)
-                  ;; The face `margin' is new in Emacs 31.
-                  'face `(:inherit (,face ,(if (facep 'margin) 'margin 'default)))
-                  'help-echo help
-                  'mouse-face 'highlight
-                  'keymap nael-margin-sign-map))))
+  (let ((sign (nael-margin-scale-emoji
+               (truncate-string-to-width string nael-margin-width))))
+    ;; The face `margin' is new in Emacs 31.
+    (add-face-text-property
+     0 (length sign)
+     `(:inherit (,face ,(if (facep 'margin) 'margin 'default))) t sign)
+    (add-text-properties 0 (length sign)
+                         `(help-echo ,help mouse-face highlight
+                                     keymap ,nael-margin-sign-map)
+                         sign)
+    (propertize " " 'display `((margin left-margin) ,sign))))
 
 (defun nael-margin--clear ()
   "Remove the signs of the current buffer and cancel drawing them."
@@ -373,7 +397,8 @@ that the margin does not change its width when one first appears."
       nael-margin-width
     (apply #'max nael-margin-width
            (mapcar (lambda (sign)
-                     (ceiling (string-pixel-width sign) (frame-char-width)))
+                     (ceiling (string-pixel-width (nael-margin-scale-emoji sign))
+                              (frame-char-width)))
                    (nael-margin--signs-in-use)))))
 
 (defun nael-margin--apply-width ()

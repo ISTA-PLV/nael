@@ -91,7 +91,7 @@ Signs in the left margin, while Eglot manages the buffer (@code{nael-margin-mode
 @item
 @samp{‼} marks the line of an error, @samp{!} that of a warning or a note.  A diagnostic that spans several lines gets a bar over them instead, @samp{┌}, @samp{│}, @samp{└}, in its color.  These are the indicators that Flymake shows otherwise; Flymake still underlines the diagnostics and shows their messages.  The tooltip of a sign shows the message, and clicking it lists all diagnostics.
 @item
-@samp{✓} marks a proof that is complete, @samp{✗} the last line of one with unsolved goals, where it goes on, and @samp{⚠} a declaration that uses @samp{sorry}.  Other signs, such as emoji, can be set with @code{nael-margin-goals-accomplished}, @code{nael-margin-unsolved-goals} and @code{nael-margin-admitted}; with most fonts, an emoji makes its line taller.
+@samp{✓} marks a proof that is complete, @samp{✗} the last line of one with unsolved goals, where it goes on, and @samp{⚠} a declaration that uses @samp{sorry}.  Other signs, such as emoji, can be set with @code{nael-margin-goals-accomplished}, @code{nael-margin-unsolved-goals} and @code{nael-margin-admitted}; with most fonts, an emoji makes its line taller, unless @code{nael-margin-emoji-height} makes it smaller, such as 0.7.
 @item
 An orange @samp{│} marks the lines that Lean is still processing.
 @end itemize
