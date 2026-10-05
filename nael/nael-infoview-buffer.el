@@ -156,7 +156,6 @@ user folds or unfolds it, it stays so while it is shown.")
 
 (defvar-keymap nael-infoview-mode-map
   :doc "Keymap of `nael-infoview-mode'."
-  "g" #'nael-infoview-refresh
   "n" #'nael-infoview-next-goal
   "p" #'nael-infoview-previous-goal
   "w" #'nael-infoview-copy-goal
@@ -335,32 +334,12 @@ goal, and the column."
 
 ;;;; Showing results:
 
-(defun nael-infoview--location (buffer pos)
-  "Describe position POS in BUFFER for the mode line."
-  (with-current-buffer buffer
-    (save-excursion
-      (goto-char pos)
-      (format "%s:%d:%d" (buffer-name) (line-number-at-pos)
-              (current-column)))))
-
 (defun nael-infoview--heading-key ()
   "Return a key for the heading at point that survives a refresh.
 Goals are identified by their place, see `nael-key' in `nael-render',
 so that folds survive moving to another tactic."
   (or (get-text-property (point) 'nael-section)
       (get-text-property (point) 'nael-key)))
-
-(defun nael-infoview--folded-keys ()
-  "Return the keys of the folded headings of the current buffer."
-  (save-excursion
-    (goto-char (point-min))
-    (let (keys)
-      (unless (outline-on-heading-p) (outline-next-heading))
-      (while (not (eobp))
-        (when (outline-invisible-p (line-end-position))
-          (push (nael-infoview--heading-key) keys))
-        (outline-next-heading))
-      keys)))
 
 (defun nael-infoview--heading-states ()
   "Return an alist (KEY . FOLDED) of the headings of the current buffer."

@@ -151,8 +151,10 @@ message."
             (with-current-buffer other
               (setq-local eglot--semtok-state '(:data [] :docver 0)))
             (unwind-protect
-                (cl-letf (((symbol-function 'nael-eglot-compat-managed-buffers)
-                           (lambda (_server) (list shown other)))
+                (cl-letf (((symbol-function 'eglot-managed-p)
+                           (lambda () (memq (current-buffer) (list shown other))))
+                          ((symbol-function 'eglot-current-server)
+                           (lambda () server))
                           ((symbol-function 'font-lock-flush)
                            (lambda (&rest _) (push (current-buffer) flushed))))
                   (should-not (eglot-handle-request

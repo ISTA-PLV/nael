@@ -109,10 +109,7 @@ take precedence; they can match the category `nael-infoview'."
 (defun nael-infoview--rpc-supported-p ()
   "Return non-nil if the current buffer's server provides Lean RPC.
 Lean 4.30 and later announce their RPC wire format."
-  (thread-first (nael-eglot-compat-capabilities (eglot-current-server))
-                (plist-get :experimental)
-                (plist-get :rpcProvider)
-                (plist-get :rpcWireFormat)))
+  (eglot-server-capable :experimental :rpcProvider :rpcWireFormat))
 
 (defun nael-infoview--accomplished-title (buffer pos)
   "Return the line for goals at POS in BUFFER if their proof is complete.

@@ -109,12 +109,6 @@ explanation of STATUS, the diff status of the subterm."
 
 ;;;; Documentation of nodes:
 
-(defun nael-infoview--usable-handle ()
-  "Return the RPC handle of the current buffer if it is live, or nil."
-  (when-let* ((handle nael-infoview--handle)
-              ((nael-rpc-handle-live-p handle)))
-    handle))
-
 (defun nael-infoview--fetch-info (node slot callback &optional failure)
   "Call CALLBACK with the documentation of NODE, as (DOC . ECHO).
 Take it from the cache, at once, or ask Lean in the RPC slot SLOT and
@@ -146,7 +140,7 @@ The echo area shows the subterm with all its arguments made explicit,
 and its type.  The documentation buffer of ElDoc also shows the
 documentation of the subterm and how the tactic at point changes it."
   (when-let* ((node (nael-render-node-at (point)))
-              ((nael-infoview--usable-handle)))
+              ((nael-rpc-handle-live-p nael-infoview--handle)))
     (nael-infoview--fetch-info node 'infoview-eldoc
                                (pcase-lambda (`(,doc . ,echo))
                                  (funcall callback doc :echo echo)))
@@ -182,7 +176,7 @@ and show the tooltip once Lean answers, if the mouse is still there."
   (when (bound-and-true-p tooltip-mode)
     (with-current-buffer (if window (window-buffer window) (current-buffer))
       (when-let* ((node (nael-render-node-at pos))
-                  ((nael-infoview--usable-handle)))
+                  ((nael-rpc-handle-live-p nael-infoview--handle)))
         (or (car (gethash node (nael-infoview--info-cache)))
             (let ((buffer (current-buffer)))
               (unless (eq node nael-infoview--tooltip-node)
@@ -223,11 +217,11 @@ and show the tooltip once Lean answers, if the mouse is still there."
           (copy-marker (car (eglot-range-region
                              (list :start position :end position)))))))))
 
-(defun nael-infoview--location-string (marker)
-  "Describe the position of MARKER as FILE:LINE:COLUMN."
-  (with-current-buffer (marker-buffer marker)
+(defun nael-infoview--location (buffer pos)
+  "Describe position POS in BUFFER as BUFFER:LINE:COLUMN."
+  (with-current-buffer buffer
     (save-excursion
-      (goto-char marker)
+      (goto-char pos)
       (format "%s:%d:%d" (buffer-name) (line-number-at-pos)
               (current-column)))))
 
@@ -250,10 +244,6 @@ describe the subterm again from the infoview"))
 describe it again from the infoview"
       (format "Lean could not look up this subterm: %s"
               (or (plist-get error :message) error)))))
-
-(defun nael-infoview--report-failure (error)
-  "Report ERROR of a call about a subterm to the user."
-  (message "%s" (nael-infoview--failure-message error)))
 
 (defun nael-infoview--decorate (nodes offset)
   "Make NODES, rendered at OFFSET in the current buffer, react to input.
@@ -287,7 +277,7 @@ text properties also apply just after their end."
       (insert "\n" note "\n"))
     (when (and source (marker-buffer source))
       (insert "\nFrom the goals at ")
-      (insert-text-button (nael-infoview--location-string source)
+      (insert-text-button (nael-infoview--location (marker-buffer source) source)
                           'action (lambda (_)
                                     (pop-to-buffer (marker-buffer source))
                                     (goto-char source))
@@ -418,7 +408,8 @@ the description can be described in turn."
            (nael-infoview--show-page page t)
            (nael-infoview--return-after-help origin))))
      :owner owner :slot 'infoview-describe
-     :failure #'nael-infoview--report-failure)))
+     :failure (lambda (error)
+                (message "%s" (nael-infoview--failure-message error))))))
 
 (defun nael-infoview-describe-at-mouse (event)
   "Describe the subterm clicked on with EVENT in a help buffer."

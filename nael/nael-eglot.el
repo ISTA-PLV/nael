@@ -436,9 +436,9 @@ Only where Eglot shows them, with `eglot-semantic-tokens-mode'."
 (cl-defmethod eglot-handle-request
   ((server nael-eglot-server) (_method (eql workspace/semanticTokens/refresh)))
   "Ask SERVER again for the semantic tokens of its buffers, as Lean expects."
-  (dolist (buffer (nael-eglot-compat-managed-buffers server))
-    (when (buffer-live-p buffer)
-      (with-current-buffer buffer
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (and (eglot-managed-p) (eq (eglot-current-server) server))
         (nael-eglot-refresh-semantic-tokens))))
   nil)
 

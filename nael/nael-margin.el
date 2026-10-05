@@ -347,9 +347,6 @@ Until then, later calls change nothing."
 The value is then a cons (BEFORE . WIDTH) of the width before, which
 may be nil, and the width it set.")
 
-(defvar nael-margin--width-cache nil
-  "The last measurement of `nael-margin--needed-width', as (KEY . WIDTH).")
-
 (defun nael-margin--signs-in-use ()
   "Return the signs that the current buffer may show."
   (mapcar (lambda (sign) (truncate-string-to-width sign nael-margin-width))
@@ -370,17 +367,10 @@ whose glyphs may be wider.  All signs count, not only those shown, so
 that the margin does not change its width when one first appears."
   (if (not (display-graphic-p))
       nael-margin-width
-    (let ((key (list (nael-margin--signs-in-use) (frame-char-width)
-                     (face-font 'default))))
-      (if (equal key (car nael-margin--width-cache))
-          (cdr nael-margin--width-cache)
-        (let ((width (apply #'max nael-margin-width
-                            (mapcar (lambda (sign)
-                                      (ceiling (string-pixel-width sign)
-                                               (frame-char-width)))
-                                    (car key)))))
-          (setq nael-margin--width-cache (cons key width))
-          width)))))
+    (apply #'max nael-margin-width
+           (mapcar (lambda (sign)
+                     (ceiling (string-pixel-width sign) (frame-char-width)))
+                   (nael-margin--signs-in-use)))))
 
 (defun nael-margin--apply-width ()
   "Give the windows that show the current buffer its left margin width."

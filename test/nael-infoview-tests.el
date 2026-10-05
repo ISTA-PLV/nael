@@ -111,7 +111,6 @@
     (nael-infoview-test-goto "goal 2")
     (outline-hide-subtree)
     (should (outline-invisible-p (line-end-position)))
-    (should (equal (nael-infoview--folded-keys) '((goal . 1))))
     ;; Render again, as a filter toggle or a refresh does.
     (nael-infoview-toggle-instances)
     (nael-infoview-test-goto "goal 2")

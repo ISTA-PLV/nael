@@ -66,19 +66,6 @@
 
 (require 'nael-eglot)
 
-(defgroup nael-rpc nil
-  "Lean RPC sessions for `nael-mode'."
-  :group 'nael-eglot
-  :link '(emacs-library-link :tag "Source Lisp File" "nael-rpc.el")
-  :prefix "nael-rpc-")
-
-(defcustom nael-rpc-timeout 10
-  "Seconds to wait for an RPC call that does not wait for elaboration.
-Calls for goals and expected types wait until the server has elaborated
-the file up to their position, which can take arbitrarily long; they
-have no timeout."
-  :type 'number
-  :group 'nael-rpc)
 
 ;;;; References:
 
@@ -478,14 +465,6 @@ that the position refers to text that the server has seen."
       (nael-rpc--fail request session
                       (list :code nael-rpc-needs-reconnect
                             :message "Lean RPC session is closed")))
-     ;; A server that has exited takes its sessions with it.  Report it
-     ;; like a dead session instead of letting jsonrpc signal from a
-     ;; timer or hook.
-     ((not (nael-rpc-connection-live-p connection))
-      (nael-rpc--close session)
-      (nael-rpc--deliver-failure
-       request (list :code nael-rpc-worker-exited
-                     :message "Lean server is not running")))
      (t
       (setf (nael-rpc-request-session request) session)
       (condition-case error
@@ -512,6 +491,9 @@ that the position refers to text that the server has seen."
                                         :message "Lean RPC call timed out"))))))
             ;; Since jsonrpc 1.0.26, the result starts with the id.
             (setf (nael-rpc-request-id request) (car-safe sent)))
+        ;; A server that has exited takes its sessions with it.  Report
+        ;; it like a dead session instead of letting jsonrpc signal from
+        ;; a timer or hook.
         (error
          (nael-rpc--close session)
          (nael-rpc--deliver-failure
@@ -531,8 +513,7 @@ that the position refers to text that the server has seen."
   (when-let* ((id (nael-rpc-request-id request))
               (session (nael-rpc-request-session request))
               ((not (nael-rpc-session-closed session)))
-              (connection (nael-rpc-session-connection session))
-              ((nael-rpc-connection-live-p connection)))
+              (connection (nael-rpc-session-connection session)))
     (ignore-errors
       (jsonrpc-notify connection :$/cancelRequest (list :id id)))))
 
@@ -547,7 +528,8 @@ That needs jsonrpc 1.0.26 or later, which reports request ids."
 
 (cl-defun nael-rpc-call (handle method params success
                                 &key failure owner slot
-                                (timeout nael-rpc-timeout) (retry t))
+                                (timeout jsonrpc-default-request-timeout)
+                                (retry t))
   "Call the Lean RPC METHOD with PARAMS through HANDLE.
 Return the request, which `nael-rpc-cancel' accepts.
 
@@ -565,7 +547,10 @@ SLOT, if non-nil, is a symbol naming the purpose of the call, such as
 call in the same slot, so that a stale answer is never delivered.
 
 TIMEOUT is the number of seconds to wait for an answer, or nil to wait
-indefinitely; it defaults to `nael-rpc-timeout'.
+indefinitely; it defaults to `jsonrpc-default-request-timeout'.
+Calls for goals and expected types wait until the server has
+elaborated the file up to their position, which can take arbitrarily
+long; they have no timeout.
 
 A call made while the session is still connecting is queued.  If RETRY
 is non-nil, as by default, a call that fails because the session died
