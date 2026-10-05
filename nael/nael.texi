@@ -102,6 +102,12 @@ Infoview:
 @item
 In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
 @item
+Below the goals and the expected type, the section @emph{Messages} shows Lean's messages on the line of point: errors, warnings, and output such as that of @samp{#check}.  Messages that start on another line, like an error about a whole proof, are folded.  Their terms are subterms like those of goals.  @samp{RET} or @samp{mouse-1} on the position of a message goes there in the source.
+@item
+Traces, as with @samp{set_option trace.Meta.synthInstance true in}, are headings: @samp{TAB} on one shows its children, which Lean sends on request only.
+@item
+Suggestions such as Lean's "Try this" have an @samp{[apply]} button that replaces the code in the source with the suggestion.
+@item
 @samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 
 @item
@@ -186,6 +192,8 @@ The signs in the margin can be changed, also for a single project in its @samp{.
 @end lisp
 
 To keep Flymake's indicators instead of the signs, set @code{nael-margin} to @samp{nil} before opening Lean files.
+
+For the infoview to show messages with their terms, traces and suggestions, Nael asks Lean for them when the project's @samp{lean-toolchain} names Lean 4.30 or later.  Then the text of a trace that Flymake shows is only "(trace)", as in VS Code.  To keep the full text in Flymake instead, set @code{nael-eglot-widgets} to @samp{nil} before Lean starts.
 
 Nael's Abbrev tables use the @samp{:regexp} property which is @uref{https://github.com/minad/cape/discussions/158#discussioncomment-14687758, incompatible} with @uref{https://github.com/company-mode/company-mode, Company}'s @code{company-abbrev} and @uref{https://github.com/minad/cape, Cape}'s @code{cape-abbrev}.  Instead, Nael supports completion-at-point natively via @code{nael-abbrev-capf}.  This CAPF is buffer-locally added to @code{completion-at-point-functions} whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the @code{nael-abbrev-capf} variable to @samp{nil}.
 

@@ -119,6 +119,17 @@ Language Server Protocol (LSP):
 
    • In a complete proof, a line above the goals says "Goals
      accomplished 🎉", and replaces "no goals" when none are left.
+   • Below the goals and the expected type, the section _Messages_ shows
+     Lean's messages on the line of point: errors, warnings, and output
+     such as that of ‘#check’.  Messages that start on another line,
+     like an error about a whole proof, are folded.  Their terms are
+     subterms like those of goals.  ‘RET’ or ‘mouse-1’ on the position
+     of a message goes there in the source.
+   • Traces, as with ‘set_option trace.Meta.synthInstance true in’, are
+     headings: ‘TAB’ on one shows its children, which Lean sends on
+     request only.
+   • Suggestions such as Lean's "Try this" have an ‘[apply]’ button that
+     replaces the code in the source with the suggestion.
    • ‘v’ (‘nael-infoview-view-options’) opens a menu of what the
      infoview shows: which hypotheses to hide, whether to show the
      target first and the changes of the tactic at point, and how to
@@ -214,6 +225,12 @@ warnings then keep their own.  For example, with chickens:
 
    To keep Flymake's indicators instead of the signs, set ‘nael-margin’
 to ‘nil’ before opening Lean files.
+
+   For the infoview to show messages with their terms, traces and
+suggestions, Nael asks Lean for them when the project's ‘lean-toolchain’
+names Lean 4.30 or later.  Then the text of a trace that Flymake shows
+is only "(trace)", as in VS Code.  To keep the full text in Flymake
+instead, set ‘nael-eglot-widgets’ to ‘nil’ before Lean starts.
 
    Nael's Abbrev tables use the ‘:regexp’ property which is incompatible
 (https://github.com/minad/cape/discussions/158#discussioncomment-14687758)
@@ -496,22 +513,22 @@ Tag Table:
 Node: Top192
 Node: Get Started2399
 Node: Usage2736
-Node: Configuration7616
-Node: Installation9502
-Node: Installation from Melpa9854
-Node: Installation from Sources10890
-Node: Manual Installation11333
-Node: Installation via package-vc12269
-Ref: Installation via package-vc-selected-packages12942
-Ref: Installation via use-package vc14039
-Node: Installation in Doom Emacs14857
-Node: Changelog15310
-Node: Version 082 from 2026-02-2215755
-Node: Version 080 from 2026-12-1616115
-Node: Version 070 from 2025-12-1516760
-Node: Version 062 from 2025-11-3017359
-Node: Version 060 from 2025-11-3017712
-Node: License and Maintenance18810
+Node: Configuration8334
+Node: Installation10574
+Node: Installation from Melpa10926
+Node: Installation from Sources11962
+Node: Manual Installation12405
+Node: Installation via package-vc13341
+Ref: Installation via package-vc-selected-packages14014
+Ref: Installation via use-package vc15111
+Node: Installation in Doom Emacs15929
+Node: Changelog16382
+Node: Version 082 from 2026-02-2216827
+Node: Version 080 from 2026-12-1617187
+Node: Version 070 from 2025-12-1517832
+Node: Version 062 from 2025-11-3018431
+Node: Version 060 from 2025-11-3018784
+Node: License and Maintenance19882
 
 End Tag Table
 

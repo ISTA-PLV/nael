@@ -38,6 +38,9 @@ Signs in the left margin, while Eglot manages the buffer (~nael-margin-mode~):
 Infoview:
 
 - In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
+- Below the goals and the expected type, the section /Messages/ shows Lean's messages on the line of point: errors, warnings, and output such as that of =#check=.  Messages that start on another line, like an error about a whole proof, are folded.  Their terms are subterms like those of goals.  =RET= or =mouse-1= on the position of a message goes there in the source.
+- Traces, as with =set_option trace.Meta.synthInstance true in=, are headings: =TAB= on one shows its children, which Lean sends on request only.
+- Suggestions such as Lean's "Try this" have an =[apply]= button that replaces the code in the source with the suggestion.
 - =v= (~nael-infoview-view-options~) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 
 - With [[https://github.com/emacs-evil/evil][Evil]], =(with-eval-after-load 'evil (nael-evil-setup))= binds keys in normal state that don't clash with its motions: =]g= and =[g= for the next and previous goal, =]h= and =[h= for headings, =gr= to refresh, =K= to describe the subterm at point, and, with a local leader, =<localleader> v= for the view options and =<localleader> y= to copy the goal.
@@ -96,6 +99,8 @@ The signs in the margin can be changed, also for a single project in its =.dir-l
 #+end_src
 
 To keep Flymake's indicators instead of the signs, set ~nael-margin~ to =nil= before opening Lean files.
+
+For the infoview to show messages with their terms, traces and suggestions, Nael asks Lean for them when the project's =lean-toolchain= names Lean 4.30 or later.  Then the text of a trace that Flymake shows is only "(trace)", as in VS Code.  To keep the full text in Flymake instead, set ~nael-eglot-widgets~ to =nil= before Lean starts.
 
 Nael's Abbrev tables use the =:regexp= property which is [[https://github.com/minad/cape/discussions/158#discussioncomment-14687758][incompatible]] with [[https://github.com/company-mode/company-mode][Company]]'s ~company-abbrev~ and [[https://github.com/minad/cape][Cape]]'s ~cape-abbrev~.  Instead, Nael supports completion-at-point natively via ~nael-abbrev-capf~.  This CAPF is buffer-locally added to ~completion-at-point-functions~ whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the ~nael-abbrev-capf~ variable to =nil=.
 
