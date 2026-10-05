@@ -110,17 +110,18 @@ the server counts every time it serves a reference."
 
 ;;;; Error codes:
 
-;; From Lean's `Lean/Data/JsonRpc.lean'.  Each of the first four means
-;; that the session no longer exists and every reference obtained
-;; through it is worthless.
-(defconst nael-rpc-needs-reconnect -32900)
+;; From Lean's `Lean/Data/JsonRpc.lean'.  The last three mean that the
+;; session no longer exists and every reference obtained through it is
+;; worthless.  Lean also answers `content-modified' when an edit aborts
+;; a single request, so that one is only worth asking again: should the
+;; worker be gone, the next answer is one of the others.
 (defconst nael-rpc-content-modified -32801)
+(defconst nael-rpc-needs-reconnect -32900)
 (defconst nael-rpc-worker-exited -32901)
 (defconst nael-rpc-worker-crashed -32902)
 
 (defconst nael-rpc--dead-codes
   (list nael-rpc-needs-reconnect
-        nael-rpc-content-modified
         nael-rpc-worker-exited
         nael-rpc-worker-crashed)
   "Error codes meaning that the RPC session must be re-established.")
@@ -330,6 +331,9 @@ once the rendering is replaced or gone."
      ;; A late result for a rendering that is already gone.
      ((nael-rpc-owner-released owner)
       (nael-rpc-release session refs))
+     ;; A late result through a session that has since died: its
+     ;; references are worthless, and the owner may hold newer ones.
+     ((nael-rpc-session-closed session))
      (t
       ;; References of an earlier session died with that session.
       (unless (eq session (nael-rpc-owner-session owner))
@@ -404,7 +408,7 @@ that the position refers to text that the server has seen."
 
 (cl-defstruct (nael-rpc-request (:constructor nael-rpc--request-create)
                                 (:copier nil))
-  "An RPC call, possibly retried once on a new session."
+  "An RPC call, possibly asked again once."
   handle method params success failure owner timeout retry
   id                                    ; JSON-RPC id, if known
   session                               ; session it was sent on
@@ -442,7 +446,8 @@ that the position refers to text that the server has seen."
     (cond
      ((or (nael-rpc-request-cancelled request)
           (nael-rpc-request-done request)))
-     ((and (nael-rpc-dead-code-p code)
+     ((and (or (nael-rpc-dead-code-p code)
+               (eql code nael-rpc-content-modified))
            (nael-rpc-request-retry request)
            (buffer-live-p (nael-rpc-handle-buffer handle)))
       (setf (nael-rpc-request-retry request) nil

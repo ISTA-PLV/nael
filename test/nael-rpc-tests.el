@@ -177,6 +177,23 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
         (should (equal (plist-get failure :code) nael-rpc-needs-reconnect))
         (should-not result)))))
 
+(ert-deftest nael-rpc-test-retry-on-content-modified ()
+  "A call aborted by an edit is asked again on the same session."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer)))
+            result)
+        (nael-rpc-get-interactive-goals handle (lambda (r) (setq result r)))
+        (nael-rpc-test-connect)
+        (nael-rpc-test-fail (nael-rpc-test-find :$/lean/rpc/call)
+                            nael-rpc-content-modified)
+        (let ((retry (nael-rpc-test-find :$/lean/rpc/call 1)))
+          (should (equal (plist-get (plist-get retry :params) :sessionId)
+                         "4711"))
+          (nael-rpc-test-answer retry '(:goals [])))
+        (should (equal result '(:goals [])))
+        (should-not (nael-rpc-test-find :$/lean/rpc/connect 1))))))
+
 (ert-deftest nael-rpc-test-no-retry-for-references ()
   "A call with a reference is not retried: the reference died too."
   (nael-rpc-test-with-fake
@@ -320,6 +337,29 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
         (should delivered)
         (nael-rpc--flush-garbage (nael-rpc-handle-session handle))
         (should (equal (nael-rpc-test-released) '((:__rpcref "5"))))))))
+
+(ert-deftest nael-rpc-test-owner-late-result-of-dead-session ()
+  "A late result through a dead session leaves the owner's newer references."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer)))
+            (owner (nael-rpc-make-owner)))
+        (nael-rpc-test-connect)
+        (nael-rpc-get-interactive-goals handle #'ignore :owner owner)
+        (nael-rpc-get-interactive-term-goal handle #'ignore :owner owner)
+        ;; The first call finds the session dead and succeeds on a new one.
+        (nael-rpc-test-fail (nael-rpc-test-find :$/lean/rpc/call 0)
+                            nael-rpc-needs-reconnect)
+        (nael-rpc-test-answer (nael-rpc-test-find :$/lean/rpc/connect 1)
+                              '(:sessionId "4712"))
+        (nael-rpc-test-answer (nael-rpc-test-find :$/lean/rpc/call 2)
+                              '(:goals [(:ctx (:__rpcref "9"))]))
+        ;; Then the second call answers through the dead one.
+        (nael-rpc-test-answer (nael-rpc-test-find :$/lean/rpc/call 1)
+                              '(:ctx (:__rpcref "8")))
+        (should (eq (nael-rpc-owner-session owner)
+                    (nael-rpc-handle-session handle)))
+        (should (equal (nael-rpc-owner-refs owner) '((:__rpcref "9"))))))))
 
 (ert-deftest nael-rpc-test-owner-dead-session ()
   "References of a session that died are dropped, never released."
