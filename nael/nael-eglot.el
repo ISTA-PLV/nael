@@ -31,6 +31,8 @@
 (require 'nael)
 (require 'nael-eglot-compat)
 
+(declare-function nael-margin-update "nael-margin" ())
+
 (defgroup nael-eglot nil
   "`eglot' and `eldoc' configured for `nael-mode'."
   :group 'nael
@@ -181,8 +183,11 @@ Extra.html#Lean.Lsp.PlainTermGoal"
 
 Use ElDoc documentation strategy `compose', apply
 `nael-eldoc-idle-delay' and add ElDoc documentation functions for
-goal and term goal."
+goal and term goal.  Turn `nael-margin-mode' on or off, as option
+`nael-margin' says and as Eglot manages the buffer or not."
   (interactive)
+  (require 'nael-margin)
+  (nael-margin-update)
   (setq-local eldoc-documentation-strategy
               #'eldoc-documentation-compose)
   (when nael-eldoc-idle-delay
