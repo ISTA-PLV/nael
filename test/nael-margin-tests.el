@@ -345,6 +345,28 @@ The buffer has LINE-COUNT lines, 20 by default."
     (setq left-margin-width 0)
     (set-window-margins nil nil)))
 
+(ert-deftest nael-margin-test-wide-signs ()
+  "Signs wider in pixels than two columns widen the margin further."
+  (nael-margin-test-with-buffer nil
+    (let ((nael-margin--width-cache nil))
+      (cl-letf (((symbol-function 'display-graphic-p) #'always)
+                ((symbol-function 'frame-char-width) (lambda (&rest _) 10))
+                ((symbol-function 'string-pixel-width)
+                 (lambda (string &rest _)
+                   ;; An emoji font whose glyphs are 2.3 columns wide.
+                   (if (equal string "🍗") 23 (* 10 (string-width string))))))
+        (nael-margin-mode)
+        (should (eql left-margin-width 2))
+        ;; All signs count, also one that no line shows.
+        (setq-local nael-margin-admitted "🍗")
+        (nael-margin-draw)
+        (should (eql left-margin-width 3))
+        (should (eql (car (window-margins)) 3))
+        ;; The width before the mode is restored, not the first width.
+        (nael-margin-mode -1)
+        (should (eql left-margin-width 0))
+        (set-window-margins nil nil)))))
+
 (ert-deftest nael-margin-test-indicators ()
   "The mode hides the indicators of Flymake and Flycheck while it is on."
   (nael-margin-test-with-buffer nil

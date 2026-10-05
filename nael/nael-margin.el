@@ -128,7 +128,9 @@ The server reports progress often while it processes a file, and
 diagnostics a few at a time; this draws once for each burst.")
 
 (defconst nael-margin-width 2
-  "Width of the left margin that `nael-margin-mode' needs, in columns.")
+  "Width of the signs in the left margin, in columns.
+The margin is at least as wide, and wider where the signs are wider in
+pixels; see `nael-margin--needed-width'.")
 
 ;;;; Signs:
 
@@ -342,7 +344,43 @@ Until then, later calls change nothing."
 
 (defvar-local nael-margin--widened nil
   "Non-nil if `nael-margin-mode' widened the left margin.
-The value is then a list of the width before, which may be nil.")
+The value is then a cons (BEFORE . WIDTH) of the width before, which
+may be nil, and the width it set.")
+
+(defvar nael-margin--width-cache nil
+  "The last measurement of `nael-margin--needed-width', as (KEY . WIDTH).")
+
+(defun nael-margin--signs-in-use ()
+  "Return the signs that the current buffer may show."
+  (mapcar (lambda (sign) (truncate-string-to-width sign nael-margin-width))
+          (append (mapcar #'nael-margin-sign
+                          '(nael-margin-goals-accomplished
+                            nael-margin-unsolved-goals
+                            nael-margin-admitted
+                            nael-margin-processing))
+                  nael-margin-bar
+                  (mapcar #'nael-margin--severity-sign
+                          '(error warning note)))))
+
+(defun nael-margin--needed-width ()
+  "Return how many columns the left margin needs for all signs.
+That is `nael-margin-width', unless a sign is wider in pixels than so
+many columns of the default font: emoji come from fonts of their own,
+whose glyphs may be wider.  All signs count, not only those shown, so
+that the margin does not change its width when one first appears."
+  (if (not (display-graphic-p))
+      nael-margin-width
+    (let ((key (list (nael-margin--signs-in-use) (frame-char-width)
+                     (face-font 'default))))
+      (if (equal key (car nael-margin--width-cache))
+          (cdr nael-margin--width-cache)
+        (let ((width (apply #'max nael-margin-width
+                            (mapcar (lambda (sign)
+                                      (ceiling (string-pixel-width sign)
+                                               (frame-char-width)))
+                                    (car key)))))
+          (setq nael-margin--width-cache (cons key width))
+          width)))))
 
 (defun nael-margin--apply-width ()
   "Give the windows that show the current buffer its left margin width."
@@ -351,18 +389,27 @@ The value is then a list of the width before, which may be nil.")
                         (cdr (window-margins window)))))
 
 (defun nael-margin--widen ()
-  "Make the left margin at least `nael-margin-width' columns wide.
-Only widen it, and remember the width before, for `nael-margin--narrow'."
-  (when (< (or left-margin-width 0) nael-margin-width)
-    (setq nael-margin--widened (list left-margin-width)
-          left-margin-width nael-margin-width)
-    (nael-margin--apply-width)))
+  "Make the left margin as wide as `nael-margin--needed-width' says.
+Only widen it, and remember the width before, for `nael-margin--narrow'.
+If the mode widened it already and nobody changed it since, the width
+before stays the one from then."
+  (let ((width (nael-margin--needed-width))
+        (current left-margin-width))
+    (when (< (or current 0) width)
+      (setq nael-margin--widened
+            (cons (if (and nael-margin--widened
+                           (eql current (cdr nael-margin--widened)))
+                      (car nael-margin--widened)
+                    current)
+                  width)
+            left-margin-width width)
+      (nael-margin--apply-width))))
 
 (defun nael-margin--narrow ()
   "Give the left margin back the width it had before it was widened.
 Leave it alone if someone else has changed it since."
   (when nael-margin--widened
-    (when (eql left-margin-width nael-margin-width)
+    (when (eql left-margin-width (cdr nael-margin--widened))
       (setq left-margin-width (car nael-margin--widened))
       (nael-margin--apply-width))
     (setq nael-margin--widened nil)))
