@@ -519,7 +519,6 @@ lookup must leave the windows alone until then."
   (when (bound-and-true-p global-eldoc-mode)
     (eldoc-mode)))
 
-
 (defun nael-infoview-hover-reset (handle)
   "Forget what was found out about the nodes shown so far.
 HANDLE is the RPC handle of the references shown from now on."

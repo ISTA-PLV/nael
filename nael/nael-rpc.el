@@ -66,7 +66,6 @@
 
 (require 'nael-eglot)
 
-
 ;;;; References:
 
 ;; A reference is a JSON object with exactly one member whose value is a

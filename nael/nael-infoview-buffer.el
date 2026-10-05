@@ -263,7 +263,6 @@ processes such as compilations show their state."
                (setq nael-infoview--dim-cookie nil))))
       (force-mode-line-update))))
 
-
 (defun nael-infoview--killed ()
   "Release the references that the infoview shows."
   (when nael-infoview--owner
