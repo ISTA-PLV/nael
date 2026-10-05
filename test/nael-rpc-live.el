@@ -19,6 +19,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'nael-render)
 (require 'nael-rpc)
 
 (defconst nael-rpc-live-root
@@ -101,7 +102,7 @@ The outcome is (ok . RESULT), (error . ERROR) or nil after 30 seconds."
   "Return the target of the first goal in OUTCOME as a string."
   (when-let* ((goals (plist-get (cdr outcome) :goals))
               ((> (length goals) 0)))
-    (nael-rpc-tagged-text-string (plist-get (aref goals 0) :type))))
+    (nael-render--plain-text (plist-get (aref goals 0) :type))))
 
 (defun nael-rpc-live-first-info (tagged)
   "Return the first subterm reference in TAGGED, a `CodeWithInfos'."

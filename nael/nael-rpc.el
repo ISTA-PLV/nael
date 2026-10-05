@@ -18,7 +18,7 @@
 ;; requests that can be cancelled and superseded in slots; references
 ;; are owned by renderings (`nael-rpc-owner') and found by a strict
 ;; walk of the whole result; references of cancelled calls are released;
-;; sessions are closed with their buffer; a debugging command.
+;; sessions are closed with their buffer.
 
 ;;; Commentary:
 
@@ -130,7 +130,6 @@ the server counts every time it serves a reference."
 (defconst nael-rpc-content-modified -32801)
 (defconst nael-rpc-worker-exited -32901)
 (defconst nael-rpc-worker-crashed -32902)
-(defconst nael-rpc-request-cancelled -32800)
 
 (defconst nael-rpc--dead-codes
   (list nael-rpc-needs-reconnect
@@ -645,16 +644,6 @@ fails because the session died is not retried: INFO died with it."
          "Lean.Widget.InteractiveDiagnostics.infoToInteractive"
          info success (append keys (list :retry nil))))
 
-(defun nael-rpc-get-go-to-location (handle kind info success &rest keys)
-  "Request where INFO, a subterm reference, is defined.
-KIND is \"declaration\", \"definition\" or \"type\".  INFO must come
-from a result of the session of HANDLE.  SUCCESS receives a vector of
-LSP `LocationLink's; KEYS are as for `nael-rpc-call'.  A call that
-fails because the session died is not retried."
-  (apply #'nael-rpc-call handle "Lean.Widget.getGoToLocation"
-         (list :kind kind :info info) success
-         (append keys (list :retry nil))))
-
 (defun nael-rpc-get-interactive-diagnostics (handle line success &rest keys)
   "Request the messages that touch LINE, 0-based, in the file of HANDLE.
 The server answers at once with the messages it has, whose full range
@@ -672,70 +661,6 @@ for `nael-rpc-call'.  A call that fails because the session died is
 not retried."
   (apply #'nael-rpc-call handle "Lean.Widget.lazyTraceChildrenToInteractive"
          children success (append keys (list :retry nil))))
-
-;;;; Debugging:
-
-(defun nael-rpc-tagged-text-string (tagged)
-  "Return the text of TAGGED, a Lean `TaggedText', without its tags."
-  (cond ((plist-member tagged :text) (plist-get tagged :text))
-        ((plist-member tagged :append)
-         (mapconcat #'nael-rpc-tagged-text-string
-                    (plist-get tagged :append) ""))
-        ((plist-member tagged :tag)
-         (nael-rpc-tagged-text-string (aref (plist-get tagged :tag) 1)))
-        (t "")))
-
-(defun nael-rpc--goal-string (goal)
-  "Return GOAL, an `InteractiveGoal', as plain text."
-  (concat
-   (when-let* ((name (plist-get goal :userName)))
-     (format "case %s\n" name))
-   (mapconcat (lambda (hyp)
-                (concat (mapconcat #'identity (plist-get hyp :names) " ")
-                        " : "
-                        (nael-rpc-tagged-text-string (plist-get hyp :type))
-                        (when-let* ((val (plist-get hyp :val)))
-                          (concat " := " (nael-rpc-tagged-text-string val)))
-                        "\n"))
-              (plist-get goal :hyps) "")
-   (plist-get goal :goalPrefix)
-   (nael-rpc-tagged-text-string (plist-get goal :type))))
-
-(defvar nael-rpc--debug-owner nil
-  "Owner of the references shown by `nael-rpc-show-goals'.")
-
-(defun nael-rpc-show-goals ()
-  "Show the interactive goals at point as received over Lean RPC.
-For checking the RPC layer: shows the session, the number of goals and
-references, the goals as plain text, and the raw result."
-  (interactive)
-  (let ((handle (nael-rpc-open))
-        (owner (nael-rpc-make-owner))
-        (start (float-time)))
-    (nael-rpc-get-interactive-goals
-     handle
-     (lambda (result)
-       (when nael-rpc--debug-owner
-         (nael-rpc-owner-release nael-rpc--debug-owner))
-       (setq nael-rpc--debug-owner owner)
-       (with-help-window "*Nael RPC goals*"
-         (let ((goals (plist-get result :goals)))
-           (princ (format "Session %s, %d goals, %d references, %.0f ms\n\n"
-                          (nael-rpc-session-id (nael-rpc-handle-session handle))
-                          (length goals)
-                          (length (nael-rpc-owner-refs owner))
-                          (* 1000 (- (float-time) start))))
-           (if (null result)
-               (princ "No tactic proof at point.\n")
-             (seq-doseq (goal goals)
-               (princ (nael-rpc--goal-string goal))
-               (princ "\n\n")))
-           (princ "Raw result:\n\n")
-           (pp result))))
-     :owner owner :slot 'debug
-     :failure (lambda (error)
-                (message "Lean RPC call failed: %s"
-                         (or (plist-get error :message) error))))))
 
 (provide 'nael-rpc)
 

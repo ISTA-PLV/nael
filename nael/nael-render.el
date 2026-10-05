@@ -510,10 +510,14 @@ they are seen anywhere in it.  The same criterion as `nael-margin'."
            (>= (plist-get (plist-get full :end) :line) (1- line-count))))))
 
 (defun nael-render--plain-text (tagged)
-  "Return the plain text of TAGGED, a `TaggedText', without its embeds."
+  "Return the plain text of TAGGED, a `TaggedText', without its tags.
+A tag's text is the code of a subterm, or the fallback text of an embed
+in a message."
   (cond ((plist-member tagged :text) (plist-get tagged :text))
         ((plist-member tagged :append)
          (mapconcat #'nael-render--plain-text (plist-get tagged :append) ""))
+        ((plist-member tagged :tag)
+         (nael-render--plain-text (aref (plist-get tagged :tag) 1)))
         (t "")))
 
 (defun nael-render--imports-out-of-date-p (diagnostic)
