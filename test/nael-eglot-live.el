@@ -19,8 +19,10 @@
 (require 'ert)
 (require 'nael-rpc-live)
 
-(ert-deftest nael-eglot-live-mode-change ()
-  "Setting up the major mode again closes the document before reopening it."
+(defun nael-eglot-live-reopen (function)
+  "Call FUNCTION in the live buffer and check that it reopens the document.
+The document must be closed once and opened once, in that order, and
+the server must work on it again."
   (with-current-buffer (nael-rpc-live-buffer)
     (let (sent)
       (cl-letf* ((notify (symbol-function 'jsonrpc-notify))
@@ -30,13 +32,20 @@
                                          :textDocument/didClose))
                       (push method sent))
                     (funcall notify connection method params))))
-        (nael-mode)
+        (funcall function)
         (should (nael-rpc-live-wait #'eglot-managed-p 30)))
       (should (equal (reverse sent)
                      '(:textDocument/didClose :textDocument/didOpen))))
-    ;; The server works on the document again.
     (setq nael-eglot-file-progress nil)
     (should (nael-rpc-live-wait #'nael-rpc-live-processed-p 60))))
+
+(ert-deftest nael-eglot-live-mode-change ()
+  "Setting up the major mode again closes the document before reopening it."
+  (nael-eglot-live-reopen #'nael-mode))
+
+(ert-deftest nael-eglot-live-revert ()
+  "Reverting the buffer closes the document only once."
+  (nael-eglot-live-reopen (lambda () (revert-buffer t t))))
 
 (defun nael-eglot-live-semantic-lines ()
   "Return the lines of the current buffer with faces of semantic tokens."

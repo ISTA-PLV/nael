@@ -215,8 +215,11 @@ goal and term goal.  Turn `nael-margin-mode' on or off, as option
 
 (defun nael-eglot-close-before-mode-change ()
   "Tell the server that the document is closed, if Eglot manages it.
-For `change-major-mode-hook', where Eglot does not do so itself."
-  (when (eglot-managed-p)
+For `change-major-mode-hook', where Eglot does not do so itself.
+When the buffer is reverted, Eglot has closed it already."
+  ;; Emacs 31 renames the variable to `revert-buffer-in-progress'.
+  (when (and (eglot-managed-p)
+             (not (with-no-warnings revert-buffer-in-progress-p)))
     (nael-eglot-compat-did-close)))
 
 ;;;###autoload
