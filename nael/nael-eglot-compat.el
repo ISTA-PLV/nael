@@ -24,8 +24,9 @@
     eglot--signal-textDocument/didChange
     eglot--signal-textDocument/didClose
     eglot--signal-textDocument/didOpen
-    eglot--TextDocumentPositionParams)
-  "Internal functions of Eglot that Nael calls.")
+    eglot--TextDocumentPositionParams
+    jsonrpc--next-request-id)
+  "Internal functions of Eglot and jsonrpc that Nael calls.")
 
 (when-let* ((missing (seq-remove #'fboundp nael-eglot-compat-internals)))
   (display-warning
@@ -60,6 +61,13 @@ The column is counted in UTF-16 code units, as LSP requires."
 (defun nael-eglot-compat-capabilities (server)
   "Return the capabilities that SERVER announced on initialization."
   (eglot--capabilities server))
+
+(defun nael-eglot-compat-last-request-id (connection)
+  "Return the id of the request just sent through CONNECTION.
+Only for jsonrpc 1.0.25 (Emacs 30), whose `jsonrpc-async-request'
+returns nil instead of the id; remove this once Nael needs a later
+jsonrpc."
+  (jsonrpc--next-request-id connection))
 
 (defvar eglot--semtok-state)
 

@@ -256,6 +256,24 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
           (nael-rpc-test-answer old nil))
         (should (equal results '((new :goals []))))))))
 
+(ert-deftest nael-rpc-test-cancel-without-returned-id ()
+  "A call is cancelled on the server also when jsonrpc returns no id."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer))))
+        (nael-rpc-test-connect)
+        (cl-letf* ((request (symbol-function 'jsonrpc-async-request))
+                   ((symbol-function 'jsonrpc-async-request)
+                    (lambda (&rest args) (apply request args) nil))
+                   ((symbol-function 'nael-eglot-compat-last-request-id)
+                    (lambda (_connection) nael-rpc-test-next-id)))
+          (nael-rpc-cancel (nael-rpc-get-interactive-goals handle #'ignore)))
+        (should (member (cons :$/cancelRequest
+                              (list :id (plist-get
+                                         (nael-rpc-test-find :$/lean/rpc/call)
+                                         :id)))
+                        nael-rpc-test-notifications))))))
+
 (ert-deftest nael-rpc-test-cancelled-result-refs-released ()
   "References in the answer to a cancelled call are released."
   (nael-rpc-test-with-fake

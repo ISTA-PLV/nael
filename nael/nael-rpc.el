@@ -495,7 +495,9 @@ that the position refers to text that the server has seen."
                           request (list :code nil :timeout t
                                         :message "Lean RPC call timed out"))))))
             ;; Since jsonrpc 1.0.26, the result starts with the id.
-            (setf (nael-rpc-request-id request) (car-safe sent)))
+            (setf (nael-rpc-request-id request)
+                  (or (car-safe sent)
+                      (nael-eglot-compat-last-request-id connection))))
         ;; A server that has exited takes its sessions with it.  Report
         ;; it like a dead session instead of letting jsonrpc signal from
         ;; a timer or hook.
