@@ -44,6 +44,7 @@ Installation
 
 * Installation from Melpa::
 * Installation from Sources::
+* Installation in Doom Emacs::
 
 Installation from Sources
 
@@ -173,6 +174,7 @@ Nael's LSP-based features (via Eglot or lsp-mode), require Lean version 4 to be 
 @menu
 * Installation from Melpa::
 * Installation from Sources::
+* Installation in Doom Emacs::
 @end menu
 
 @node Installation from Melpa
@@ -278,6 +280,11 @@ Since version 30 from 2025, Emacs' popular @code{use-package} macro supports a @
 ;;         :url "https://codeberg.org/mekeor/nael.git"))
 @end lisp
 @end enumerate
+
+@node Installation in Doom Emacs
+@section Installation in Doom Emacs
+
+The repository contains a Doom Emacs module, @samp{:lang nael}, in @samp{doom/lang/nael/}.  It installs this fork of Nael and sets up its infoview, with keys under @samp{SPC m} and for Evil, and replaces Doom's @samp{:lang lean} module.  See its @samp{README.org} for how to install it.
 
 @node Changelog
 @chapter Changelog

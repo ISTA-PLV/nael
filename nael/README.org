@@ -171,6 +171,10 @@ Since version 30 from 2025, Emacs' popular ~use-package~ macro supports a =:vc= 
 ;;         :url "https://codeberg.org/mekeor/nael.git"))
 #+end_src
 
+** Installation in Doom Emacs
+
+The repository contains a Doom Emacs module, =:lang nael=, in =doom/lang/nael/=.  It installs this fork of Nael and sets up its infoview, with keys under =SPC m= and for Evil, and replaces Doom's =:lang lean= module.  See its =README.org= for how to install it.
+
 * Changelog
 
 ** Version 0.8.2 from 2026-02-22

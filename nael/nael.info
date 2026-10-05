@@ -53,6 +53,7 @@ Installation
 
 * Installation from Melpa::
 * Installation from Sources::
+* Installation in Doom Emacs::
 
 Installation from Sources
 
@@ -210,6 +211,7 @@ Nael's LSP-based features (via Eglot or lsp-mode), require Lean version
 
 * Installation from Melpa::
 * Installation from Sources::
+* Installation in Doom Emacs::
 
 
 File: nael.info,  Node: Installation from Melpa,  Next: Installation from Sources,  Up: Installation
@@ -236,7 +238,7 @@ via Use-Package, add ‘(use-package nael :ensure t)’ to your init file
 and evaluate it.
 
 
-File: nael.info,  Node: Installation from Sources,  Prev: Installation from Melpa,  Up: Installation
+File: nael.info,  Node: Installation from Sources,  Next: Installation in Doom Emacs,  Prev: Installation from Melpa,  Up: Installation
 
 4.2 Installation from Sources
 =============================
@@ -342,6 +344,17 @@ repository instead of just the package-specific ones.)
           ;;   :after nael
           ;;   :vc ( :lisp-dir "nael-lsp"
           ;;         :url "https://codeberg.org/mekeor/nael.git"))
+
+
+File: nael.info,  Node: Installation in Doom Emacs,  Prev: Installation from Sources,  Up: Installation
+
+4.3 Installation in Doom Emacs
+==============================
+
+The repository contains a Doom Emacs module, ‘:lang nael’, in
+‘doom/lang/nael/’.  It installs this fork of Nael and sets up its
+infoview, with keys under ‘SPC m’ and for Evil, and replaces Doom's
+‘:lang lean’ module.  See its ‘README.org’ for how to install it.
 
 
 File: nael.info,  Node: Changelog,  Next: License and Maintenance,  Prev: Installation,  Up: Top
@@ -454,23 +467,24 @@ MIT License, see ‘LICENSE.MIT’.  For details, see ‘NOTICE’.
 
 Tag Table:
 Node: Top192
-Node: Get Started2368
-Node: Usage2705
-Node: Configuration6699
-Node: Installation8065
-Node: Installation from Melpa8386
-Node: Installation from Sources9422
-Node: Manual Installation9830
-Node: Installation via package-vc10766
-Ref: Installation via package-vc-selected-packages11439
-Ref: Installation via use-package vc12536
-Node: Changelog13354
-Node: Version 082 from 2026-02-2213799
-Node: Version 080 from 2026-12-1614159
-Node: Version 070 from 2025-12-1514804
-Node: Version 062 from 2025-11-3015403
-Node: Version 060 from 2025-11-3015756
-Node: License and Maintenance16854
+Node: Get Started2399
+Node: Usage2736
+Node: Configuration6730
+Node: Installation8096
+Node: Installation from Melpa8448
+Node: Installation from Sources9484
+Node: Manual Installation9927
+Node: Installation via package-vc10863
+Ref: Installation via package-vc-selected-packages11536
+Ref: Installation via use-package vc12633
+Node: Installation in Doom Emacs13451
+Node: Changelog13904
+Node: Version 082 from 2026-02-2214349
+Node: Version 080 from 2026-12-1614709
+Node: Version 070 from 2025-12-1515354
+Node: Version 062 from 2025-11-3015953
+Node: Version 060 from 2025-11-3016306
+Node: License and Maintenance17404
 
 End Tag Table
 
