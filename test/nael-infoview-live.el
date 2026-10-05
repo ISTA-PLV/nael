@@ -185,7 +185,9 @@ The buffer is current, and point is before `rw'."
           (format " = %d := by\n  sorry\n" (/ (* n (1- n)) 2))))
 
 (ert-deftest nael-infoview-live-large-goal ()
-  "A goal with hundreds of hypotheses renders in well under a second."
+  "A goal with hundreds of hypotheses renders in well under a second.
+The time is only checked if the environment variable NAEL_TEST_TIMING
+is set, since it depends on the machine."
   (with-current-buffer (nael-infoview-live-open)
     (goto-char (point-max))
     (insert "\n" (nael-infoview-live-large-goal 300))
@@ -209,7 +211,8 @@ The buffer is current, and point is before `rw'."
 render into buffer %.1f ms"
                  (buffer-size) nodes (* 200 render) (* 200 show))
         (should (> nodes 900))
-        (should (< (/ show 5) 0.5))))))
+        (when (getenv "NAEL_TEST_TIMING")
+          (should (< (/ show 5) 0.5)))))))
 
 (ert-deftest nael-infoview-live-throttle ()
   "Updates in quick succession are coalesced into a trailing one."
