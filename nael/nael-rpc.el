@@ -260,7 +260,6 @@ its id means nothing."
   (let ((existing (gethash uri nael-rpc--sessions)))
     (if (and existing
              (not (nael-rpc-session-closed existing))
-             (not (nael-rpc-session-error existing))
              (eq (nael-rpc-session-connection existing) connection)
              (nael-rpc-connection-live-p connection))
         existing
