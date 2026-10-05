@@ -22,17 +22,13 @@
 ;; has already broken the lines.  Every tagged subterm becomes a node
 ;; (`nael-render-node'), stored in the text property `nael-node' of its
 ;; characters.  Text properties do not nest, so a character carries the
-;; innermost node, and each node knows its parent.  The result also
-;; lists all nodes, so that a buffer can put overlays on their exact
-;; extents.
+;; innermost node.  The result also lists all nodes, so that a buffer can
+;; put overlays on their exact extents.
 ;;
-;; Goals and hypotheses carry the text properties `nael-goal' and
-;; `nael-hyp', made from the server's stable identifiers, so that state
-;; such as folding can survive a refresh.  The same metavariable can be
-;; listed as several goals, so `nael-goal' is (MVARID . N) for the Nth
-;; occurrence of MVARID.  Metavariables change with every tactic, so
-;; goals also carry `nael-key', which identifies them by their place
-;; instead: (case NAME . N) for the Nth goal named NAME, (goal . N) for
+;; Each goal carries the text property `nael-goal', a token of its own,
+;; so that adjacent goals can be told apart, and `nael-key', which
+;; identifies it by its place so that state such as folding survives a
+;; refresh: (case NAME . N) for the Nth goal named NAME, (goal . N) for
 ;; the Nth goal without a name, and `term-goal' for the expected type.
 ;; Headings carry `outline-level'; section headings also carry
 ;; `nael-section', `goals', `term-goal' or `messages'.
@@ -72,21 +68,6 @@
 (defface nael-render-goals-accomplished
   '((t :inherit success))
   "Face of the line that says that the proof at point is complete."
-  :group 'nael-render)
-
-(defface nael-render-message-error
-  '((t :inherit compilation-error))
-  "Face of the severity of an error in the messages."
-  :group 'nael-render)
-
-(defface nael-render-message-warning
-  '((t :inherit compilation-warning))
-  "Face of the severity of a warning in the messages."
-  :group 'nael-render)
-
-(defface nael-render-message-info
-  '((t :inherit compilation-info))
-  "Face of the severity of information or a hint in the messages."
   :group 'nael-render)
 
 (defface nael-render-trace-class
@@ -149,10 +130,6 @@ it.  See `wrap-prefix'."
 
 ;;;; Data:
 
-(defun nael-render--true-p (value)
-  "Return non-nil if VALUE is JSON true."
-  (and value (not (eq value :json-false))))
-
 (defun nael-render-diff-face (status)
   "Return the face for STATUS, the `diffStatus' of a subterm, or nil.
 Before a tactic, the server marks what it is about to change; after a
@@ -165,10 +142,8 @@ tactic, what it has changed."
                                 (:copier nil))
   "A tagged subterm of rendered code."
   info                                  ; RPC reference, for hovers
-  subexpr-pos                           ; position in the expression
   diff-status                           ; string or nil
-  beg end                               ; extent in the rendered text
-  parent)                               ; enclosing node, or nil
+  beg end)                              ; extent in the rendered text
 
 (cl-defstruct (nael-render-result (:constructor nael-render--result-create)
                                   (:copier nil))
@@ -186,9 +161,6 @@ that contains only TEXT."
 (defvar nael-render--diffs t
   "Non-nil if diffs are rendered; nil under the option `:hide-diffs'.")
 
-(defvar nael-render--goal-ids nil
-  "Metavariable ids of the goals rendered so far, for `nael-goal'.")
-
 (defvar nael-render--faces nil
   "Faces to add after fontification, as a list of (BEG END FACE).
 Fontification would remove faces put on the text earlier.")
@@ -199,29 +171,25 @@ Fontification would remove faces put on the text earlier.")
     (insert string)
     (push (list beg (point) face) nael-render--faces)))
 
-(defun nael-render--tagged (tagged parent)
-  "Insert TAGGED, a `TaggedText', at point; PARENT is the enclosing node."
+(defun nael-render--code (tagged)
+  "Insert TAGGED, a `CodeWithInfos', at point.
+Each tagged subterm becomes a node.  A node is noted after the nodes
+inside it, so that `nael-render--nodes' lists outer nodes first."
   (cond
    ((plist-member tagged :text)
     (insert (plist-get tagged :text)))
    ((plist-member tagged :append)
     (seq-doseq (child (plist-get tagged :append))
-      (nael-render--tagged child parent)))
+      (nael-render--code child)))
    ((plist-member tagged :tag)
     (let* ((info (aref (plist-get tagged :tag) 0))
            (node (nael-render--node-create
                   :info (plist-get info :info)
-                  :subexpr-pos (plist-get info :subexprPos)
                   :diff-status (plist-get info :diffStatus)
-                  :beg (point)
-                  :parent parent)))
-      (nael-render--tagged (aref (plist-get tagged :tag) 1) node)
+                  :beg (point))))
+      (nael-render--code (aref (plist-get tagged :tag) 1))
       (setf (nael-render-node-end node) (point))
       (push node nael-render--nodes)))))
-
-(defun nael-render--code (tagged)
-  "Insert TAGGED, a `CodeWithInfos', at point."
-  (nael-render--tagged tagged nil))
 
 (defun nael-render--fontify (beg end)
   "Fontify the code between BEG and END with the rules of `nael-mode'."
@@ -245,9 +213,9 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
                 (plist-get hyp :names))))
     (unless (or (null names)
                 (and (plist-get options :hide-instances)
-                     (nael-render--true-p (plist-get hyp :isInstance)))
+                     (eq t (plist-get hyp :isInstance)))
                 (and (plist-get options :hide-types)
-                     (nael-render--true-p (plist-get hyp :isType))))
+                     (eq t (plist-get hyp :isType))))
       (let ((beg (point))
             (diff (nael-render--flag-diff-face hyp)))
         (cl-loop for (name . more) on names
@@ -264,18 +232,16 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
                     ((not (plist-get options :hide-let-values))))
           (insert " := ")
           (nael-render--code val))
-        (insert "\n")
-        (put-text-property beg (point) 'nael-hyp
-                           (append (plist-get hyp :fvarIds) nil))))))
+        (insert "\n")))))
 
 (defun nael-render--flag-diff-face (object)
   "Return the diff face for OBJECT, a goal or hypothesis, or nil.
 Before a tactic, the server marks what it will remove; after it, what
 it has inserted."
   (when nael-render--diffs
-    (cond ((nael-render--true-p (plist-get object :isInserted))
+    (cond ((eq t (plist-get object :isInserted))
            'nael-render-diff-inserted)
-          ((nael-render--true-p (plist-get object :isRemoved))
+          ((eq t (plist-get object :isRemoved))
            'nael-render-diff-removed))))
 
 (defun nael-render--target (goal)
@@ -310,11 +276,7 @@ see `nael-render-goals'."
         (nael-render--target goal))
       (nael-render--fontify code-beg (point)))
     (put-text-property beg (point) 'nael-key key)
-    (let ((id (plist-get goal :mvarId)))
-      (put-text-property beg (point) 'nael-goal
-                         (cons id (seq-count (lambda (other) (equal other id))
-                                             nael-render--goal-ids)))
-      (push id nael-render--goal-ids))))
+    (put-text-property beg (point) 'nael-goal (gensym "goal"))))
 
 (defun nael-render--heading (text section)
   "Insert TEXT as the level 1 heading of SECTION, a symbol."
@@ -368,10 +330,10 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
 (defun nael-render--severity (severity)
   "Return the name and face of the LSP SEVERITY as a cons."
   (pcase severity
-    (2 '("warning" . nael-render-message-warning))
-    (3 '("information" . nael-render-message-info))
-    (4 '("hint" . nael-render-message-info))
-    (_ '("error" . nael-render-message-error))))
+    (2 '("warning" . compilation-warning))
+    (3 '("information" . compilation-info))
+    (4 '("hint" . compilation-info))
+    (_ '("error" . compilation-error))))
 
 (defun nael-render--fontify-code (beg end)
   "Fontify the code between BEG and END on its own.
@@ -434,7 +396,7 @@ Children that the server sends on request only are taken from
     (add-text-properties
      beg (point)
      (append (list 'outline-level (- (length key) 2) 'nael-key key)
-             (when (and kids (nael-render--true-p (plist-get trace :collapsed)))
+             (when (and kids (eq t (plist-get trace :collapsed)))
                (list 'nael-folded t))
              (when (and lazy (not fetched))
                (list 'nael-trace-lazy lazy))))
@@ -599,13 +561,8 @@ left out.  Messages about the whole file come first."
 
 (defun nael-render--put-nodes ()
   "Store each rendered node in `nael-node' over its extent.
-Outer nodes come first, so that inner ones win."
-  (dolist (node (sort (copy-sequence nael-render--nodes)
-                      (lambda (a b)
-                        (> (- (nael-render-node-end a)
-                              (nael-render-node-beg a))
-                           (- (nael-render-node-end b)
-                              (nael-render-node-beg b))))))
+`nael-render--nodes' lists outer nodes first, so inner ones win."
+  (dolist (node nael-render--nodes)
     (put-text-property (nael-render-node-beg node)
                        (nael-render-node-end node)
                        'nael-node node)))
@@ -637,7 +594,6 @@ OPTIONS is a plist of view options:
   (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
         (nael-render--options options)
         (nael-render--nodes nil)
-        (nael-render--goal-ids nil)
         (nael-render--faces nil))
     (with-temp-buffer
       ;; As in lean.nvim, a line above the goals, which are not folded
@@ -700,14 +656,6 @@ documentation in INFO is not rendered."
 (defun nael-render-node-at (pos &optional object)
   "Return the innermost node at POS in OBJECT, a buffer or string."
   (get-text-property pos 'nael-node object))
-
-(defun nael-render-node-ancestors (node)
-  "Return NODE and its enclosing nodes, innermost first."
-  (let (nodes)
-    (while node
-      (push node nodes)
-      (setq node (nael-render-node-parent node)))
-    (nreverse nodes)))
 
 (provide 'nael-render)
 

@@ -102,10 +102,7 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
           (dolist (node containing)
             (should (<= (- (nael-render-node-end at) (nael-render-node-beg at))
                         (- (nael-render-node-end node)
-                           (nael-render-node-beg node)))))
-          ;; The node's parent chain is its enclosing nodes.
-          (should (seq-set-equal-p (nael-render-node-ancestors at)
-                                   containing)))))))
+                           (nael-render-node-beg node))))))))))
 
 (ert-deftest nael-render-test-fixture-diff ()
   "The subterm marked `willChange' gets the removed face."
@@ -153,10 +150,8 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                   (nael-render-test-faces text (string-search "n m" text))))
     (should (memq 'nael-render-diff-inserted
                   (nael-render-test-faces text (string-search "k :" text))))
-    (should (equal (get-text-property (string-search "n m" text) 'nael-hyp text)
-                   '("_uniq.2" "_uniq.3")))
-    (should (equal (get-text-property (string-search "⊢" text) 'nael-goal text)
-                   '("_uniq.1" . 0)))
+    (should (eq (get-text-property (string-search "⊢" text) 'nael-goal text)
+                (get-text-property (string-search "n m" text) 'nael-goal text)))
     (should (equal (get-text-property 0 'outline-level text) 1))
     (should (equal (get-text-property (string-search "case" text)
                                       'outline-level text)
@@ -171,18 +166,17 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                            "n m : Nat\n")))))
 
 (ert-deftest nael-render-test-repeated-goal ()
-  "A metavariable listed twice yields two distinct goal ids."
-  (let ((text (nael-render-goals
-               (list :goals (vector (nael-render-test-goal)
-                                    (nael-render-test-goal)))
-               nil)))
-    (setq text (nael-render-result-text text))
-    (should (equal (get-text-property (string-search "goal 1" text)
-                                      'nael-goal text)
-                   '("_uniq.1" . 0)))
-    (should (equal (get-text-property (string-search "goal 2" text)
-                                      'nael-goal text)
-                   '("_uniq.1" . 1)))))
+  "A metavariable listed twice yields two goals that can be told apart."
+  (let ((text (nael-render-result-text
+               (nael-render-goals
+                (list :goals (vector (nael-render-test-goal)
+                                     (nael-render-test-goal)))
+                nil))))
+    (should (get-text-property (string-search "goal 1" text) 'nael-goal text))
+    (should-not (equal (get-text-property (string-search "goal 1" text)
+                                          'nael-goal text)
+                       (get-text-property (string-search "goal 2" text)
+                                          'nael-goal text)))))
 
 (ert-deftest nael-render-test-goal-diff ()
   "A removed goal marks its turnstile and heading, not its content."
