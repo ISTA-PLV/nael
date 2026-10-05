@@ -64,8 +64,9 @@ The buffer is current, and point is before `rw'."
 (ert-deftest nael-infoview-live-follows-point ()
   "The infoview shows the goals at point and follows it."
   (with-current-buffer (nael-infoview-live-open)
-    (should (string-prefix-p "Tactic state: 1 goal\nn : Nat\nh : n = b\n"
-                             (nael-infoview-live-text)))
+    ;; The proof is complete, which titles its goals.
+    (should (string-match-p "\\`Goals accomplished.*\nn : Nat\nh : n = b\n"
+                            (nael-infoview-live-text)))
     (nael-infoview-live-move 5 2)
     (should (nael-infoview-live-wait-for "⊢ b + 0 = 1"))
     ;; Outside the proof: no goals, no expected type.
@@ -167,7 +168,7 @@ The buffer is current, and point is before `rw'."
                       (not (string-search "Expected type"
                                           (nael-infoview-live-text)))))
                30))
-      (should (string-prefix-p "Tactic state: 1 goal"
+      (should (string-prefix-p "Goals accomplished"
                                (nael-infoview-live-text)))
       (should (eq (alist-get 'infoview-term-goal nael-rpc--slots) before)))))
 

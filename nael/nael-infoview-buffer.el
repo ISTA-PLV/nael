@@ -112,6 +112,9 @@ nil when up to date, or one of `updating', `processing',
 (defvar-local nael-infoview--results nil
   "The shown results, as (GOALS TERM-GOAL), for rendering them again.")
 
+(defvar-local nael-infoview--accomplished nil
+  "Title of the goals if their proof is complete, or nil.")
+
 (defvar-local nael-infoview--point-overlay nil
   "Overlay that highlights the subterm at point.")
 
@@ -352,7 +355,10 @@ so that folds survive moving to another tactic."
   "Render the shown results again, keeping folds and window positions."
   (let* ((rendered (apply #'nael-render-goals
                           (append nael-infoview--results
-                                  (list (nael-infoview--options)))))
+                                  (list (append
+                                         (list :accomplished
+                                               nael-infoview--accomplished)
+                                         (nael-infoview--options))))))
          (inhibit-read-only t)
          (folded (nael-infoview--folded-keys))
          (present (nael-infoview--heading-keys))
@@ -385,13 +391,16 @@ so that folds survive moving to another tactic."
       (nael-infoview--restore-window window anchors))
     (nael-infoview--highlight-point)))
 
-(defun nael-infoview--show (goals term-goal owner location &optional handle)
+(defun nael-infoview--show (goals term-goal owner location
+                                   &optional handle accomplished)
   "Show GOALS and TERM-GOAL, whose references OWNER keeps.
 LOCATION describes where they were requested.  HANDLE is the RPC handle
-through which they came, for asking about their subterms."
+through which they came, for asking about their subterms.  ACCOMPLISHED
+is the title of the goals if their proof is complete."
   (with-current-buffer (nael-infoview--get-buffer-create)
     (let ((previous nael-infoview--owner))
       (setq nael-infoview--results (list goals term-goal)
+            nael-infoview--accomplished accomplished
             nael-infoview--owner owner
             nael-infoview--location location)
       (nael-infoview-hover-reset handle)

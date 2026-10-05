@@ -15,6 +15,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'nael-eglot-tests)
 (require 'nael-infoview)
 (require 'nael-render-tests)
 
@@ -399,6 +400,79 @@ The main window shows the buffer Main."
       ;; Nothing happens in the infoview's own window.
       (nael-infoview--keep-window)
       (should (eq (selected-window) home)))))
+
+;;;; Complete proofs:
+
+(ert-deftest nael-infoview-test-accomplished-title ()
+  "Goals in a complete proof are titled so."
+  (nael-infoview-test-with-options
+    (unwind-protect
+        (progn
+          (nael-infoview--show (nael-render-test-fixture) nil
+                               (nael-rpc-make-owner) "SpinLock.lean:110:2"
+                               nil "Goals accomplished 🎉")
+          (with-current-buffer (nael-infoview--buffer)
+            (should (string-prefix-p "Goals accomplished 🎉\ngoal 1\n"
+                                     (buffer-string))))
+          ;; Without goals, the title alone.
+          (nael-infoview--show nil nil (nael-rpc-make-owner) "A.lean:1:0"
+                               nil "Goals accomplished 🎉")
+          (with-current-buffer (nael-infoview--buffer)
+            (should (equal (string-trim (buffer-string))
+                           "Goals accomplished 🎉")))
+          (nael-infoview--show nil nil (nael-rpc-make-owner) "A.lean:1:0")
+          (with-current-buffer (nael-infoview--buffer)
+            (should (string-prefix-p "No goals" (buffer-string)))))
+      (when-let* ((buffer (nael-infoview--buffer)))
+        (kill-buffer buffer)))))
+
+(defmacro nael-infoview-test-with-proof (&rest body)
+  "Run BODY in a buffer of 10 lines whose lines 2 to 5 are a complete proof."
+  (declare (indent 0) (debug t))
+  `(with-temp-buffer
+     (dotimes (i 10) (insert (format "line %d\n" i)))
+     (setq nael-eglot-diagnostics
+           (vector (nael-eglot-test-diagnostic 3 '(2 . 0) '(5 . 6)
+                                               :tags '(2) :silent t)))
+     ,@body))
+
+(defun nael-infoview-test-line (line)
+  "Return the position of the start of the 0-based LINE."
+  (save-excursion (goto-char (point-min)) (forward-line line) (point)))
+
+(ert-deftest nael-infoview-test-accomplished ()
+  "The title comes from the diagnostics and the sign of the source buffer."
+  (nael-infoview-test-with-proof
+    (let ((nael-margin-goals-accomplished "🎉"))
+      (cl-letf (((symbol-function 'char-displayable-p) #'always))
+        (cl-flet ((title (line)
+                    (nael-infoview--accomplished-title
+                     (current-buffer) (nael-infoview-test-line line))))
+          (should-not (title 1))
+          (should (equal (title 3) "Goals accomplished 🎉"))
+          (setq-local nael-margin-goals-accomplished "🐣")
+          (should (equal (title 5) "Goals accomplished 🐣"))
+          (setq-local nael-margin-goals-accomplished "")
+          (should (equal (title 2) "Goals accomplished")))))))
+
+(ert-deftest nael-infoview-test-accomplished-trigger ()
+  "The infoview updates when the diagnostics around point change."
+  (nael-infoview-test-with-proof
+    (let ((scheduled 0)
+          (diagnostics nael-eglot-diagnostics)
+          (nael-infoview--target (cons (current-buffer)
+                                       (nael-infoview-test-line 4))))
+      (cl-letf (((symbol-function 'nael-infoview-visible-p) #'always)
+                ((symbol-function 'nael-infoview--schedule)
+                 (lambda (&rest _) (cl-incf scheduled))))
+        (setq nael-infoview--diagnostics-key nil)
+        ;; The range of the complete proof is only its first line.
+        (nael-infoview--diagnostics diagnostics)
+        (should (= scheduled 1))
+        (nael-infoview--diagnostics diagnostics)
+        (should (= scheduled 1))
+        (nael-infoview--diagnostics [])
+        (should (= scheduled 2))))))
 
 (provide 'nael-infoview-tests)
 

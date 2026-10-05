@@ -21,6 +21,7 @@
 
 (require 'ert)
 (require 'nael-margin)
+(require 'nael-infoview-live)
 (require 'nael-margin-tests)
 (require 'nael-rpc-live)
 
@@ -175,6 +176,21 @@ Return them as (LINE STRING), LINE 0-based."
     (should (nael-rpc-live-wait #'nael-rpc-live-processed-p 30))
     (nael-margin-live-settle)
     (should (equal (nael-margin-live-signs) '((1 "🎉") (5 "🎉"))))))
+
+(ert-deftest nael-margin-live-infoview ()
+  "In a complete proof, the infoview's goals are titled so."
+  (let ((buffer (nael-margin-live-open "Tiny/Signs.lean")))
+    (set-buffer buffer)
+    (switch-to-buffer buffer)
+    (unless (nael-infoview-visible-p)
+      (nael-infoview))
+    (nael-infoview-live-move 2 2)
+    (should (nael-infoview-live-wait-for "Goals accomplished"))
+    (nael-infoview-live-settle)
+    (nael-infoview-live-move 5 2)
+    (should (nael-infoview-live-wait-for "Tactic state: 1 goal"))
+    (should-not (string-search "Goals accomplished"
+                               (nael-infoview-live-text)))))
 
 (provide 'nael-margin-live)
 

@@ -40,6 +40,7 @@
 
 (require 'nael-eglot)
 (require 'nael-infoview-buffer)
+(require 'nael-margin)
 (require 'nael-render)
 (require 'nael-rpc)
 
@@ -112,6 +113,17 @@ Lean 4.30 and later announce their RPC wire format."
                 (plist-get :rpcProvider)
                 (plist-get :rpcWireFormat)))
 
+(defun nael-infoview--accomplished-title (buffer pos)
+  "Return the title for goals at POS in BUFFER if their proof is complete.
+Return nil if it is not, as far as the server has said."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (nael-eglot-goals-accomplished-p
+             (save-excursion (goto-char pos) (1- (line-number-at-pos nil t))))
+        (string-trim-right
+         (concat "Goals accomplished "
+                 (nael-margin-sign 'nael-margin-goals-accomplished)))))))
+
 (defun nael-infoview--request (buffer pos)
   "Request goals and expected type at POS in BUFFER and show them."
   (let ((generation (cl-incf nael-infoview--generation))
@@ -135,7 +147,9 @@ Lean 4.30 and later announce their RPC wire format."
                       (cons 'error (or (plist-get error :message)
                                        (format "%S" error)))))
                  (nael-infoview--show goals term-goal owner location
-                                      handle)))))
+                                      handle
+                                      (nael-infoview--accomplished-title
+                                       buffer pos))))))
          (fail (e)
            (setq error e)))
       (nael-infoview--set-status 'updating)
@@ -233,16 +247,17 @@ Also update it if it is waiting for processing to end."
       (setq nael-infoview--processing-before now))))
 
 (defun nael-infoview--diagnostics (diagnostics)
-  "Update the infoview if DIAGNOSTICS at the line of point changed."
+  "Update the infoview if DIAGNOSTICS at the line of point changed.
+The full ranges of diagnostics count, so that a proof that becomes
+complete around point updates the infoview's title."
   (when (and (eq (current-buffer) (car nael-infoview--target))
              (nael-infoview-visible-p))
     (let* ((line (nael-infoview--target-line))
            (key (seq-filter
                  (lambda (diagnostic)
-                   (let ((range (plist-get diagnostic :range)))
-                     (<= (plist-get (plist-get range :start) :line)
-                         line
-                         (plist-get (plist-get range :end) :line))))
+                   (pcase-let ((`(,first . ,last)
+                                (nael-eglot-diagnostic-lines diagnostic t)))
+                     (<= first line last)))
                  diagnostics)))
       (unless (equal key nael-infoview--diagnostics-key)
         (setq nael-infoview--diagnostics-key key)

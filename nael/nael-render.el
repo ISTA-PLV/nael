@@ -272,11 +272,12 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
   (let ((count (length goals))
         (names nil))
     (nael-render--heading
-     (format "Tactic state: %s"
-             (pcase count
-               (0 "no goals")
-               (1 "1 goal")
-               (_ (format "%d goals" count))))
+     (or (plist-get options :accomplished)
+         (format "Tactic state: %s"
+                 (pcase count
+                   (0 "no goals")
+                   (1 "1 goal")
+                   (_ (format "%d goals" count)))))
      'goals)
     (seq-do-indexed
      (lambda (goal index)
@@ -332,13 +333,17 @@ OPTIONS is a plist of view options:
   :hide-inaccessible hide inaccessible names, such as `n✝';
   :hide-let-values   hide the values of let-bound hypotheses;
   :reverse           show the target first, then hypotheses upwards;
-  :hide-diffs        do not mark what the tactic at point changes."
+  :hide-diffs        do not mark what the tactic at point changes;
+  :accomplished      the title of the goals, such as \"Goals accomplished\",
+                     if their proof is complete; it replaces the count
+                     of goals, and the section is shown even without
+                     GOALS."
   (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
         (nael-render--nodes nil)
         (nael-render--goal-ids nil)
         (nael-render--faces nil))
     (with-temp-buffer
-      (when goals
+      (when (or goals (plist-get options :accomplished))
         (nael-render--goals-section (plist-get goals :goals) options))
       (when term-goal
         (unless (bobp) (insert "\n"))
