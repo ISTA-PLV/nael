@@ -18,18 +18,7 @@
 
 (require 'ert)
 (require 'nael-rpc)
-
-(defconst nael-rpc-test-fixtures
-  (expand-file-name "fixtures/"
-                    (file-name-directory
-                     (or load-file-name buffer-file-name))))
-
-(defun nael-rpc-test-read-fixture (name)
-  "Parse the JSON fixture NAME as jsonrpc.el would."
-  (with-temp-buffer
-    (insert-file-contents (expand-file-name name nael-rpc-test-fixtures))
-    (json-parse-buffer :object-type 'plist :array-type 'array
-                       :null-object nil :false-object :json-false)))
+(require 'nael-test-helpers)
 
 (defvar nael-rpc-test-requests nil
   "Requests sent to the fake connection, newest first.
@@ -117,7 +106,7 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
 (ert-deftest nael-rpc-test-collect-refs-fixture ()
   "Every reference in a recorded goal result is found: hyps, ctx, target."
   (let ((refs (nael-rpc-collect-refs
-               (nael-rpc-test-read-fixture "goals-iris-spinlock.json")
+               (nael-test-read-fixture "goals-iris-spinlock.json")
                :__rpcref)))
     (should (= (length refs) 66))
     (should (= (length (seq-uniq refs)) 66))))
@@ -321,7 +310,7 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
     (with-temp-buffer
       (let ((handle (nael-rpc-test-handle (current-buffer)))
             (owner (nael-rpc-make-owner))
-            (goals (nael-rpc-test-read-fixture "goals-iris-spinlock.json")))
+            (goals (nael-test-read-fixture "goals-iris-spinlock.json")))
         (nael-rpc-test-connect)
         (nael-rpc-get-interactive-goals handle #'ignore :owner owner)
         (nael-rpc-get-interactive-term-goal handle #'ignore :owner owner)

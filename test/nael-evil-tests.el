@@ -16,7 +16,7 @@
 
 (require 'ert)
 (require 'nael-evil)
-(require 'nael-infoview-tests)
+(require 'nael-test-helpers)
 
 (ert-deftest nael-evil-test-keys ()
   "In Evil's normal state, the infoview and its help buffer have their keys."
@@ -24,7 +24,7 @@
     (ert-skip "Evil is not installed"))
   (nael-evil-setup)
   (evil-set-leader 'normal (kbd ",") 'localleader)
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (evil-local-mode)
     (evil-normal-state)
     (pcase-dolist (`(,key . ,command)
@@ -38,7 +38,7 @@
                      (", y" . nael-infoview-copy-goal)))
       (should (eq (key-binding (kbd key)) command)))
     ;; Subterms keep their own keys.
-    (nael-infoview-test-goto "IProp GF")
+    (nael-test-goto "IProp GF")
     (should (eq (key-binding (kbd "RET")) #'nael-infoview-describe)))
   (with-current-buffer (nael-infoview--help-buffer)
     (unwind-protect

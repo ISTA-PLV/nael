@@ -10,28 +10,13 @@
 ;;; Commentary:
 
 ;; Tests for `nael-margin' that need no Lean server, on diagnostics
-;; made by hand; see `nael-eglot-test-diagnostic'.
+;; made by hand; see `nael-test-diagnostic'.
 
 ;;; Code:
 
 (require 'ert)
 (require 'nael-margin)
-(require 'nael-eglot-tests)
-
-(defmacro nael-margin-test-with-defaults (&rest body)
-  "Run BODY with the default signs, all of which can be displayed."
-  (declare (indent 0) (debug t))
-  `(let ((nael-margin-goals-accomplished "🎉")
-         (nael-margin-unsolved-goals "🔨")
-         (nael-margin-admitted "🚧")
-         (nael-margin-bar '("┌" "│" "└"))
-         (nael-margin-processing "│")
-         (flymake-margin-indicators-string
-          '((error "‼" compilation-error)
-            (warning "!" compilation-warning)
-            (note "!" compilation-info))))
-     (cl-letf (((symbol-function 'char-displayable-p) #'always))
-       ,@body)))
+(require 'nael-test-helpers)
 
 (defun nael-margin-test-wait (predicate &optional seconds)
   "Run timers until PREDICATE holds or SECONDS (default 2) pass."
@@ -53,12 +38,12 @@ The buffer has LINE-COUNT lines, 20 by default."
 
 (ert-deftest nael-margin-test-single-line ()
   "Diagnostics on one line get the sign of their severity."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 1 '(1 . 2) '(1 . 5))
-                          (nael-eglot-test-diagnostic 2 '(3 . 2) '(3 . 5))
-                          (nael-eglot-test-diagnostic 3 '(5 . 2) '(5 . 5))
-                          (nael-eglot-test-diagnostic 4 '(7 . 2) '(7 . 5))))
+                    (list (nael-test-diagnostic 1 '(1 . 2) '(1 . 5))
+                          (nael-test-diagnostic 2 '(3 . 2) '(3 . 5))
+                          (nael-test-diagnostic 3 '(5 . 2) '(5 . 5))
+                          (nael-test-diagnostic 4 '(7 . 2) '(7 . 5))))
                    '((1 "‼" nael-margin-error)
                      (3 "!" nael-margin-warning)
                      (5 "!" nael-margin-info)
@@ -66,51 +51,51 @@ The buffer has LINE-COUNT lines, 20 by default."
 
 (ert-deftest nael-margin-test-bar ()
   "A diagnostic over several lines gets a bar over its full range."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 1 '(2 . 4) '(5 . 3))))
+                    (list (nael-test-diagnostic 1 '(2 . 4) '(5 . 3))))
                    '((2 "┌" nael-margin-error)
                      (3 "│" nael-margin-error)
                      (4 "│" nael-margin-error)
                      (5 "└" nael-margin-error))))
     ;; Ending at the start of a line, it ends on the line before.
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 2 '(2 . 4) '(4 . 0))))
+                    (list (nael-test-diagnostic 2 '(2 . 4) '(4 . 0))))
                    '((2 "┌" nael-margin-warning)
                      (3 "└" nael-margin-warning))))))
 
 (ert-deftest nael-margin-test-bar-criterion ()
   "Bars only where the server shortened the range, as in lean.nvim."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     ;; Over two lines, the shortened range ends on the same line as the
     ;; full range, so there is no bar.
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 1 '(2 . 4) '(3 . 3))))
+                    (list (nael-test-diagnostic 1 '(2 . 4) '(3 . 3))))
                    '((2 "‼" nael-margin-error))))
     ;; A diagnostic about the whole buffer gets a sign on its first line.
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 1 '(0 . 0) '(19 . 0)))
+                    (list (nael-test-diagnostic 1 '(0 . 0) '(19 . 0)))
                     nil 20)
                    '((0 "‼" nael-margin-error))))
     ;; No full range: a sign.
     (should (equal (nael-margin-test-signs
-                    (list (list :range (nael-eglot-test-range '(2 . 0)
-                                                               '(3 . 0))
+                    (list (list :range (nael-test-range '(2 . 0)
+                                                         '(3 . 0))
                                 :severity 1 :message "Message")))
                    '((2 "‼" nael-margin-error))))))
 
 (ert-deftest nael-margin-test-precedence ()
   "Each line shows one sign: errors, warnings, information, processing."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 2 '(2 . 0) '(2 . 3))
-                          (nael-eglot-test-diagnostic 1 '(1 . 0) '(4 . 3))
-                          (nael-eglot-test-diagnostic 3 '(4 . 0) '(4 . 3))
-                          (nael-eglot-test-diagnostic 3 '(6 . 0) '(6 . 3))
-                          (nael-eglot-test-diagnostic 3 '(8 . 0) '(9 . 0)
-                                                       :tags '(2) :silent t))
-                    (list (list :range (nael-eglot-test-range '(5 . 0)
-                                                               '(8 . 0))
+                    (list (nael-test-diagnostic 2 '(2 . 0) '(2 . 3))
+                          (nael-test-diagnostic 1 '(1 . 0) '(4 . 3))
+                          (nael-test-diagnostic 3 '(4 . 0) '(4 . 3))
+                          (nael-test-diagnostic 3 '(6 . 0) '(6 . 3))
+                          (nael-test-diagnostic 3 '(8 . 0) '(9 . 0)
+                                                 :tags '(2) :silent t))
+                    (list (list :range (nael-test-range '(5 . 0)
+                                                         '(8 . 0))
                                 :kind 1)))
                    '((1 "┌" nael-margin-error)
                      (2 "│" nael-margin-error)
@@ -123,9 +108,9 @@ The buffer has LINE-COUNT lines, 20 by default."
     ;; Among signs of the same severity, a first or single line wins
     ;; over the lines of a bar.
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 1 '(1 . 0) '(4 . 3))
-                          (nael-eglot-test-diagnostic 1 '(2 . 0) '(2 . 3))
-                          (nael-eglot-test-diagnostic 1 '(4 . 0) '(6 . 3))))
+                    (list (nael-test-diagnostic 1 '(1 . 0) '(4 . 3))
+                          (nael-test-diagnostic 1 '(2 . 0) '(2 . 3))
+                          (nael-test-diagnostic 1 '(4 . 0) '(6 . 3))))
                    '((1 "┌" nael-margin-error)
                      (2 "‼" nael-margin-error)
                      (3 "│" nael-margin-error)
@@ -135,18 +120,18 @@ The buffer has LINE-COUNT lines, 20 by default."
 
 (ert-deftest nael-margin-test-proofs ()
   "Signs for complete, unsolved and admitted proofs."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 3 '(0 . 0) '(1 . 6)
-                                                       :tags '(2) :silent t)
-                          (nael-eglot-test-diagnostic 1 '(3 . 56) '(5 . 9)
-                                                       :tags '(1))
-                          (nael-eglot-test-diagnostic
+                    (list (nael-test-diagnostic 3 '(0 . 0) '(1 . 6)
+                                                 :tags '(2) :silent t)
+                          (nael-test-diagnostic 1 '(3 . 56) '(5 . 9)
+                                                 :tags '(1))
+                          (nael-test-diagnostic
                            2 '(7 . 8) '(7 . 16)
                            :message "declaration uses `sorry`")
-                          (nael-eglot-test-diagnostic 1 '(9 . 2) '(9 . 8)
-                                                       :tags '(1))
-                          (nael-eglot-test-diagnostic
+                          (nael-test-diagnostic 1 '(9 . 2) '(9 . 8)
+                                                 :tags '(1))
+                          (nael-test-diagnostic
                            2 '(11 . 8) '(11 . 16)
                            :message "declaration uses 'sorry'")))
                    '((0 "🎉" nael-margin-goals-accomplished)
@@ -158,26 +143,26 @@ The buffer has LINE-COUNT lines, 20 by default."
                      (11 "🚧" nael-margin-admitted))))
     ;; Other silent diagnostics and other warnings get no such sign.
     (should (equal (nael-margin-test-signs
-                    (list (nael-eglot-test-diagnostic 3 '(0 . 0) '(0 . 6)
-                                                       :silent t)
-                          (nael-eglot-test-diagnostic
+                    (list (nael-test-diagnostic 3 '(0 . 0) '(0 . 6)
+                                                 :silent t)
+                          (nael-test-diagnostic
                            2 '(2 . 0) '(2 . 6)
                            :message "unused variable `sorry`")))
                    '((2 "!" nael-margin-warning))))))
 
 (ert-deftest nael-margin-test-processing ()
   "Lines being processed get a bar; regions with fatal errors do not."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (should (equal (nael-margin-test-signs
                     nil
-                    (list (list :range (nael-eglot-test-range '(2 . 0)
-                                                               '(3 . 0))
+                    (list (list :range (nael-test-range '(2 . 0)
+                                                         '(3 . 0))
                                 :kind 1)
-                          (list :range (nael-eglot-test-range '(5 . 0)
-                                                               '(6 . 0))
+                          (list :range (nael-test-range '(5 . 0)
+                                                         '(6 . 0))
                                 :kind 2)
-                          (list :range (nael-eglot-test-range '(8 . 0)
-                                                               '(30 . 0))))
+                          (list :range (nael-test-range '(8 . 0)
+                                                         '(30 . 0))))
                     10)
                    '((2 "│" nael-margin-processing)
                      (3 "│" nael-margin-processing)
@@ -186,18 +171,18 @@ The buffer has LINE-COUNT lines, 20 by default."
 
 (ert-deftest nael-margin-test-options ()
   "The signs follow the options, also as buffer-local values."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (with-temp-buffer
       (setq-local nael-margin-goals-accomplished "🐣"
                   nael-margin-unsolved-goals "🥚"
                   nael-margin-admitted "🍗"
                   nael-margin-bar '("╭" "┆" "╰"))
       (let ((diagnostics
-             (list (nael-eglot-test-diagnostic 3 '(0 . 0) '(1 . 6)
-                                                :tags '(2) :silent t)
-                   (nael-eglot-test-diagnostic 1 '(3 . 0) '(5 . 9)
-                                                :tags '(1))
-                   (nael-eglot-test-diagnostic
+             (list (nael-test-diagnostic 3 '(0 . 0) '(1 . 6)
+                                          :tags '(2) :silent t)
+                   (nael-test-diagnostic 1 '(3 . 0) '(5 . 9)
+                                          :tags '(1))
+                   (nael-test-diagnostic
                     2 '(7 . 8) '(7 . 16)
                     :message "declaration uses `sorry`"))))
         (should (equal (nael-margin-test-signs diagnostics)
@@ -221,9 +206,9 @@ The buffer has LINE-COUNT lines, 20 by default."
                                               (warning "W")
                                               (note "I"))))
       (should (equal (nael-margin-test-signs
-                      (list (nael-eglot-test-diagnostic 1 '(1 . 0) '(1 . 3))
-                            (nael-eglot-test-diagnostic 2 '(2 . 0) '(2 . 3))
-                            (nael-eglot-test-diagnostic 3 '(3 . 0) '(3 . 3))))
+                      (list (nael-test-diagnostic 1 '(1 . 0) '(1 . 3))
+                            (nael-test-diagnostic 2 '(2 . 0) '(2 . 3))
+                            (nael-test-diagnostic 3 '(3 . 0) '(3 . 3))))
                      '((1 "E" nael-margin-error)
                        (2 "W" nael-margin-warning)
                        (3 "I" nael-margin-info)))))))
@@ -252,7 +237,7 @@ The buffer has LINE-COUNT lines, 20 by default."
 (defmacro nael-margin-test-with-buffer (diagnostics &rest body)
   "Run BODY in a buffer of 20 lines with DIAGNOSTICS, shown in a window."
   (declare (indent 1) (debug t))
-  `(nael-margin-test-with-defaults
+  `(nael-test-with-margin-defaults
      (with-temp-buffer
        (dotimes (i 20) (insert (format "line %d\n" i)))
        (setq nael-eglot-diagnostics (vconcat ,diagnostics)
@@ -260,26 +245,15 @@ The buffer has LINE-COUNT lines, 20 by default."
        (set-window-buffer nil (current-buffer))
        ,@body)))
 
-(defun nael-margin-test-drawn ()
-  "Return the drawn signs as (LINE STRING) in order, LINE 0-based."
-  (sort (mapcar (lambda (overlay)
-                  (let ((spec (get-text-property
-                               0 'display (overlay-get overlay 'before-string))))
-                    (should (equal (car spec) '(margin left-margin)))
-                    (list (1- (line-number-at-pos (overlay-start overlay)))
-                          (substring-no-properties (cadr spec)))))
-                nael-margin--overlays)
-        #'car-less-than-car))
-
 (ert-deftest nael-margin-test-draw ()
   "Signs are drawn at the start of their lines and cut to two columns."
   (nael-margin-test-with-buffer
-      (list (nael-eglot-test-diagnostic 1 '(2 . 4) '(4 . 3))
-            (nael-eglot-test-diagnostic 2 '(7 . 8) '(7 . 16)
-                                         :message "declaration uses `sorry`"))
+      (list (nael-test-diagnostic 1 '(2 . 4) '(4 . 3))
+            (nael-test-diagnostic 2 '(7 . 8) '(7 . 16)
+                                   :message "declaration uses `sorry`"))
     (setq-local nael-margin-admitted "abc")
     (nael-margin-draw)
-    (should (equal (nael-margin-test-drawn)
+    (should (equal (nael-test-margin-drawn)
                    '((2 "┌") (3 "│") (4 "└") (7 "ab"))))
     (should (seq-every-p (lambda (overlay)
                            (= (overlay-start overlay)
@@ -290,15 +264,15 @@ The buffer has LINE-COUNT lines, 20 by default."
     ;; Drawing again replaces the signs.
     (setq nael-eglot-diagnostics [])
     (nael-margin-draw)
-    (should-not (nael-margin-test-drawn))
+    (should-not (nael-test-margin-drawn))
     (should-not (seq-some (lambda (overlay) (overlay-get overlay 'nael-margin))
                           (overlays-in (point-min) (point-max))))))
 
 (ert-deftest nael-margin-test-help ()
   "A sign tells the message of its diagnostic and lists all on click."
   (nael-margin-test-with-buffer
-      (list (nael-eglot-test-diagnostic 1 '(2 . 4) '(2 . 9)
-                                         :message "unknown identifier"))
+      (list (nael-test-diagnostic 1 '(2 . 4) '(2 . 9)
+                                   :message "unknown identifier"))
     (nael-margin-draw)
     (let ((string (cadr (get-text-property
                          0 'display
@@ -404,18 +378,6 @@ The buffer has LINE-COUNT lines, 20 by default."
       (should (eq flymake-autoresize-margins 'mine))
       (should-not (local-variable-p 'flycheck-indication-mode)))))
 
-(defun nael-margin-test-empty-display-p (display)
-  "Return non-nil if DISPLAY shows nothing, in the margin or the fringe.
-Flymake 1.4 chooses between both with `when' specifications."
-  (if (eq (car-safe (car-safe display)) 'when)
-      (seq-every-p (lambda (spec)
-                     (and (eq (car-safe spec) 'when)
-                          (nael-margin-test-empty-display-p (cddr spec))))
-                   display)
-    (member display '(((margin left-margin) "")
-                      (left-fringe nael-margin-empty)
-                      (right-fringe nael-margin-empty)))))
-
 (defun nael-margin-test-flymake-backend (report &rest _)
   "Report an error of Eglot's type through REPORT."
   (funcall report (list (flymake-make-diagnostic (current-buffer) 1 5
@@ -442,13 +404,13 @@ Flymake 1.4 chooses between both with `when' specifications."
             ;; Flymake's placeholder text, if any, is always replaced
             ;; by a display that shows nothing.
             (when string
-              (should (nael-margin-test-empty-display-p display)))))
+              (should (nael-test-empty-display-p display)))))
       (flymake-mode -1))))
 
 (ert-deftest nael-margin-test-schedule ()
   "Reports in a burst draw the signs once, after a delay."
   (nael-margin-test-with-buffer
-      (list (nael-eglot-test-diagnostic 1 '(2 . 4) '(2 . 9)))
+      (list (nael-test-diagnostic 1 '(2 . 4) '(2 . 9)))
     (let ((draws 0)
           (nael-margin-delay 0.05))
       (advice-add 'nael-margin-draw :before
@@ -465,7 +427,7 @@ Flymake 1.4 chooses between both with `when' specifications."
             (should (nael-margin-test-wait (lambda () (= draws 1))))
             (nael-margin-test-wait #'ignore 0.15)
             (should (= draws 1))
-            (should (equal (nael-margin-test-drawn) '((2 "‼")))))
+            (should (equal (nael-test-margin-drawn) '((2 "‼")))))
         (advice-remove 'nael-margin-draw 'nael-margin-test)
         (nael-margin-mode -1)))))
 

@@ -15,50 +15,16 @@
 ;;; Code:
 
 (require 'ert)
-(require 'nael-eglot-tests)
 (require 'nael-infoview)
-(require 'nael-render-tests)
-
-(defmacro nael-infoview-test-with-options (&rest body)
-  "Run BODY with the default view options of the infoview."
-  (declare (indent 0) (debug t))
-  `(let ((nael-infoview-hide-instances nil)
-         (nael-infoview-hide-types nil)
-         (nael-infoview-hide-inaccessible nil)
-         (nael-infoview-hide-let-values nil)
-         (nael-infoview-reverse nil)
-         (nael-infoview-show-diffs t)
-         (nael-infoview-expected-type 'expanded))
-     ,@body))
-
-(defmacro nael-infoview-test-with-goals (&rest body)
-  "Run BODY in the infoview showing the recorded goals of SpinLock."
-  (declare (indent 0) (debug t))
-  `(nael-infoview-test-with-options
-     (unwind-protect
-         (progn
-           (nael-infoview--show (nael-render-test-fixture) nil
-                                (nael-rpc-make-owner) "SpinLock.lean:110:2")
-           (with-current-buffer (nael-infoview--buffer)
-             (switch-to-buffer (current-buffer))
-             (goto-char (point-min))
-             ,@body))
-       (when-let* ((buffer (nael-infoview--buffer)))
-         (kill-buffer buffer)))))
-
-(defun nael-infoview-test-goto (string)
-  "Move point to the start of the first occurrence of STRING."
-  (goto-char (point-min))
-  (search-forward string)
-  (goto-char (match-beginning 0)))
+(require 'nael-test-helpers)
 
 (ert-deftest nael-infoview-test-show ()
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (should (string-prefix-p "Tactic state: 3 goals\ngoal 1\n"
                              (buffer-string)))
     (should (= (seq-count (lambda (overlay)
                             (and (overlay-get overlay 'mouse-face)
-                                 (not (overlay-get overlay 'outline-button))))
+                        (not (overlay-get overlay 'outline-button))))
                           (overlays-in (point-min) (point-max)))
                63))
     (should (string-search "SpinLock.lean:110:2"
@@ -67,7 +33,7 @@
 
 (ert-deftest nael-infoview-test-own-overlays ()
   "Rendering again replaces the infoview's overlays, and only those."
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (cl-flet ((count (property)
                 (seq-count (lambda (overlay) (overlay-get overlay property))
                            (overlays-in (point-min) (point-max)))))
@@ -76,7 +42,7 @@
             (buttons (count 'outline-button)))
         (should (> nodes 0))
         (should (> buttons 0))
-        (nael-infoview-test-goto "IProp GF")
+        (nael-test-goto "IProp GF")
         (nael-infoview--highlight-point)
         (nael-infoview-toggle-types)
         (nael-infoview-toggle-types)
@@ -85,7 +51,7 @@
         (should (= (count 'outline-button) buttons))
         (should (= (seq-count (lambda (overlay)
                                 (eq (overlay-get overlay 'face)
-                                    'nael-infoview-point-node))
+                           'nael-infoview-point-node))
                               (overlays-in (point-min) (point-max)))
                    1))))))
 
@@ -94,7 +60,7 @@
   (let ((default (default-value 'truncate-lines)))
     (setq-default truncate-lines t)
     (unwind-protect
-        (nael-infoview-test-with-goals
+        (nael-test-with-goals
           (should-not truncate-lines)
           (should word-wrap)
           (should (get-text-property (point-min) 'wrap-prefix))
@@ -107,17 +73,17 @@
 
 (ert-deftest nael-infoview-test-fold-survives-render ()
   "Folded goals and sections stay folded when the goals are shown again."
-  (nael-infoview-test-with-goals
-    (nael-infoview-test-goto "goal 2")
+  (nael-test-with-goals
+    (nael-test-goto "goal 2")
     (outline-hide-subtree)
     (should (outline-invisible-p (line-end-position)))
     ;; Render again, as a filter toggle or a refresh does.
     (nael-infoview-toggle-instances)
-    (nael-infoview-test-goto "goal 2")
+    (nael-test-goto "goal 2")
     (should (outline-invisible-p (line-end-position)))
-    (nael-infoview-test-goto "goal 1")
+    (nael-test-goto "goal 1")
     (should-not (outline-invisible-p (line-end-position)))
-    (nael-infoview-test-goto "goal 3")
+    (nael-test-goto "goal 3")
     (should-not (outline-invisible-p (line-end-position)))))
 
 (defun nael-infoview-test-button ()
@@ -131,21 +97,21 @@ In the margin, the button is a space displaying the icon there."
 
 (ert-deftest nael-infoview-test-fold-buttons ()
   "Every foldable heading has a button that shows whether it is folded."
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     ;; The buttons are separated from the text by a blank column.
     (should (= left-margin-width 2))
     (dolist (heading '("Tactic state" "goal 1" "goal 2" "goal 3"))
-      (nael-infoview-test-goto heading)
+      (nael-test-goto heading)
       (should (nael-infoview-test-button)))
-    (nael-infoview-test-goto "hlc : HasLC")
+    (nael-test-goto "hlc : HasLC")
     (should-not (nael-infoview-test-button))
-    (nael-infoview-test-goto "goal 2")
+    (nael-test-goto "goal 2")
     (let ((open (nael-infoview-test-button)))
       (outline-hide-subtree)
       (should-not (equal (nael-infoview-test-button) open))
       ;; Still closed after rendering again.
       (nael-infoview-toggle-types)
-      (nael-infoview-test-goto "goal 2")
+      (nael-test-goto "goal 2")
       (should-not (equal (nael-infoview-test-button) open)))))
 
 (defun nael-infoview-test-renumber (goals suffix)
@@ -159,42 +125,42 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-fold-survives-tactic ()
   "A folded goal stays folded at the same place after the next tactic."
-  (nael-infoview-test-with-goals
-    (nael-infoview-test-goto "goal 2")
+  (nael-test-with-goals
+    (nael-test-goto "goal 2")
     (outline-hide-subtree)
     (nael-infoview--show (nael-infoview-test-renumber
-                          (nael-render-test-fixture) ".next")
+                          (nael-test-spinlock-goals) ".next")
                          nil (nael-rpc-make-owner) "SpinLock.lean:111:2")
-    (nael-infoview-test-goto "goal 2")
+    (nael-test-goto "goal 2")
     (should (outline-invisible-p (line-end-position)))
-    (nael-infoview-test-goto "goal 1")
+    (nael-test-goto "goal 1")
     (should-not (outline-invisible-p (line-end-position)))))
 
 (ert-deftest nael-infoview-test-fold-case-by-name ()
   "A folded case stays folded where it moves, an unfolded one open."
-  (nael-infoview-test-with-options
-   (let ((inl (nael-render-test-goal :userName "inl"))
-        (inr (nael-render-test-goal :userName "inr")))
+  (nael-test-with-options
+   (let ((inl (nael-test-goal :userName "inl"))
+        (inr (nael-test-goal :userName "inr")))
     (unwind-protect
         (progn
           (nael-infoview--show (list :goals (vector inl inr)) nil
                                (nael-rpc-make-owner) "x")
           (with-current-buffer (nael-infoview--buffer)
-            (nael-infoview-test-goto "case inr")
+            (nael-test-goto "case inr")
             (outline-hide-subtree)
             ;; `inl' is solved; `inr' is now the first goal.
             (nael-infoview--show (list :goals (vector inr)) nil
                                  (nael-rpc-make-owner) "x")
-            (nael-infoview-test-goto "case inr")
+            (nael-test-goto "case inr")
             (should (outline-invisible-p (line-end-position)))
             (nael-infoview--show (list :goals (vector inl inr)) nil
                                  (nael-rpc-make-owner) "x")
-            (nael-infoview-test-goto "case inl")
+            (nael-test-goto "case inl")
             (should-not (outline-invisible-p (line-end-position)))))
       (kill-buffer (nael-infoview--buffer))))))
 
 (ert-deftest nael-infoview-test-filters ()
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (should (string-search "inst✝" (buffer-string)))
     (nael-infoview-toggle-instances)
     (should-not (string-search "inst✝" (buffer-string)))
@@ -204,21 +170,21 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-view-options ()
   "A menu shows and changes the view options."
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (should (eq (key-binding "v") #'nael-infoview-view-options))
     (should (transient-get-suffix 'nael-infoview-view-options "i"))
     (should (equal (nael-infoview--switch-description "Hide types" t)
                    "Hide types on"))
     (should (eq (get-text-property 11 'face (nael-infoview--switch-description
-                                             "Hide types" t))
+                                    "Hide types" t))
                 'transient-value))
     (cl-flet ((current ()
                 (let ((description (nael-infoview--expected-type-description)))
                   (seq-find (lambda (value)
                               (let ((i (string-search (symbol-name value)
-                                                      description)))
+                                             description)))
                                 (eq (get-text-property i 'face description)
-                                    'transient-value)))
+                           'transient-value)))
                             '(expanded collapsed hidden)))))
       (should (eq (current) 'expanded))
       (nael-infoview-cycle-expected-type)
@@ -231,7 +197,7 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-toggle-diffs ()
   "Diffs can be switched off and on."
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (cl-flet ((marked-p ()
                 (text-property-search-forward
                  'face 'nael-render-diff-removed
@@ -247,23 +213,23 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-expected-type-collapsed ()
   "A collapsed expected type starts folded and stays as the user leaves it."
-  (nael-infoview-test-with-options
+  (nael-test-with-options
     (let ((nael-infoview-expected-type 'collapsed)
-          (term-goal (list :hyps [] :type (nael-render-test-code "Nat"))))
+          (term-goal (list :hyps [] :type (nael-test-code "Nat"))))
       (unwind-protect
           (progn
             (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
             (with-current-buffer (nael-infoview--buffer)
-              (nael-infoview-test-goto "Expected type")
+              (nael-test-goto "Expected type")
               (should (outline-invisible-p (line-end-position)))
               (outline-show-subtree)
               (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
-              (nael-infoview-test-goto "Expected type")
+              (nael-test-goto "Expected type")
               (should-not (outline-invisible-p (line-end-position)))
               ;; Gone and back: folded again.
               (nael-infoview--show nil nil (nael-rpc-make-owner) "x")
               (nael-infoview--show nil term-goal (nael-rpc-make-owner) "x")
-              (nael-infoview-test-goto "Expected type")
+              (nael-test-goto "Expected type")
               (should (outline-invisible-p (line-end-position)))))
         (kill-buffer (nael-infoview--buffer))))))
 
@@ -275,7 +241,7 @@ That is what the goals look like after the next tactic."
     (should (eldoc--message-command-p command))))
 
 (ert-deftest nael-infoview-test-goal-navigation ()
-  (nael-infoview-test-with-goals
+  (nael-test-with-goals
     (nael-infoview-next-goal)
     (should (looking-at "goal 1"))
     (nael-infoview-next-goal)
@@ -291,8 +257,8 @@ That is what the goals look like after the next tactic."
     (should-error (nael-infoview-next-goal) :type 'user-error)))
 
 (ert-deftest nael-infoview-test-copy-goal ()
-  (nael-infoview-test-with-goals
-    (nael-infoview-test-goto "goal 3")
+  (nael-test-with-goals
+    (nael-test-goto "goal 3")
     (forward-line 3)
     (let ((kill-ring nil))
       (nael-infoview-copy-goal)
@@ -302,8 +268,8 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-point-highlight ()
   "The innermost subterm at point is highlighted, and only that."
-  (nael-infoview-test-with-goals
-    (nael-infoview-test-goto "IProp GF")
+  (nael-test-with-goals
+    (nael-test-goto "IProp GF")
     (search-forward "G")
     (nael-infoview--highlight-point)
     (let ((overlay nael-infoview--point-overlay)
@@ -319,21 +285,21 @@ That is what the goals look like after the next tactic."
 
 (ert-deftest nael-infoview-test-window-anchor ()
   "The window keeps its place in a goal when the goals are rendered again."
-  (nael-infoview-test-with-goals
-    (nael-infoview-test-goto "goal 3")
+  (nael-test-with-goals
+    (nael-test-goto "goal 3")
     (forward-line 2)
     (forward-char 3)
     (let ((line (buffer-substring-no-properties (line-beginning-position)
-                                                (point))))
+                                       (point))))
       ;; Hiding instances removes lines above, in goals 1 to 3.
       (nael-infoview-toggle-instances)
       (should (equal (buffer-substring-no-properties
                       (line-beginning-position) (point))
                      line))
       (should (equal (get-text-property (point) 'nael-goal)
-                     (save-excursion (nael-infoview-test-goto "goal 3")
-                                     (get-text-property (point)
-                                                        'nael-goal)))))))
+                     (save-excursion (nael-test-goto "goal 3")
+                            (get-text-property (point)
+                                               'nael-goal)))))))
 
 ;;;; Updates:
 
@@ -345,7 +311,7 @@ That is what the goals look like after the next tactic."
 The requests are in `nael-infoview-test-calls'; the variable `source'
 is the source buffer."
   (declare (indent 0) (debug t))
-  `(nael-infoview-test-with-options
+  `(nael-test-with-options
      (let ((nael-infoview-test-calls nil)
            (nael-infoview--pending-owner nil)
            (source (generate-new-buffer "nael-infoview-test-source")))
@@ -354,7 +320,7 @@ is the source buffer."
                      (let ((success (seq-find #'functionp args)))
                        (push (list what success
                                    (plist-get (cdr (memq success args))
-                                              :owner))
+                                     :owner))
                              nael-infoview-test-calls)))))
          (cl-letf (((symbol-function 'nael-rpc-open) (lambda (&rest _) 'handle))
                    ((symbol-function 'nael-rpc-get-interactive-goals)
@@ -380,7 +346,7 @@ is the source buffer."
   (dolist (call nael-infoview-test-calls)
     (funcall (nth 1 call)
              (and (eq (car call) 'goals)
-                  (list :goals (vector (nael-render-test-goal)))))))
+                  (list :goals (vector (nael-test-goal)))))))
 
 (ert-deftest nael-infoview-test-update-answered ()
   "The answers to an update are shown together."
@@ -420,33 +386,9 @@ is the source buffer."
 
 ;;;; Windows:
 
-(defmacro nael-infoview-test-with-windows (&rest body)
-  "Run BODY with the infoview displayed in its side window, selected.
-The main window shows the buffer Main."
-  (declare (indent 0) (debug t))
-  `(nael-infoview-test-with-goals
-     (let ((main (get-buffer-create "Main")))
-       (unwind-protect
-           (progn
-             (dolist (window (window-list))
-               (when (window-parameter window 'window-side)
-                 (delete-window window)))
-             (delete-other-windows)
-             (switch-to-buffer main)
-             (setq nael-infoview--window
-                   (display-buffer (nael-infoview--buffer)
-                                   nael-infoview-display-action))
-             (select-window nael-infoview--window)
-             ,@body)
-         (dolist (window (window-list))
-           (when (window-parameter window 'window-side)
-             (delete-window window)))
-         (setq nael-infoview--window nil)
-         (kill-buffer main)))))
-
 (ert-deftest nael-infoview-test-jump-out ()
   "A jump from the infoview shows its target in another window."
-  (nael-infoview-test-with-windows
+  (nael-test-with-windows
     (let ((target (get-buffer-create "Target")))
       (unwind-protect
           (progn
@@ -460,9 +402,9 @@ The main window shows the buffer Main."
 
 (ert-deftest nael-infoview-test-jump-back ()
   "Going back to the infoview selects its window, not a second one."
-  (nael-infoview-test-with-windows
+  (nael-test-with-windows
     (let ((home nael-infoview--window)
-          (pos (save-excursion (nael-infoview-test-goto "goal 2") (point))))
+          (pos (save-excursion (nael-test-goto "goal 2") (point))))
       (select-window (get-buffer-window "Main"))
       ;; As `xref-go-back' does, then the command loop.
       (switch-to-buffer (nael-infoview--buffer))
@@ -471,7 +413,7 @@ The main window shows the buffer Main."
       (should (eq (selected-window) home))
       (should (= (point) pos))
       (should (equal (sort (mapcar #'buffer-name
-                                   (mapcar #'window-buffer (window-list)))
+                          (mapcar #'window-buffer (window-list)))
                            #'string<)
                      (list "*Nael Infoview*" "Main")))
       ;; Nothing happens in the infoview's own window.
@@ -482,10 +424,10 @@ The main window shows the buffer Main."
 
 (ert-deftest nael-infoview-test-accomplished-title ()
   "Above goals in a complete proof, a line says so; it replaces no goals."
-  (nael-infoview-test-with-options
+  (nael-test-with-options
     (unwind-protect
         (progn
-          (nael-infoview--show (nael-render-test-fixture) nil
+          (nael-infoview--show (nael-test-spinlock-goals) nil
                                (nael-rpc-make-owner) "SpinLock.lean:110:2"
                                nil "Goals accomplished 🎉")
           (with-current-buffer (nael-infoview--buffer)
@@ -509,7 +451,7 @@ The main window shows the buffer Main."
                                "A.lean:2:6")
           (with-current-buffer (nael-infoview--buffer)
             (should (string-prefix-p "Tactic state: no goals"
-                                     (buffer-string))))
+                            (buffer-string))))
           ;; Without goals, the title alone.
           (nael-infoview--show nil nil (nael-rpc-make-owner) "A.lean:1:0"
                                nil "Goals accomplished 🎉")
@@ -528,8 +470,8 @@ The main window shows the buffer Main."
   `(with-temp-buffer
      (dotimes (i 10) (insert (format "line %d\n" i)))
      (setq nael-eglot-diagnostics
-           (vector (nael-eglot-test-diagnostic 3 '(2 . 0) '(5 . 6)
-                                               :tags '(2) :silent t)))
+           (vector (nael-test-diagnostic 3 '(2 . 0) '(5 . 6)
+                                         :tags '(2) :silent t)))
      ,@body))
 
 (defun nael-infoview-test-line (line)

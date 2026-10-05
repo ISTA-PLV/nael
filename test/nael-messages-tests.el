@@ -18,18 +18,11 @@
 
 (require 'ert)
 (require 'nael-infoview)
-(require 'nael-eglot-tests)
-(require 'nael-infoview-tests)
-(require 'nael-render-tests)
+(require 'nael-test-helpers)
 
 (defun nael-messages-test-fixture (&rest indices)
   "Return the recorded messages at INDICES, or all, as a vector."
-  (let ((all (with-temp-buffer
-               (insert-file-contents
-                (expand-file-name "interactive-diagnostics.json"
-                                  nael-render-test-fixtures))
-               (json-parse-buffer :object-type 'plist :array-type 'array
-                                  :null-object nil :false-object :json-false))))
+  (let ((all (nael-test-read-fixture "interactive-diagnostics.json")))
     (if indices
         (vconcat (mapcar (lambda (index) (aref all index)) indices))
       all)))
@@ -64,7 +57,7 @@
   "Return a diagnostic with MESSAGE, a `TaggedText', merged with KEYS.
 It is an error on line 3 unless KEYS say otherwise."
   (append keys
-          (list :range (nael-eglot-test-range '(3 . 2) '(3 . 8))
+          (list :range (nael-test-range '(3 . 2) '(3 . 8))
                 :severity 1
                 :message message)))
 
@@ -155,12 +148,12 @@ Nat.add_comm (n m : Nat) : n + m = m + n
                     ("information" . compilation-info)
                     ("hint" . compilation-info)))
       (should (memq (cdr case)
-                    (nael-render-test-faces
+                    (nael-test-faces
                      text (string-search (car case) text)))))
     ;; The position knows the range of the message.
     (should (equal (get-text-property (string-search "4:2" text)
                                       'nael-message-range text)
-                   (nael-eglot-test-range '(3 . 2) '(3 . 8))))))
+                   (nael-test-range '(3 . 2) '(3 . 8))))))
 
 (ert-deftest nael-messages-test-trace-children ()
   "Fetched children of a trace are shown under it, one level deeper."
@@ -235,7 +228,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
                      (5 4 (message 3 2 "error" 0 0 1) nil nil)
                      (6 3 (message 3 2 "error" 0 1) nil nil))))
     (should (memq 'nael-render-trace-class
-                  (nael-render-test-faces text (string-search "[a]" text))))))
+                  (nael-test-faces text (string-search "[a]" text))))))
 
 (ert-deftest nael-messages-test-suggestion ()
   "Lean's suggestions become text that knows what to replace."
@@ -247,7 +240,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
                              :start (:character 2 :line 217))
                      :suggestion "exact Nat.add_comm a b"
                      :help "Apply suggestion")))
-    (should (memq 'nael-render-suggestion (nael-render-test-faces text pos)))))
+    (should (memq 'nael-render-suggestion (nael-test-faces text pos)))))
 
 (ert-deftest nael-messages-test-other-widgets ()
   "Other widgets show their alternative text."
@@ -267,7 +260,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
                   (vector (nael-messages-test-message
                            (list :append
                                  (vector '(:text "unsolved goals")
-                                         (list :tag (vector (list :goal (nael-render-test-goal
+                                         (list :tag (vector (list :goal (nael-test-goal
                                                                          :userName "right"))
                                                             '(:text "")))))))
                   3))
@@ -280,16 +273,16 @@ Nat.add_comm (n m : Nat) : n + m = m + n
     (should (= (length (nael-render-result-nodes result)) 1))))
 
 (defconst nael-messages-test-imports
-  (nael-eglot-test-diagnostic
+  (nael-test-diagnostic
    3 '(0 . 0) '(19 . 0)
    :message '(:text "Imports are out of date and should be rebuilt; use the \"Restart File\" command in your editor."))
   "A message about the whole file of 20 lines that its imports are out of date.")
 
 (ert-deftest nael-messages-test-whole-file ()
   "Messages about the whole file are unfolded, first, and may restart it."
-  (let* ((other (nael-eglot-test-diagnostic 1 '(5 . 0) '(5 . 4)
-                                            :message '(:text "Boom")))
-         (crash (nael-eglot-test-diagnostic
+  (let* ((other (nael-test-diagnostic 1 '(5 . 0) '(5 . 4)
+                                      :message '(:text "Boom")))
+         (crash (nael-test-diagnostic
                  1 '(0 . 0) '(19 . 0) :message '(:text "Server crashed")))
          (text (nael-render-result-text
                 (nael-render-goals nil nil nil
@@ -346,11 +339,11 @@ Boom
          (pos (string-search "end Probxe" text)))
     (should pos)
     (should (memq 'nael-render-suggestion-deleted
-                  (nael-render-test-faces text (+ pos 8))))
+                  (nael-test-faces text (+ pos 8))))
     (should (memq 'nael-render-suggestion-inserted
-                  (nael-render-test-faces text (+ pos 9))))
+                  (nael-test-faces text (+ pos 9))))
     (should-not (memq 'nael-render-suggestion-inserted
-                      (nael-render-test-faces text pos)))
+                      (nael-test-faces text pos)))
     (should (equal (get-text-property pos 'nael-suggestion text)
                    '(:range (:end (:character 9 :line 3)
                              :start (:character 0 :line 3))
@@ -387,7 +380,7 @@ The source buffer is `nael-messages-test-source', with ten lines.  Calls
 for the children of traces are recorded in `nael-messages-test-requests'
 as (CHILDREN SUCCESS FAILURE OWNER)."
   (declare (indent 2) (debug t))
-  `(nael-infoview-test-with-options
+  `(nael-test-with-options
      (let ((nael-messages-test-requests nil)
            (source (generate-new-buffer "nael-messages-test-source")))
        (cl-letf (((symbol-function 'nael-rpc-handle-live-p) #'always)
@@ -416,25 +409,18 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                              :buffer source
                              :tick (buffer-chars-modified-tick source))))
 
-(defun nael-messages-test-visible-p (string)
-  "Return non-nil if STRING is shown, not folded away, in the buffer."
-  (save-excursion
-    (goto-char (point-min))
-    (and (search-forward string nil t)
-         (not (invisible-p (match-beginning 0))))))
-
 (ert-deftest nael-messages-test-folds ()
   "Messages from other lines start folded; folds are kept after that."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 2 3 4) 215
-    (should (nael-messages-test-visible-p "[Meta.synthInstance]"))
-    (should-not (nael-messages-test-visible-p "Invalid `end`"))
-    (should-not (nael-messages-test-visible-p "Try this"))
+    (should (nael-test-visible-p "[Meta.synthInstance]"))
+    (should-not (nael-test-visible-p "Invalid `end`"))
+    (should-not (nael-test-visible-p "Try this"))
     ;; Unfolded by the user, it stays so.
-    (nael-infoview-test-goto "213:0")
+    (nael-test-goto "213:0")
     (outline-show-subtree)
     (nael-infoview--render)
-    (should (nael-messages-test-visible-p "Invalid `end`"))
-    (should-not (nael-messages-test-visible-p "Try this"))))
+    (should (nael-test-visible-p "Invalid `end`"))
+    (should-not (nael-test-visible-p "Try this"))))
 
 (ert-deftest nael-messages-test-restart-file ()
   "The button in a message about out-of-date imports restarts the file."
@@ -442,7 +428,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (setq nael-infoview--messages
           (plist-put nael-infoview--messages :line-count 20))
     (nael-infoview--render)
-    (nael-infoview-test-goto "[restart file]")
+    (nael-test-goto "[restart file]")
     (let (restarted)
       (cl-letf (((symbol-function 'nael-eglot-restart-file)
                  (lambda () (setq restarted (current-buffer)))))
@@ -452,30 +438,30 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 (ert-deftest nael-messages-test-folds-follow-point ()
   "A message folds and unfolds with point, until the user folds it."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 2) 215
-    (should-not (nael-messages-test-visible-p "Invalid `end`"))
+    (should-not (nael-test-visible-p "Invalid `end`"))
     ;; Point on its first line: unfolded.
     (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
-    (should (nael-messages-test-visible-p "Invalid `end`"))
+    (should (nael-test-visible-p "Invalid `end`"))
     ;; Elsewhere again: folded.
     (nael-messages-test-show (nael-messages-test-fixture 2) 213 source)
-    (should-not (nael-messages-test-visible-p "Invalid `end`"))
+    (should-not (nael-test-visible-p "Invalid `end`"))
     ;; Unfolded by the user, it stays so wherever point is.
-    (nael-infoview-test-goto "213:0")
+    (nael-test-goto "213:0")
     (outline-show-subtree)
     (nael-messages-test-show (nael-messages-test-fixture 2) 214 source)
-    (should (nael-messages-test-visible-p "Invalid `end`"))
+    (should (nael-test-visible-p "Invalid `end`"))
     ;; Folded by the user on its own line, too.
     (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
-    (nael-infoview-test-goto "213:0")
+    (nael-test-goto "213:0")
     (outline-hide-subtree)
     (nael-messages-test-show (nael-messages-test-fixture 2) 212 source)
-    (should-not (nael-messages-test-visible-p "Invalid `end`"))))
+    (should-not (nael-test-visible-p "Invalid `end`"))))
 
 (ert-deftest nael-messages-test-controls ()
   "Positions, suggestions and unexpanded traces react to keys and clicks."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 3 4) 215
     (cl-flet ((type-at (string)
-                (nael-infoview-test-goto string)
+                (nael-test-goto string)
                 (button-type (button-at (point)))))
       (should (eq (type-at "216:27") 'nael-infoview-message))
       (should (eq (type-at "[apply]") 'nael-infoview-suggestion))
@@ -498,7 +484,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
   "The position of a message leads to its place in the source."
   (nael-messages-test-with-infoview
       (vector (nael-messages-test-message '(:text "Boom")
-                                          :range (nael-eglot-test-range
+                                          :range (nael-test-range
                                                   '(2 . 3) '(2 . 5))))
       2
     (with-current-buffer source
@@ -506,7 +492,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
       (forward-line 2)
       ;; A character outside the BMP counts twice in LSP's columns.
       (insert "𝓝"))
-    (nael-infoview-test-goto "3:3")
+    (nael-test-goto "3:3")
     (nael-infoview-goto-message)
     (should (eq (current-buffer) source))
     (should (equal (buffer-substring (line-beginning-position) (point))
@@ -518,7 +504,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
       (vector (nael-messages-test-message
                (list :tag (vector (list :widget
                                         (list :wi (list :id "Lean.Meta.Hint.textInsertionWidget"
-                                                        :props (list :range (nael-eglot-test-range '(1 . 0) '(1 . 4))
+                                                        :props (list :range (nael-test-range '(1 . 0) '(1 . 4))
                                                                      :suggestion "exact rfl"
                                                                      :acceptSuggestionProps
                                                                      '(:kind "text" :linkText "[apply]"
@@ -529,7 +515,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (with-current-buffer source
       (buffer-enable-undo)
       (undo-boundary))
-    (nael-infoview-test-goto "[apply]")
+    (nael-test-goto "[apply]")
     (should (equal (get-char-property (point) 'help-echo) "Apply suggestion"))
     (nael-infoview-apply-suggestion)
     (should (eq (current-buffer) source))
@@ -546,7 +532,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (should (looking-at "line 1$"))
     ;; Once the source changed, the range may be wrong.
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "[apply]")
+      (nael-test-goto "[apply]")
       (should-error (nael-infoview-apply-suggestion) :type 'user-error))))
 
 (ert-deftest nael-messages-test-apply-diff ()
@@ -565,7 +551,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                                       "Lean.Meta.Hint.tryThisDiffWidget"
                                       nael-messages-test-diff-props))
                              3 source)
-    (nael-infoview-test-goto "end Prob")
+    (nael-test-goto "end Prob")
     (should (equal (get-char-property (point) 'help-echo) "Apply suggestion"))
     (nael-infoview-apply-suggestion)
     (should (eq (current-buffer) source))
@@ -579,7 +565,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                                          '(:code "lean.invalidField"
                                            :explanationUrl "https://example.org/x")))
       3
-    (nael-infoview-test-goto "[lean.invalidField]")
+    (nael-test-goto "[lean.invalidField]")
     (let (browsed)
       (cl-letf (((symbol-function 'browse-url)
                  (lambda (url &rest _) (setq browsed url))))
@@ -589,7 +575,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
 (ert-deftest nael-messages-test-expand-trace ()
   "A trace's children are fetched on request, shown unfolded and kept."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
-    (nael-infoview-test-goto "[Meta.synthInstance]")
+    (nael-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     ;; Asking again while the answer is pending sends nothing.
     (nael-infoview-expand-trace)
@@ -600,21 +586,21 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
       (should (eq owner nael-infoview--owner))
       (funcall success (vector (nael-messages-test-trace
                                 "Meta.synthInstance" "child" '(:strict [])))))
-    (should (nael-messages-test-visible-p "[Meta.synthInstance] child"))
+    (should (nael-test-visible-p "[Meta.synthInstance] child"))
     (should (member '(message 215 27 "information" 0 0)
                     nael-infoview--expanded-traces))
     ;; No longer a trace to expand: TAB cycles as on other headings.
-    (nael-infoview-test-goto "[Meta.synthInstance] ✅")
+    (nael-test-goto "[Meta.synthInstance] ✅")
     (should-not (get-text-property (point) 'nael-trace-lazy))
     ;; Rendering again keeps them, without asking.
     (nael-infoview--render)
-    (should (nael-messages-test-visible-p "[Meta.synthInstance] child"))
+    (should (nael-test-visible-p "[Meta.synthInstance] child"))
     (should (= (length nael-messages-test-requests) 1))))
 
 (ert-deftest nael-messages-test-expand-after-update ()
   "After an update, expanded traces are fetched again; late answers drop."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
-    (nael-infoview-test-goto "[Meta.synthInstance]")
+    (nael-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     (let ((late (nth 1 (car nael-messages-test-requests))))
       ;; New results arrive before the answer.
@@ -624,16 +610,16 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
                   nael-infoview--owner))
       (funcall late (vector (nael-messages-test-trace
                              "Meta.synthInstance" "late" '(:strict []))))
-      (should-not (nael-messages-test-visible-p "late"))
+      (should-not (nael-test-visible-p "late"))
       (funcall (nth 1 (car nael-messages-test-requests))
                (vector (nael-messages-test-trace
                         "Meta.synthInstance" "fresh" '(:strict []))))
-      (should (nael-messages-test-visible-p "fresh")))))
+      (should (nael-test-visible-p "fresh")))))
 
 (ert-deftest nael-messages-test-expand-failures ()
   "Failures are reported; a dead session asks for an update."
   (nael-messages-test-with-infoview (nael-messages-test-fixture 3) 215
-    (nael-infoview-test-goto "[Meta.synthInstance]")
+    (nael-test-goto "[Meta.synthInstance]")
     (nael-infoview-expand-trace)
     (let ((messages nil))
       (cl-letf (((symbol-function 'message)

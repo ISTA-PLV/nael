@@ -16,58 +16,17 @@
 
 (require 'ert)
 (require 'nael-render)
-
-(defconst nael-render-test-fixtures
-  (expand-file-name "fixtures/"
-                    (file-name-directory
-                     (or load-file-name buffer-file-name))))
-
-(defun nael-render-test-fixture ()
-  "Return the recorded goals of iris-lean's SpinLock."
-  (with-temp-buffer
-    (insert-file-contents
-     (expand-file-name "goals-iris-spinlock.json" nael-render-test-fixtures))
-    (json-parse-buffer :object-type 'plist :array-type 'array
-                       :null-object nil :false-object :json-false)))
-
-(defun nael-render-test-code (&rest parts)
-  "Return `CodeWithInfos' made of PARTS.
-A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
-  (list :append
-        (vconcat
-         (mapcar (lambda (part)
-                   (if (stringp part)
-                       (list :text part)
-                     (pcase-let ((`(,text ,ref ,diff) part))
-                       (list :tag
-                             (vector (append (list :info (list :__rpcref ref)
-                                                   :subexprPos "/")
-                                             (when diff
-                                               (list :diffStatus diff)))
-                                     (list :text text))))))
-                 parts))))
-
-(defun nael-render-test-goal (&rest keys)
-  "Return a goal with target `n = 0', merged with KEYS."
-  (append keys
-          (list :hyps []
-                :type (nael-render-test-code '("n" "1") " = 0")
-                :goalPrefix "⊢ "
-                :mvarId "_uniq.1")))
+(require 'nael-test-helpers)
 
 (defun nael-render-test-text (goals &optional term-goal options)
   "Render GOALS and TERM-GOAL with OPTIONS and return the plain text."
   (substring-no-properties
    (nael-render-result-text (nael-render-goals goals term-goal options))))
 
-(defun nael-render-test-faces (string pos)
-  "Return the faces of STRING at 0-based POS as a list."
-  (ensure-list (get-text-property pos 'face string)))
-
 ;;;; Recorded goals:
 
 (ert-deftest nael-render-test-fixture-text ()
-  (let ((text (nael-render-test-text (nael-render-test-fixture))))
+  (let ((text (nael-render-test-text (nael-test-spinlock-goals))))
     (should (string-prefix-p "Tactic state: 3 goals\ngoal 1\nhlc : HasLC\n"
                              text))
     (should (string-search "inst✝ : " text))
@@ -76,7 +35,7 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 
 (ert-deftest nael-render-test-fixture-nodes ()
   "Every tag becomes a node with a reference and a nonempty extent."
-  (let* ((result (nael-render-goals (nael-render-test-fixture) nil))
+  (let* ((result (nael-render-goals (nael-test-spinlock-goals) nil))
          (nodes (nael-render-result-nodes result)))
     (should (= (length nodes) 63))
     (dolist (node nodes)
@@ -85,7 +44,7 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 
 (ert-deftest nael-render-test-innermost-node ()
   "At each position, `nael-node' is the smallest node containing it."
-  (let* ((result (nael-render-goals (nael-render-test-fixture) nil))
+  (let* ((result (nael-render-goals (nael-test-spinlock-goals) nil))
          (text (nael-render-result-text result))
          (nodes (nael-render-result-nodes result)))
     (dotimes (i (length text))
@@ -106,37 +65,37 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 
 (ert-deftest nael-render-test-fixture-diff ()
   "The subterm marked `willChange' gets the removed face."
-  (let* ((result (nael-render-goals (nael-render-test-fixture) nil))
+  (let* ((result (nael-render-goals (nael-test-spinlock-goals) nil))
          (node (seq-find (lambda (node)
                            (equal (nael-render-node-diff-status node)
                                   "willChange"))
                          (nael-render-result-nodes result))))
     (should node)
     (should (memq 'nael-render-diff-removed
-                  (nael-render-test-faces (nael-render-result-text result)
-                                          (1- (nael-render-node-beg node)))))))
+                  (nael-test-faces (nael-render-result-text result)
+                                   (1- (nael-render-node-beg node)))))))
 
 (ert-deftest nael-render-test-hide-instances ()
-  (let ((text (nael-render-test-text (nael-render-test-fixture) nil
+  (let ((text (nael-render-test-text (nael-test-spinlock-goals) nil
                                      '(:hide-instances t))))
     (should-not (string-search "inst✝" text))
     (should (string-search "hlc : HasLC" text))))
 
 (ert-deftest nael-render-test-hide-inaccessible ()
-  (let ((text (nael-render-test-text (nael-render-test-fixture) nil
+  (let ((text (nael-render-test-text (nael-test-spinlock-goals) nil
                                      '(:hide-inaccessible t))))
     (should-not (string-search "✝" text))))
 
 ;;;; Handmade goals:
 
 (ert-deftest nael-render-test-hypotheses ()
-  (let* ((goal (nael-render-test-goal
+  (let* ((goal (nael-test-goal
                 :userName "succ"
                 :hyps (vector (list :names ["n" "m"] :fvarIds ["_uniq.2" "_uniq.3"]
-                                    :type (nael-render-test-code '("Nat" "4")))
+                                    :type (nael-test-code '("Nat" "4")))
                               (list :names ["k"] :fvarIds ["_uniq.5"]
-                                    :type (nael-render-test-code '("Nat" "6"))
-                                    :val (nael-render-test-code '("2" "7"))
+                                    :type (nael-test-code '("Nat" "6"))
+                                    :val (nael-test-code '("2" "7"))
                                     :isInserted t))))
          (result (nael-render-goals (list :goals (vector goal)) nil))
          (text (nael-render-result-text result)))
@@ -147,9 +106,9 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
                            "k : Nat := 2\n"
                            "⊢ n = 0\n")))
     (should (memq 'nael-render-hyp-name
-                  (nael-render-test-faces text (string-search "n m" text))))
+                  (nael-test-faces text (string-search "n m" text))))
     (should (memq 'nael-render-diff-inserted
-                  (nael-render-test-faces text (string-search "k :" text))))
+                  (nael-test-faces text (string-search "k :" text))))
     (should (eq (get-text-property (string-search "⊢" text) 'nael-goal text)
                 (get-text-property (string-search "n m" text) 'nael-goal text)))
     (should (equal (get-text-property 0 'outline-level text) 1))
@@ -169,8 +128,8 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
   "A metavariable listed twice yields two goals that can be told apart."
   (let ((text (nael-render-result-text
                (nael-render-goals
-                (list :goals (vector (nael-render-test-goal)
-                                     (nael-render-test-goal)))
+                (list :goals (vector (nael-test-goal)
+                                     (nael-test-goal)))
                 nil))))
     (should (get-text-property (string-search "goal 1" text) 'nael-goal text))
     (should-not (equal (get-text-property (string-search "goal 1" text)
@@ -180,25 +139,25 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 
 (ert-deftest nael-render-test-goal-diff ()
   "A removed goal marks its turnstile and heading, not its content."
-  (let* ((removed (nael-render-test-goal :isRemoved t :userName "h"))
+  (let* ((removed (nael-test-goal :isRemoved t :userName "h"))
          (text (nael-render-result-text
                 (nael-render-goals (list :goals (vector removed)) nil))))
     (should (memq 'nael-render-diff-removed
-                  (nael-render-test-faces text (string-search "⊢" text))))
+                  (nael-test-faces text (string-search "⊢" text))))
     (should (memq 'nael-render-diff-removed
-                  (nael-render-test-faces text (string-search "case h" text))))
+                  (nael-test-faces text (string-search "case h" text))))
     (should-not (memq 'nael-render-diff-removed
-                      (nael-render-test-faces
+                      (nael-test-faces
                        text (string-search "= 0" text))))))
 
 (ert-deftest nael-render-test-goal-keys ()
   "Goals are keyed by case name and occurrence, or by their place."
   (let ((text (nael-render-result-text
                (nael-render-goals
-                (list :goals (vector (nael-render-test-goal :userName "h")
-                                     (nael-render-test-goal)
-                                     (nael-render-test-goal :userName "h")))
-                (list :hyps [] :type (nael-render-test-code "Nat"))))))
+                (list :goals (vector (nael-test-goal :userName "h")
+                                     (nael-test-goal)
+                                     (nael-test-goal :userName "h")))
+                (list :hyps [] :type (nael-test-code "Nat"))))))
     (cl-flet ((key (string) (get-text-property (string-search string text)
                                                'nael-key text)))
       (should (equal (key "case h\n⊢") '(case "h" . 0)))
@@ -215,12 +174,12 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
   (should (equal (nael-render-test-text '(:goals []) nil)
                  "Tactic state: no goals\n"))
   (should (equal (nael-render-test-text
-                  nil (list :hyps [] :type (nael-render-test-code "Nat")))
+                  nil (list :hyps [] :type (nael-test-code "Nat")))
                  "Expected type\n⊢ Nat\n"))
   (should (equal (nael-render-test-text
-                  (list :goals (vector (nael-render-test-goal)
-                                       (nael-render-test-goal)))
-                  (list :hyps [] :type (nael-render-test-code "Nat")))
+                  (list :goals (vector (nael-test-goal)
+                                       (nael-test-goal)))
+                  (list :hyps [] :type (nael-test-code "Nat")))
                  (concat "Tactic state: 2 goals\n"
                          "goal 1\n⊢ n = 0\n\n"
                          "goal 2\n⊢ n = 0\n\n"
@@ -235,8 +194,8 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 (ert-deftest nael-render-test-wrap-prefix ()
   "Wrapped lines of code continue further in than their line."
   (let* ((nael-render-wrap-indent 4)
-         (goal (nael-render-test-goal
-                :type (nael-render-test-code "n =\n  0")))
+         (goal (nael-test-goal
+                :type (nael-test-code "n =\n  0")))
          (result (nael-render-goals (list :goals (vector goal)) nil))
          (text (nael-render-result-text result)))
     (cl-flet ((prefix (string)
@@ -251,8 +210,8 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
 (ert-deftest nael-render-test-info ()
   "Hover information renders as the subterm and its type, both with nodes."
   (let* ((result (nael-render-info
-                  (list :exprExplicit (nael-render-test-code '("x.isLt" "1"))
-                        :type (nael-render-test-code '("↑x" "2") " < 3")
+                  (list :exprExplicit (nael-test-code '("x.isLt" "1"))
+                        :type (nael-test-code '("↑x" "2") " < 3")
                         :doc "Not rendered.")))
          (text (nael-render-result-text result)))
     (should (equal (substring-no-properties text) "x.isLt : ↑x < 3"))
@@ -267,10 +226,10 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
     (should-not (nael-render-node-at 7 text))
     ;; Fontified as Lean code.
     (should (memq 'font-lock-type-face
-                  (nael-render-test-faces
+                  (nael-test-faces
                    (nael-render-result-text
                     (nael-render-info
-                     (list :type (nael-render-test-code "Type → Prop"))))
+                     (list :type (nael-test-code "Type → Prop"))))
                    0)))))
 
 (ert-deftest nael-render-test-info-partial ()
@@ -278,7 +237,7 @@ A string is plain text; a list (TEXT REF [DIFF]) is a tagged subterm."
   (should (equal (substring-no-properties
                   (nael-render-result-text
                    (nael-render-info
-                    (list :type (nael-render-test-code "Nat")))))
+                    (list :type (nael-test-code "Nat")))))
                  "Nat"))
   (should (equal (nael-render-result-text (nael-render-info nil)) "")))
 

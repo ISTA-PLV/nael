@@ -19,7 +19,7 @@
 
 (require 'ert)
 (require 'nael-infoview-live)
-(require 'nael-infoview-tests)
+(require 'nael-test-helpers)
 
 (defvar nael-infoview-hover-live-elide-buffer nil)
 
@@ -42,7 +42,7 @@
 (defun nael-infoview-hover-live-eldoc (string)
   "Return the echo of ElDoc on the first STRING in the infoview."
   (with-current-buffer (nael-infoview--buffer)
-    (nael-infoview-test-goto string)
+    (nael-test-goto string)
     (let (echo)
       (should (nael-infoview-eldoc-function
                (lambda (_doc &rest keys)
@@ -67,7 +67,7 @@
   "ElDoc's documentation of a constant includes its docstring."
   (with-current-buffer (nael-infoview-live-open)
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "Nat")
+      (nael-test-goto "Nat")
       (let (doc)
         (nael-infoview-eldoc-function
          (lambda (string &rest _) (setq doc (substring-no-properties string))))
@@ -83,7 +83,7 @@
 (defun nael-infoview-hover-live-describe (string)
   "Describe the first STRING in the current buffer; wait for the help buffer."
   (let ((before (and (get-buffer nael-infoview-help-buffer-name) (nael-infoview-hover-live-help))))
-    (nael-infoview-test-goto string)
+    (nael-test-goto string)
     (nael-infoview-describe)
     (should (nael-rpc-live-wait
              (lambda () (and (get-buffer nael-infoview-help-buffer-name)
@@ -127,7 +127,7 @@
                        (lambda (&rest args)
                          (push (apply #'format-message args) messages))))
               (with-current-buffer nael-infoview-help-buffer-name
-                (nael-infoview-test-goto "Nat")
+                (nael-test-goto "Nat")
                 (nael-infoview-describe))
               (should (nael-rpc-live-wait (lambda () messages) 10)))
             (should (string-prefix-p "Lean no longer knows this subterm"
@@ -140,7 +140,7 @@
     (let ((infoview (nael-infoview--buffer)))
       (with-current-buffer infoview
         (switch-to-buffer infoview)
-        (nael-infoview-test-goto "b")
+        (nael-test-goto "b")
         ;; As the command loop does; otherwise xref asks for the identifier.
         (let ((this-command #'xref-find-definitions))
           (call-interactively #'xref-find-definitions))

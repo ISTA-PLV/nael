@@ -22,8 +22,8 @@
 (require 'ert)
 (require 'nael-margin)
 (require 'nael-infoview-live)
-(require 'nael-margin-tests)
 (require 'nael-rpc-live)
+(require 'nael-test-helpers)
 
 (defvar nael-margin-live-texts nil
   "The original contents of the test files, by file name.")
@@ -57,9 +57,9 @@ Its contents are as they were when it was first opened in the session."
 (defun nael-margin-live-signs ()
   "Draw the signs as they would be with all characters displayable.
 Return them as (LINE STRING), LINE 0-based."
-  (nael-margin-test-with-defaults
+  (nael-test-with-margin-defaults
     (nael-margin-draw)
-    (nael-margin-test-drawn)))
+    (nael-test-margin-drawn)))
 
 (defconst nael-margin-live-expected
   '((0 "🎉")                            ; done
@@ -96,7 +96,7 @@ Return them as (LINE STRING), LINE 0-based."
       (should (= (length overlays) 4))
       (dolist (overlay overlays)
         (when-let* ((string (overlay-get overlay 'before-string)))
-          (should (nael-margin-test-empty-display-p
+          (should (nael-test-empty-display-p
                    (get-text-property 0 'display string))))))))
 
 (ert-deftest nael-margin-live-edit ()

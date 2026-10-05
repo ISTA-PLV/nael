@@ -22,7 +22,7 @@
 (require 'ert)
 (require 'nael-infoview-live)
 (require 'nael-margin-live)
-(require 'nael-messages-tests)
+(require 'nael-test-helpers)
 
 (defun nael-messages-live-open ()
   "Return `Tiny/Messages.lean', processed and current, with the infoview."
@@ -42,7 +42,7 @@
 (defun nael-messages-live-visible-p (string)
   "Return non-nil if the infoview shows STRING unfolded."
   (with-current-buffer (nael-infoview--buffer)
-    (nael-messages-test-visible-p string)))
+    (nael-test-visible-p string)))
 
 (ert-deftest nael-messages-live-widgets ()
   "The server of the test project is asked for widgets."
@@ -80,7 +80,7 @@
   (with-current-buffer (nael-messages-live-open)
     (nael-messages-live-move 1 0 "Messages (1)")
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "n + m = m + n")
+      (nael-test-goto "n + m = m + n")
       (let ((node (nael-render-node-at (point)))
             text)
         (should node)
@@ -97,7 +97,7 @@
     (with-current-buffer (nael-infoview--buffer)
       (let* ((owner nael-infoview--owner)
              (refs (length (nael-rpc-owner-refs owner))))
-        (nael-infoview-test-goto "[Meta.synthInstance]")
+        (nael-test-goto "[Meta.synthInstance]")
         (should (get-text-property (point) 'nael-trace-lazy))
         (nael-infoview-expand-trace)
         (should (nael-rpc-live-wait
@@ -117,7 +117,7 @@
       (setq nael-infoview--expanded-traces nil))
     (nael-messages-live-move 8 0 "[Meta.synthInstance]")
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "[Meta.synthInstance]")
+      (nael-test-goto "[Meta.synthInstance]")
       (nael-infoview-expand-trace)
       (should (nael-rpc-live-wait
                (lambda () (nael-messages-live-visible-p "instInhabitedNat"))
@@ -132,7 +132,7 @@
   (with-current-buffer (nael-messages-live-open)
     (nael-messages-live-move 11 2 "[apply]")
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "[apply]")
+      (nael-test-goto "[apply]")
       (nael-infoview-apply-suggestion))
     (should (equal (buffer-name) "Messages.lean"))
     (should (equal (buffer-substring (line-beginning-position)
@@ -144,12 +144,12 @@
   (with-current-buffer (nael-messages-live-open)
     (nael-messages-live-move 18 29 "[lean.invalidField]")
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "[lean.invalidField]")
+      (nael-test-goto "[lean.invalidField]")
       (should (string-search "lean.invalidField"
                              (get-text-property (point) 'nael-explanation))))
     (nael-messages-live-move 14 0 "end Probe")
     (with-current-buffer (nael-infoview--buffer)
-      (nael-infoview-test-goto "end Prob")
+      (nael-test-goto "end Prob")
       (should (get-text-property (point) 'nael-suggestion))
       (nael-infoview-apply-suggestion))
     (should (equal (buffer-name) "Messages.lean"))
