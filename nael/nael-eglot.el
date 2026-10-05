@@ -188,7 +188,29 @@ goal and term goal."
   (add-hook 'eldoc-documentation-functions
             #'nael-eglot-eldoc-goal -90 'local)
   (add-hook 'eldoc-documentation-functions
-            #'nael-eglot-eldoc-term-goal -80 'local))
+            #'nael-eglot-eldoc-term-goal -80 'local)
+  (add-hook 'change-major-mode-hook
+            #'nael-eglot-close-before-mode-change -90 'local))
+
+;; Setting up the major mode of a managed buffer again, as `M-x
+;; nael-mode' in a Nael buffer or `normal-mode' do, makes Eglot open
+;; the document a second time without closing it first: Eglot only
+;; turns itself off in the buffer on `change-major-mode-hook', and on
+;; `after-change-major-mode-hook' it manages the buffer again and sends
+;; textDocument/didOpen.  LSP forbids opening an open document again.
+;; The Lean server then starts a second worker for the file and never
+;; stops the first, which keeps its memory until the server exits.
+;; Eglot itself closes documents only when their buffer is killed or
+;; reverted.  So close the document before the major mode changes; the
+;; didOpen that follows is then in order.  As of Eglot 1.24 (2026), this
+;; is not reported upstream yet; remove this once Eglot closes the
+;; document itself.
+
+(defun nael-eglot-close-before-mode-change ()
+  "Tell the server that the document is closed, if Eglot manages it.
+For `change-major-mode-hook', where Eglot does not do so itself."
+  (when (eglot-managed-p)
+    (nael-eglot-compat-did-close)))
 
 ;;;###autoload
 (defun nael-eglot-configure-when-initialized (_)
