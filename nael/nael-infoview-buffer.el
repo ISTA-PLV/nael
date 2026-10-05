@@ -790,7 +790,9 @@ The menu stays open for further choices; \\`C-g' closes it."
 
 ;; ElDoc shows the subterm at point only after commands that move point.
 ;; These also land in the infoview: back from a description, and back
-;; from a definition, as Emacs, Evil and Doom Emacs do it.
+;; from a definition, as Emacs, Evil and Doom Emacs do it.  ElDoc's list
+;; of commands is global, so ElDoc also runs after them elsewhere, which
+;; does no harm.
 (eldoc-add-command 'quit-window 'xref-go-back 'evil-jump-backward
                    '+popup/quit-window 'better-jumper-jump-backward)
 

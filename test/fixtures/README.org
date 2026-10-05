@@ -17,3 +17,19 @@
   this" widget (=Lean.Meta.Hint.textInsertionWidget=).  Derived from
   iris-lean, which is licensed under the Apache License, Version 2.0; see
   =../../nael/LICENSE.APACHE2=.
+
+Both are derived from =Iris/HeapLang/Lib/SpinLock.lean=, whose header names
+its authors:
+
+#+begin_example
+Copyright (c) The Iris-Lean Contributors
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Michael Sammler, Fernando Leal, Klaus Kraßnitzer
+#+end_example
+
+The =NOTICE= file of iris-lean at that commit reads, verbatim:
+
+#+begin_example
+Iris-Lean — Copyright (c) 2022–2026 The Iris-Lean Contributors.
+Prior per-file copyright notices are preserved in this repository's git history (tag `copyright-notices`).
+#+end_example

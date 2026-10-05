@@ -289,6 +289,7 @@ HELP is shown in its tooltip."
    " " 'display
    `((margin left-margin)
      ,(propertize (truncate-string-to-width string nael-margin-width)
+                  ;; The face `margin' is new in Emacs 31.
                   'face `(:inherit (,face ,(if (facep 'margin) 'margin 'default)))
                   'help-echo help
                   'mouse-face 'highlight
@@ -413,7 +414,8 @@ Leave it alone if someone else has changed it since."
 ;; `flymake-diagnostic-types-alist' before the properties of the type,
 ;; so a buffer-local value of it gives Eglot's types an empty bitmap
 ;; and an empty margin string, in Nael buffers only.  Checked with
-;; Flymake 1.3.7 (Emacs 30.2) and 1.4.5.
+;; Flymake 1.3.7 (Emacs 30.2) and 1.4.5; remove this once Flymake can
+;; hide its indicators without a "!" in the text.
 
 (when (fboundp 'define-fringe-bitmap)
   (define-fringe-bitmap 'nael-margin-empty [0]))

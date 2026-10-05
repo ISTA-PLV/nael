@@ -9,9 +9,10 @@
 
 ;; This module replaces Doom Emacs' `:lang lean' module for Nael.  Its
 ;; setup of abbreviations, Markdown code blocks, smartparens pairs and
-;; LSP follows that module (Doom Emacs, MIT License, Copyright (c)
-;; 2014-2026 Henrik Lissner), as does the popup rule of the help buffer,
-;; which matches Doom's rule for *Help*.
+;; LSP follows that module (Doom Emacs at commit f8329b4, Copyright (c)
+;; 2014-2026 Henrik Lissner, MIT License; see
+;; <https://github.com/doomemacs/doomemacs/blob/master/LICENSE>), as does
+;; the popup rule of the help buffer, which matches Doom's rule for *Help*.
 
 (use-package! nael
   :defer t

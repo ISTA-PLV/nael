@@ -423,11 +423,12 @@ from the silent diagnostics in `nael-eglot-diagnostics'."
 ;; processed so far, and asks for them again with
 ;; `workspace/semanticTokens/refresh' until it is done, as described in
 ;; Lean's `Lean/Server/ProtocolOverview.lean'.  Eglot ignores that
-;; request on purpose (as of 1.21) and keeps the tokens of a document
+;; request on purpose (as of 1.24) and keeps the tokens of a document
 ;; version, so a file whose tokens were asked for too early, such as
 ;; one opened while Lean is busy, lacks them until it is edited.  Nor
 ;; does Eglot know that `nael-eglot-restart-file' makes its tokens
-;; outdated: the file is reopened with the same version.
+;; outdated: the file is reopened with the same version.  Remove the
+;; handler once Eglot asks again itself; the restart still needs this.
 
 (defun nael-eglot-refresh-semantic-tokens ()
   "Make Eglot ask for the semantic tokens of the current buffer again.

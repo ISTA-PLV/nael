@@ -29,7 +29,7 @@
 ;; Keywords: languages
 ;; Maintainer: Mekeor Melire <mekeor@posteo.de>
 ;; Package-Requires: ((emacs "30.1"))
-;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
+;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only AND MIT
 ;; URL: https://codeberg.org/mekeor/nael
 ;; Version: 0.8.3
 

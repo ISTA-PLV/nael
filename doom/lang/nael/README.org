@@ -24,7 +24,8 @@ To work on Nael itself, declare it in =~/.doom.d/packages.el= with your checkout
 
 #+begin_src emacs-lisp
 (package! nael :recipe (:local-repo "/path/to/nael"
-                        :files ("nael/*.el" "nael/nael.info" "nael/nael.texi")))
+                        :files ("nael/*.el" "nael/nael.info" "nael/nael.texi"
+                                "nael/NOTICE" "nael/LICENSE*")))
 #+end_src
 
 * Usage
