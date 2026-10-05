@@ -335,6 +335,89 @@ That is what the goals look like after the next tactic."
                                      (get-text-property (point)
                                                         'nael-goal)))))))
 
+;;;; Updates:
+
+(defvar nael-infoview-test-calls nil
+  "Requests of the update under test, newest first, as (WHAT SUCCESS OWNER).")
+
+(defmacro nael-infoview-test-with-pending-update (&rest body)
+  "Run BODY after an update of a source buffer was requested, unanswered.
+The requests are in `nael-infoview-test-calls'; the variable `source'
+is the source buffer."
+  (declare (indent 0) (debug t))
+  `(nael-infoview-test-with-options
+     (let ((nael-infoview-test-calls nil)
+           (nael-infoview--pending-owner nil)
+           (source (generate-new-buffer "nael-infoview-test-source")))
+       (cl-flet ((record (what)
+                   (lambda (&rest args)
+                     (let ((success (seq-find #'functionp args)))
+                       (push (list what success
+                                   (plist-get (cdr (memq success args))
+                                              :owner))
+                             nael-infoview-test-calls)))))
+         (cl-letf (((symbol-function 'nael-rpc-open) (lambda (&rest _) 'handle))
+                   ((symbol-function 'nael-rpc-get-interactive-goals)
+                    (record 'goals))
+                   ((symbol-function 'nael-rpc-get-interactive-term-goal)
+                    (record 'term-goal))
+                   ((symbol-function 'nael-rpc-get-interactive-diagnostics)
+                    (record 'messages))
+                   ((symbol-function 'nael-infoview--accomplished-title)
+                    #'ignore))
+           (unwind-protect
+               (progn
+                 (with-current-buffer source (insert "a\nb\nc\n"))
+                 (nael-infoview--get-buffer-create)
+                 (nael-infoview--request source 1)
+                 ,@body)
+             (kill-buffer source)
+             (when-let* ((buffer (nael-infoview--buffer)))
+               (kill-buffer buffer))))))))
+
+(defun nael-infoview-test-answer ()
+  "Answer the requests of the update under test: one goal, nothing else."
+  (dolist (call nael-infoview-test-calls)
+    (funcall (nth 1 call)
+             (and (eq (car call) 'goals)
+                  (list :goals (vector (nael-render-test-goal)))))))
+
+(ert-deftest nael-infoview-test-update-answered ()
+  "The answers to an update are shown together."
+  (nael-infoview-test-with-pending-update
+    (should (equal (sort (mapcar #'car nael-infoview-test-calls) #'string<)
+                   '(goals messages term-goal)))
+    (nael-infoview-test-answer)
+    (with-current-buffer (nael-infoview--buffer)
+      (should (string-search "⊢ n = 0" (buffer-string)))
+      (should-not nael-infoview--status))))
+
+(ert-deftest nael-infoview-test-update-after-kill ()
+  "Answers that arrive after the infoview was killed are dropped."
+  (nael-infoview-test-with-pending-update
+    (let ((owner (nth 2 (car nael-infoview-test-calls))))
+      (kill-buffer (nael-infoview--buffer))
+      (should (nael-rpc-owner-released owner))
+      (nael-infoview-test-answer)
+      ;; Not shown in a buffer made anew.
+      (should-not (nael-infoview--buffer)))))
+
+(ert-deftest nael-infoview-test-update-superseded-by-processing ()
+  "Moving to a line being processed drops the answers for the old one."
+  (nael-infoview-test-with-pending-update
+    (let ((owner (nth 2 (car nael-infoview-test-calls)))
+          (nael-infoview--target (cons source 5)))
+      (cl-letf (((symbol-function 'nael-infoview-visible-p) #'always)
+                ((symbol-function 'eglot-managed-p) #'always)
+                ((symbol-function 'nael-infoview--rpc-supported-p) #'always)
+                ((symbol-function 'nael-eglot-processing-line-p) #'always))
+        (nael-infoview--update))
+      (should (nael-rpc-owner-released owner))
+      (nael-infoview-test-answer)
+      (with-current-buffer (nael-infoview--buffer)
+        (should (eq nael-infoview--status 'processing))
+        (should-not nael-infoview--results)))))
+
 ;;;; Windows:
 
 (defmacro nael-infoview-test-with-windows (&rest body)

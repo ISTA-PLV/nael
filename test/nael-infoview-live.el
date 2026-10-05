@@ -92,7 +92,7 @@ The buffer is current, and point is before `rw'."
   "While the line of point is being processed, nothing is requested."
   (with-current-buffer (nael-infoview-live-open)
     (let ((text (nael-infoview-live-text))
-          (generation nael-infoview--generation))
+          (request (alist-get 'infoview-goals nael-rpc--slots)))
       (unwind-protect
           (progn
             (setq nael-eglot-file-progress
@@ -101,7 +101,7 @@ The buffer is current, and point is before `rw'."
                            :kind 1)])
             (nael-infoview-live-move 5 2)
             (should (eq (nael-infoview-live-status) 'processing))
-            (should (= generation nael-infoview--generation))
+            (should (eq (alist-get 'infoview-goals nael-rpc--slots) request))
             (should (equal (nael-infoview-live-text) text))
             (should (buffer-local-value 'nael-infoview--dim-cookie
                                         (nael-infoview--buffer))))

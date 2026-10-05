@@ -91,11 +91,17 @@ take precedence; they can match the category `nael-infoview'."
 (defvar-local nael-infoview--diagnostics-key nil
   "Diagnostics at the line of point when they last changed.")
 
-(defun nael-infoview--buffer-killed ()
-  "Stop following Nael buffers and release pending references."
+(defun nael-infoview--abandon-pending ()
+  "Make the answers to the pending update, if any, be dropped.
+Their references are released when they arrive."
+  (cl-incf nael-infoview--generation)
   (when nael-infoview--pending-owner
     (nael-rpc-owner-release nael-infoview--pending-owner)
-    (setq nael-infoview--pending-owner nil))
+    (setq nael-infoview--pending-owner nil)))
+
+(defun nael-infoview--buffer-killed ()
+  "Stop following Nael buffers and drop the pending update."
+  (nael-infoview--abandon-pending)
   (nael-infoview--remove-hooks))
 
 (defun nael-infoview--setup-buffer ()
@@ -187,23 +193,26 @@ goals are shown without them."
 While the server reports that it is processing the line of the target,
 show that instead of requesting goals, unless FORCE is non-nil.  A
 request made earlier would only wait on the server, so this is just to
-save work; when the server has not reported anything yet, request."
+save work; when the server has not reported anything yet, request.
+An update that requests nothing drops the answers to an earlier one,
+which would no longer be about the target."
   (pcase-let ((`(,buffer . ,pos) nael-infoview--target))
     (when (and (buffer-live-p buffer) (nael-infoview-visible-p))
       (with-current-buffer buffer
         (setq nael-infoview--source buffer)
-        (cond
-         ((not (eglot-managed-p))
-          (nael-infoview--set-status 'no-server))
-         ((not (nael-infoview--rpc-supported-p))
-          (nael-infoview--set-status 'unsupported))
-         ((and (not force)
-               (nael-eglot-processing-line-p
-                (save-excursion (goto-char pos)
-                                (1- (line-number-at-pos nil t)))))
-          (nael-infoview--set-status 'processing))
-         (t
-          (nael-infoview--request buffer pos)))))))
+        (let ((status
+               (cond
+                ((not (eglot-managed-p)) 'no-server)
+                ((not (nael-infoview--rpc-supported-p)) 'unsupported)
+                ((and (not force)
+                      (nael-eglot-processing-line-p
+                       (save-excursion (goto-char pos)
+                                       (1- (line-number-at-pos nil t)))))
+                 'processing))))
+          (if (not status)
+              (nael-infoview--request buffer pos)
+            (nael-infoview--abandon-pending)
+            (nael-infoview--set-status status)))))))
 
 (defun nael-infoview--cooldown-end ()
   "End the throttling period and run a deferred update, if any."
