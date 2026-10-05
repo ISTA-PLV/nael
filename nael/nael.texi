@@ -89,6 +89,9 @@ Infoview:
 @itemize
 @item
 @samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
+
+@item
+With @uref{https://github.com/emacs-evil/evil, Evil}, @samp{(with-eval-after-load 'evil (nael-evil-setup))} binds keys in normal state that don't clash with its motions: @samp{]g} and @samp{[g} for the next and previous goal, @samp{]h} and @samp{[h} for headings, @samp{gr} to refresh, @samp{K} to describe the subterm at point, and, with a local leader, @samp{<localleader> v} for the view options and @samp{<localleader> y} to copy the goal.
 @end itemize
 
 Infoview, on a subterm of a goal:

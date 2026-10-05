@@ -107,6 +107,14 @@ Language Server Protocol (LSP):
      target first and the changes of the tactic at point, and how to
      show the expected type.
 
+   • With Evil (https://github.com/emacs-evil/evil),
+     ‘(with-eval-after-load 'evil (nael-evil-setup))’ binds keys in
+     normal state that don't clash with its motions: ‘]g’ and ‘[g’ for
+     the next and previous goal, ‘]h’ and ‘[h’ for headings, ‘gr’ to
+     refresh, ‘K’ to describe the subterm at point, and, with a local
+     leader, ‘<localleader> v’ for the view options and ‘<localleader>
+     y’ to copy the goal.
+
    Infoview, on a subterm of a goal:
 
    • ElDoc echoes the subterm with all its arguments made explicit, and
@@ -448,21 +456,21 @@ Tag Table:
 Node: Top192
 Node: Get Started2368
 Node: Usage2705
-Node: Configuration6232
-Node: Installation7598
-Node: Installation from Melpa7919
-Node: Installation from Sources8955
-Node: Manual Installation9363
-Node: Installation via package-vc10299
-Ref: Installation via package-vc-selected-packages10972
-Ref: Installation via use-package vc12069
-Node: Changelog12887
-Node: Version 082 from 2026-02-2213332
-Node: Version 080 from 2026-12-1613692
-Node: Version 070 from 2025-12-1514337
-Node: Version 062 from 2025-11-3014936
-Node: Version 060 from 2025-11-3015289
-Node: License and Maintenance16387
+Node: Configuration6699
+Node: Installation8065
+Node: Installation from Melpa8386
+Node: Installation from Sources9422
+Node: Manual Installation9830
+Node: Installation via package-vc10766
+Ref: Installation via package-vc-selected-packages11439
+Ref: Installation via use-package vc12536
+Node: Changelog13354
+Node: Version 082 from 2026-02-2213799
+Node: Version 080 from 2026-12-1614159
+Node: Version 070 from 2025-12-1514804
+Node: Version 062 from 2025-11-3015403
+Node: Version 060 from 2025-11-3015756
+Node: License and Maintenance16854
 
 End Tag Table
 
