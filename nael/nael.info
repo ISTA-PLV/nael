@@ -100,6 +100,13 @@ Language Server Protocol (LSP):
    • ‘C-c C-l’ (‘lsp’) starts lsp-mode, an alternative LSP client.  The
      key is only bound if ‘nael-lsp’ is (auto)loaded.
 
+   Infoview:
+
+   • ‘v’ (‘nael-infoview-view-options’) opens a menu of what the
+     infoview shows: which hypotheses to hide, whether to show the
+     target first and the changes of the tactic at point, and how to
+     show the expected type.
+
    Infoview, on a subterm of a goal:
 
    • ElDoc echoes the subterm with all its arguments made explicit, and
@@ -441,21 +448,21 @@ Tag Table:
 Node: Top192
 Node: Get Started2368
 Node: Usage2705
-Node: Configuration5977
-Node: Installation7343
-Node: Installation from Melpa7664
-Node: Installation from Sources8700
-Node: Manual Installation9108
-Node: Installation via package-vc10044
-Ref: Installation via package-vc-selected-packages10717
-Ref: Installation via use-package vc11814
-Node: Changelog12632
-Node: Version 082 from 2026-02-2213077
-Node: Version 080 from 2026-12-1613437
-Node: Version 070 from 2025-12-1514082
-Node: Version 062 from 2025-11-3014681
-Node: Version 060 from 2025-11-3015034
-Node: License and Maintenance16132
+Node: Configuration6232
+Node: Installation7598
+Node: Installation from Melpa7919
+Node: Installation from Sources8955
+Node: Manual Installation9363
+Node: Installation via package-vc10299
+Ref: Installation via package-vc-selected-packages10972
+Ref: Installation via use-package vc12069
+Node: Changelog12887
+Node: Version 082 from 2026-02-2213332
+Node: Version 080 from 2026-12-1613692
+Node: Version 070 from 2025-12-1514337
+Node: Version 062 from 2025-11-3014936
+Node: Version 060 from 2025-11-3015289
+Node: License and Maintenance16387
 
 End Tag Table
 

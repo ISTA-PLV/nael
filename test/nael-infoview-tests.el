@@ -191,6 +191,33 @@ That is what the goals look like after the next tactic."
     (nael-infoview-toggle-instances)
     (should (string-search "inst✝" (buffer-string)))))
 
+(ert-deftest nael-infoview-test-view-options ()
+  "A menu shows and changes the view options."
+  (nael-infoview-test-with-goals
+    (should (eq (key-binding "v") #'nael-infoview-view-options))
+    (should (transient-get-suffix 'nael-infoview-view-options "i"))
+    (should (equal (nael-infoview--switch-description "Hide types" t)
+                   "Hide types on"))
+    (should (eq (get-text-property 11 'face (nael-infoview--switch-description
+                                             "Hide types" t))
+                'transient-value))
+    (cl-flet ((current ()
+                (let ((description (nael-infoview--expected-type-description)))
+                  (seq-find (lambda (value)
+                              (let ((i (string-search (symbol-name value)
+                                                      description)))
+                                (eq (get-text-property i 'face description)
+                                    'transient-value)))
+                            '(expanded collapsed hidden)))))
+      (should (eq (current) 'expanded))
+      (nael-infoview-cycle-expected-type)
+      (should (eq nael-infoview-expected-type 'collapsed))
+      (should (eq (current) 'collapsed))
+      (nael-infoview-cycle-expected-type)
+      (should (eq (current) 'hidden))
+      (nael-infoview-cycle-expected-type)
+      (should (eq (current) 'expanded)))))
+
 (ert-deftest nael-infoview-test-toggle-diffs ()
   "Diffs can be switched off and on."
   (nael-infoview-test-with-goals

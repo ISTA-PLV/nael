@@ -19,6 +19,7 @@
 (require 'cl-lib)
 (require 'face-remap)
 (require 'outline)
+(require 'transient)
 
 (require 'nael-infoview-hover)
 (require 'nael-render)
@@ -133,7 +134,8 @@ nil when up to date, or one of `updating', `processing',
   "a" #'nael-infoview-toggle-inaccessible
   "l" #'nael-infoview-toggle-let-values
   "r" #'nael-infoview-toggle-reverse
-  "d" #'nael-infoview-toggle-diffs)
+  "d" #'nael-infoview-toggle-diffs
+  "v" #'nael-infoview-view-options)
 
 (defun nael-infoview--outline-level ()
   "Return the outline level of the heading at point."
@@ -459,10 +461,75 @@ See `nael-infoview-expected-type'."
   (setq nael-infoview-expected-type visibility)
   (nael-infoview-refresh))
 
+(defun nael-infoview-cycle-expected-type ()
+  "Show the expected type expanded, collapsed, or not at all, in turn.
+See `nael-infoview-expected-type'."
+  (interactive)
+  (nael-infoview-set-expected-type
+   (pcase nael-infoview-expected-type
+     ('expanded 'collapsed)
+     ('collapsed 'hidden)
+     (_ 'expanded)))
+  (message "Expected type %s" nael-infoview-expected-type))
+
+(defun nael-infoview--switch-description (label on)
+  "Describe the view option LABEL, which is ON or not, for a menu."
+  (concat label " "
+          (if on
+              (propertize "on" 'face 'transient-value)
+            (propertize "off" 'face 'transient-inactive-value))))
+
+(defun nael-infoview--expected-type-description ()
+  "Describe how the expected type is shown, for a menu."
+  (concat "Expected type "
+          (propertize "[" 'face 'transient-delimiter)
+          (mapconcat (lambda (value)
+                       (propertize (symbol-name value) 'face
+                                   (if (eq value nael-infoview-expected-type)
+                                       'transient-value
+                                     'transient-inactive-value)))
+                     '(expanded collapsed hidden)
+                     (propertize "|" 'face 'transient-delimiter))
+          (propertize "]" 'face 'transient-delimiter)))
+
+(transient-define-prefix nael-infoview-view-options ()
+  "Choose what the infoview shows.
+The menu stays open for further choices; \\`C-g' closes it."
+  [["Hypotheses"
+    ("i" nael-infoview-toggle-instances :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Hide instances" nael-infoview-hide-instances)))
+    ("t" nael-infoview-toggle-types :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Hide types" nael-infoview-hide-types)))
+    ("a" nael-infoview-toggle-inaccessible :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Hide inaccessible names"
+                     nael-infoview-hide-inaccessible)))
+    ("l" nael-infoview-toggle-let-values :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Hide let values" nael-infoview-hide-let-values)))]
+   ["Goals"
+    ("r" nael-infoview-toggle-reverse :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Target first" nael-infoview-reverse)))
+    ("d" nael-infoview-toggle-diffs :transient t
+     :description (lambda ()
+                    (nael-infoview--switch-description
+                     "Show diffs" nael-infoview-show-diffs)))
+    ("e" nael-infoview-cycle-expected-type :transient t
+     :description nael-infoview--expected-type-description)]])
+
 (easy-menu-define nael-infoview-mode-menu nael-infoview-mode-map
   "Menu for the Nael infoview."
   '("Infoview"
     ["Refresh" nael-infoview-refresh]
+    ["View options..." nael-infoview-view-options]
     "---"
     ["Hide instances" nael-infoview-toggle-instances
      :style toggle :selected nael-infoview-hide-instances]

@@ -84,6 +84,13 @@ Language Server Protocol (LSP):
 @samp{C-c C-l} (@code{lsp}) starts lsp-mode, an alternative LSP client.  The key is only bound if @code{nael-lsp} is (auto)loaded.
 @end itemize
 
+Infoview:
+
+@itemize
+@item
+@samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
+@end itemize
+
 Infoview, on a subterm of a goal:
 
 @itemize
