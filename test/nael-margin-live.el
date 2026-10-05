@@ -62,10 +62,10 @@ Return them as (LINE STRING), LINE 0-based."
     (nael-test-margin-drawn)))
 
 (defconst nael-margin-live-expected
-  '((0 "🎉")                            ; done
-    (3 "┌") (4 "│") (5 "🔨")            ; open_goal, unsolved
-    (7 "🚧")                            ; admitted, sorry
-    (11 "┌") (12 "│") (13 "└")         ; example, failed instance
+  '((0 "✓")                             ; done
+    (3 "┌") (4 "│") (5 "✗")             ; open_goal, unsolved
+    (7 "⚠")                             ; admitted, sorry
+    (11 "┌") (12 "│") (13 "└")          ; example, failed instance
     (15 "‼"))                           ; #check
   "The signs of `Tiny/Signs.lean'.")
 
@@ -137,7 +137,7 @@ Return them as (LINE STRING), LINE 0-based."
              30))
     (nael-margin-live-settle)
     (should (equal (seq-take (nael-margin-live-signs) 3)
-                   '((1 "🎉") (4 "🎉") (9 "🚧"))))))
+                   '((1 "✓") (4 "✓") (9 "⚠"))))))
 
 (ert-deftest nael-margin-live-mode-change ()
   "Setting up the major mode again leaves one set of signs."
@@ -175,7 +175,7 @@ Return them as (LINE STRING), LINE 0-based."
              10))
     (should (nael-rpc-live-wait #'nael-rpc-live-processed-p 30))
     (nael-margin-live-settle)
-    (should (equal (nael-margin-live-signs) '((1 "🎉") (5 "🎉"))))))
+    (should (equal (nael-margin-live-signs) '((1 "✓") (5 "✓"))))))
 
 (provide 'nael-margin-live)
 

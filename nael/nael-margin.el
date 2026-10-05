@@ -51,27 +51,30 @@ Set this before Nael buffers are opened."
   :type 'boolean
   :group 'nael-margin)
 
-(defcustom nael-margin-goals-accomplished "🎉"
+(defcustom nael-margin-goals-accomplished "✓"
   "Sign on the first line of a proof that the server found complete.
 The infoview shows it as well, after \"Goals accomplished\".  An empty
-string shows no sign.  The margin has room for two columns."
+string shows no sign.  The margin has room for two columns.  Emoji
+fit too, but with most fonts they make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
 
-(defcustom nael-margin-unsolved-goals "🔨"
+(defcustom nael-margin-unsolved-goals "✗"
   "Sign on the last line of a proof that has unsolved goals.
 That is where the proof goes on.  An empty string shows the sign of the
-error instead.  The margin has room for two columns."
+error instead.  The margin has room for two columns.  Emoji fit too,
+but with most fonts they make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
 
-(defcustom nael-margin-admitted "🚧"
+(defcustom nael-margin-admitted "⚠"
   "Sign on a declaration that uses `sorry'.
 It replaces the sign of the server's warning that the declaration uses
 `sorry'.  An empty string shows the sign of the warning instead.  The
-margin has room for two columns."
+margin has room for two columns.  Emoji fit too, but with most fonts
+they make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
@@ -135,8 +138,8 @@ pixels; see `nael-margin--needed-width'.")
 ;;;; Signs:
 
 (defconst nael-margin--fallbacks
-  '((nael-margin-goals-accomplished "✓" "*")
-    (nael-margin-unsolved-goals "✗" "x")
+  '((nael-margin-goals-accomplished "*")
+    (nael-margin-unsolved-goals "x")
     (nael-margin-admitted ""))
   "Signs to use instead of a default that cannot be displayed.")
 

@@ -133,13 +133,13 @@ The buffer has LINE-COUNT lines, 20 by default."
                           (nael-test-diagnostic
                            2 '(11 . 8) '(11 . 16)
                            :message "declaration uses 'sorry'")))
-                   '((0 "🎉" nael-margin-goals-accomplished)
+                   '((0 "✓" nael-margin-goals-accomplished)
                      (3 "┌" nael-margin-error)
                      (4 "│" nael-margin-error)
-                     (5 "🔨" nael-margin-unsolved-goals)
-                     (7 "🚧" nael-margin-admitted)
-                     (9 "🔨" nael-margin-unsolved-goals)
-                     (11 "🚧" nael-margin-admitted))))
+                     (5 "✗" nael-margin-unsolved-goals)
+                     (7 "⚠" nael-margin-admitted)
+                     (9 "✗" nael-margin-unsolved-goals)
+                     (11 "⚠" nael-margin-admitted))))
     ;; Other silent diagnostics and other warnings get no such sign.
     (should (equal (nael-margin-test-signs
                     (list (nael-test-diagnostic 3 '(0 . 0) '(0 . 6)
@@ -223,13 +223,7 @@ The buffer has LINE-COUNT lines, 20 by default."
       (should (equal (nael-margin--severity-sign 'error) "!!"))
       (setq-local nael-margin-goals-accomplished "🐣")
       (should (equal (nael-margin-sign 'nael-margin-goals-accomplished)
-                     "🐣"))))
-  (cl-letf (((symbol-function 'char-displayable-p)
-             (lambda (char) (not (memq char '(?🎉 ?🔨))))))
-    (with-temp-buffer
-      (should (equal (nael-margin-sign 'nael-margin-goals-accomplished)
-                     "✓"))
-      (should (equal (nael-margin-sign 'nael-margin-unsolved-goals) "✗")))))
+                     "🐣")))))
 
 ;;;; Drawing and the margin:
 

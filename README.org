@@ -32,12 +32,12 @@ Language Server Protocol (LSP):
 Signs in the left margin, while Eglot manages the buffer (~nael-margin-mode~):
 
 - =‼= marks the line of an error, =!= that of a warning or a note.  A diagnostic that spans several lines gets a bar over them instead, =┌=, =│=, =└=, in its color.  These are the indicators that Flymake shows otherwise; Flymake still underlines the diagnostics and shows their messages.  The tooltip of a sign shows the message, and clicking it lists all diagnostics.
-- 🎉 marks a proof that is complete, 🔨 the last line of one with unsolved goals, where it goes on, and 🚧 a declaration that uses =sorry=.
+- =✓= marks a proof that is complete, =✗= the last line of one with unsolved goals, where it goes on, and =⚠= a declaration that uses =sorry=.  Other signs, such as emoji, can be set with ~nael-margin-goals-accomplished~, ~nael-margin-unsolved-goals~ and ~nael-margin-admitted~; with most fonts, an emoji makes its line taller.
 - An orange =│= marks the lines that Lean is still processing.
 
 Infoview:
 
-- In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
+- In a complete proof, a line above the goals says "Goals accomplished ✓", and replaces "no goals" when none are left.
 - Below the goals and the expected type, the section /Messages/ shows Lean's messages on the line of point: errors, warnings, and output such as that of =#check=.  Messages that start on another line, like an error about a whole proof, are folded; messages about the whole file, like that its imports are out of date, are not, and come first.  That message has a =[restart file]= button, which does what =C-c C-r= does.  Their terms are subterms like those of goals.  =RET= or =mouse-1= on the position of a message goes there in the source.
 - Traces, as with =set_option trace.Meta.synthInstance true in=, are headings: =TAB= on one shows its children, which Lean sends on request only.
 - Suggestions such as Lean's "Try this" have an =[apply]= button that replaces the code in the source with the suggestion; this includes the tactics of libraries that suggest through Lean's =TryThis=.  Lean's hints show the change they suggest as a diff, which applies the same way.  The code of an error, such as =[lean.invalidField]=, opens its explanation in Lean's reference manual.

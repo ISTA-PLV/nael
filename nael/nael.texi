@@ -91,7 +91,7 @@ Signs in the left margin, while Eglot manages the buffer (@code{nael-margin-mode
 @item
 @samp{‼} marks the line of an error, @samp{!} that of a warning or a note.  A diagnostic that spans several lines gets a bar over them instead, @samp{┌}, @samp{│}, @samp{└}, in its color.  These are the indicators that Flymake shows otherwise; Flymake still underlines the diagnostics and shows their messages.  The tooltip of a sign shows the message, and clicking it lists all diagnostics.
 @item
-🎉 marks a proof that is complete, 🔨 the last line of one with unsolved goals, where it goes on, and 🚧 a declaration that uses @samp{sorry}.
+@samp{✓} marks a proof that is complete, @samp{✗} the last line of one with unsolved goals, where it goes on, and @samp{⚠} a declaration that uses @samp{sorry}.  Other signs, such as emoji, can be set with @code{nael-margin-goals-accomplished}, @code{nael-margin-unsolved-goals} and @code{nael-margin-admitted}; with most fonts, an emoji makes its line taller.
 @item
 An orange @samp{│} marks the lines that Lean is still processing.
 @end itemize
@@ -100,7 +100,7 @@ Infoview:
 
 @itemize
 @item
-In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
+In a complete proof, a line above the goals says "Goals accomplished ✓", and replaces "no goals" when none are left.
 @item
 Below the goals and the expected type, the section @emph{Messages} shows Lean's messages on the line of point: errors, warnings, and output such as that of @samp{#check}.  Messages that start on another line, like an error about a whole proof, are folded; messages about the whole file, like that its imports are out of date, are not, and come first.  That message has a @samp{[restart file]} button, which does what @samp{C-c C-r} does.  Their terms are subterms like those of goals.  @samp{RET} or @samp{mouse-1} on the position of a message goes there in the source.
 @item

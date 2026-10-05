@@ -160,9 +160,9 @@ The main window shows the buffer Main."
 (defmacro nael-test-with-margin-defaults (&rest body)
   "Run BODY with the default signs, all of which can be displayed."
   (declare (indent 0) (debug t))
-  `(let ((nael-margin-goals-accomplished "🎉")
-         (nael-margin-unsolved-goals "🔨")
-         (nael-margin-admitted "🚧")
+  `(let ((nael-margin-goals-accomplished "✓")
+         (nael-margin-unsolved-goals "✗")
+         (nael-margin-admitted "⚠")
          (nael-margin-bar '("┌" "│" "└"))
          (nael-margin-processing "│")
          (flymake-margin-indicators-string
