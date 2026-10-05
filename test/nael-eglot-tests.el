@@ -161,6 +161,42 @@
       (should (equal sent '(open close)))
       (should-not eglot--semtok-state))))
 
+;;;; Building dependencies:
+
+(defvar nael-eglot-test-sent nil
+  "Messages that `nael-eglot-test-server' was asked to send, newest first.")
+
+(cl-defmethod jsonrpc-connection-send ((_server nael-eglot-test-server)
+                                       &rest args)
+  "Record ARGS instead of sending them."
+  (push args nael-eglot-test-sent))
+
+(ert-deftest nael-eglot-test-dependency-build-mode ()
+  "Opening a file tells the server whether to build its imports."
+  (let ((server (make-instance 'nael-eglot-test-server
+                               :process (make-pipe-process
+                                         :name "nael-eglot-test"
+                                         :noquery t)))
+        (nael-eglot-test-sent nil))
+    (unwind-protect
+        (cl-flet ((open ()
+                    (jsonrpc-connection-send
+                     server :method :textDocument/didOpen
+                     :params '(:textDocument (:uri "file:///A.lean")))
+                    (plist-get (plist-get (car nael-eglot-test-sent) :params)
+                               :dependencyBuildMode)))
+          (let ((nael-eglot-build-dependencies nil))
+            (should (equal (open) "never"))
+            (let ((nael-eglot--build-dependencies-once t))
+              (should (equal (open) "once"))))
+          (let ((nael-eglot-build-dependencies t))
+            (should (equal (open) "always")))
+          (jsonrpc-connection-send server :method :textDocument/didClose
+                                   :params '(:textDocument (:uri "u")))
+          (should (equal (plist-get (car nael-eglot-test-sent) :params)
+                         '(:textDocument (:uri "u")))))
+      (delete-process (jsonrpc--process server)))))
+
 ;;;; Widgets in messages:
 
 (defmacro nael-eglot-test-with-toolchain (toolchain &rest body)
