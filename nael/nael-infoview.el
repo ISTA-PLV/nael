@@ -114,7 +114,7 @@ Lean 4.30 and later announce their RPC wire format."
                 (plist-get :rpcWireFormat)))
 
 (defun nael-infoview--accomplished-title (buffer pos)
-  "Return the title for goals at POS in BUFFER if their proof is complete.
+  "Return the line for goals at POS in BUFFER if their proof is complete.
 Return nil if it is not, as far as the server has said."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer

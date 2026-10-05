@@ -100,7 +100,7 @@ Infoview:
 
 @itemize
 @item
-In a complete proof, the goals are titled "Goals accomplished 🎉".
+In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
 @item
 @samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 

@@ -404,7 +404,7 @@ The main window shows the buffer Main."
 ;;;; Complete proofs:
 
 (ert-deftest nael-infoview-test-accomplished-title ()
-  "Goals in a complete proof are titled so."
+  "Above goals in a complete proof, a line says so; it replaces no goals."
   (nael-infoview-test-with-options
     (unwind-protect
         (progn
@@ -412,7 +412,26 @@ The main window shows the buffer Main."
                                (nael-rpc-make-owner) "SpinLock.lean:110:2"
                                nil "Goals accomplished 🎉")
           (with-current-buffer (nael-infoview--buffer)
-            (should (string-prefix-p "Goals accomplished 🎉\ngoal 1\n"
+            (should (string-prefix-p
+                     "Goals accomplished 🎉\nTactic state: 3 goals\ngoal 1\n"
+                     (buffer-string)))
+            ;; A line of its own, not a heading that folds the goals.
+            (goto-char (point-min))
+            (should-not (outline-on-heading-p))
+            (should (eq (get-text-property (point) 'face)
+                        'nael-render-goals-accomplished))
+            (forward-line)
+            (should (outline-on-heading-p)))
+          ;; No goals left: the line instead of "no goals".
+          (nael-infoview--show (list :goals []) nil (nael-rpc-make-owner)
+                               "A.lean:2:6" nil "Goals accomplished 🎉")
+          (with-current-buffer (nael-infoview--buffer)
+            (should (equal (string-trim (buffer-string))
+                           "Goals accomplished 🎉")))
+          (nael-infoview--show (list :goals []) nil (nael-rpc-make-owner)
+                               "A.lean:2:6")
+          (with-current-buffer (nael-infoview--buffer)
+            (should (string-prefix-p "Tactic state: no goals"
                                      (buffer-string))))
           ;; Without goals, the title alone.
           (nael-infoview--show nil nil (nael-rpc-make-owner) "A.lean:1:0"

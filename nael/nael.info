@@ -117,7 +117,8 @@ Language Server Protocol (LSP):
 
    Infoview:
 
-   • In a complete proof, the goals are titled "Goals accomplished 🎉".
+   • In a complete proof, a line above the goals says "Goals
+     accomplished 🎉", and replaces "no goals" when none are left.
    • ‘v’ (‘nael-infoview-view-options’) opens a menu of what the
      infoview shows: which hypotheses to hide, whether to show the
      target first and the changes of the tactic at point, and how to
@@ -495,22 +496,22 @@ Tag Table:
 Node: Top192
 Node: Get Started2399
 Node: Usage2736
-Node: Configuration7560
-Node: Installation9446
-Node: Installation from Melpa9798
-Node: Installation from Sources10834
-Node: Manual Installation11277
-Node: Installation via package-vc12213
-Ref: Installation via package-vc-selected-packages12886
-Ref: Installation via use-package vc13983
-Node: Installation in Doom Emacs14801
-Node: Changelog15254
-Node: Version 082 from 2026-02-2215699
-Node: Version 080 from 2026-12-1616059
-Node: Version 070 from 2025-12-1516704
-Node: Version 062 from 2025-11-3017303
-Node: Version 060 from 2025-11-3017656
-Node: License and Maintenance18754
+Node: Configuration7616
+Node: Installation9502
+Node: Installation from Melpa9854
+Node: Installation from Sources10890
+Node: Manual Installation11333
+Node: Installation via package-vc12269
+Ref: Installation via package-vc-selected-packages12942
+Ref: Installation via use-package vc14039
+Node: Installation in Doom Emacs14857
+Node: Changelog15310
+Node: Version 082 from 2026-02-2215755
+Node: Version 080 from 2026-12-1616115
+Node: Version 070 from 2025-12-1516760
+Node: Version 062 from 2025-11-3017359
+Node: Version 060 from 2025-11-3017712
+Node: License and Maintenance18810
 
 End Tag Table
 

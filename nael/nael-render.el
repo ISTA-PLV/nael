@@ -53,6 +53,11 @@
   "Face of section headings such as \"Tactic state\"."
   :group 'nael-render)
 
+(defface nael-render-goals-accomplished
+  '((t :inherit success))
+  "Face of the line that says that the proof at point is complete."
+  :group 'nael-render)
+
 (defface nael-render-case
   '((t :inherit font-lock-keyword-face))
   "Face of the case name of a goal."
@@ -272,12 +277,11 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
   (let ((count (length goals))
         (names nil))
     (nael-render--heading
-     (or (plist-get options :accomplished)
-         (format "Tactic state: %s"
-                 (pcase count
-                   (0 "no goals")
-                   (1 "1 goal")
-                   (_ (format "%d goals" count)))))
+     (format "Tactic state: %s"
+             (pcase count
+               (0 "no goals")
+               (1 "1 goal")
+               (_ (format "%d goals" count))))
      'goals)
     (seq-do-indexed
      (lambda (goal index)
@@ -334,16 +338,22 @@ OPTIONS is a plist of view options:
   :hide-let-values   hide the values of let-bound hypotheses;
   :reverse           show the target first, then hypotheses upwards;
   :hide-diffs        do not mark what the tactic at point changes;
-  :accomplished      the title of the goals, such as \"Goals accomplished\",
-                     if their proof is complete; it replaces the count
-                     of goals, and the section is shown even without
-                     GOALS."
+  :accomplished      a line to show first if the proof at point is
+                     complete, such as \"Goals accomplished\"; it
+                     replaces the section of GOALS when there are none."
   (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
         (nael-render--nodes nil)
         (nael-render--goal-ids nil)
         (nael-render--faces nil))
     (with-temp-buffer
-      (when (or goals (plist-get options :accomplished))
+      ;; As in lean.nvim, a line above the goals, which are not folded
+      ;; with it; it stands for no goals at all.
+      (when-let* ((accomplished (plist-get options :accomplished)))
+        (nael-render--insert accomplished 'nael-render-goals-accomplished)
+        (insert "\n"))
+      (when (and goals
+                 (not (and (plist-get options :accomplished)
+                           (seq-empty-p (plist-get goals :goals)))))
         (nael-render--goals-section (plist-get goals :goals) options))
       (when term-goal
         (unless (bobp) (insert "\n"))

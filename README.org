@@ -37,7 +37,7 @@ Signs in the left margin, while Eglot manages the buffer (~nael-margin-mode~):
 
 Infoview:
 
-- In a complete proof, the goals are titled "Goals accomplished 🎉".
+- In a complete proof, a line above the goals says "Goals accomplished 🎉", and replaces "no goals" when none are left.
 - =v= (~nael-infoview-view-options~) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 
 - With [[https://github.com/emacs-evil/evil][Evil]], =(with-eval-after-load 'evil (nael-evil-setup))= binds keys in normal state that don't clash with its motions: =]g= and =[g= for the next and previous goal, =]h= and =[h= for headings, =gr= to refresh, =K= to describe the subterm at point, and, with a local leader, =<localleader> v= for the view options and =<localleader> y= to copy the goal.
