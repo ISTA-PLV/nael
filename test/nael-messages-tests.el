@@ -104,11 +104,11 @@ Nat.add_comm (n m : Nat) : n + m = m + n
     (should (equal (nael-messages-test-headings
                     (nael-render-result-text result))
                    '((1 1 nil nil nil)
-                     (2 2 (message 212 0 "error") t nil)
-                     (6 2 (message 215 27 "information") nil nil)
-                     (7 3 (message 215 27 "information" 0) nil
+                     (2 2 (message 212 0 "error" 0) t nil)
+                     (6 2 (message 215 27 "information" 0) nil nil)
+                     (7 3 (message 215 27 "information" 0 0) nil
                         (:__rpcref "2"))
-                     (8 2 (message 217 2 "information") t nil))))
+                     (8 2 (message 217 2 "information" 0) t nil))))
     ;; The section is a section of its own.
     (should (eq (get-text-property 0 'nael-section
                                    (nael-render-result-text result))
@@ -165,7 +165,7 @@ Nat.add_comm (n m : Nat) : n + m = m + n
 (ert-deftest nael-messages-test-trace-children ()
   "Fetched children of a trace are shown under it, one level deeper."
   (let* ((children (make-hash-table :test #'equal))
-         (key '(message 3 2 "error" 0)))
+         (key '(message 3 2 "error" 0 0)))
     (puthash key
              (vector (nael-messages-test-trace
                       "Meta.synthInstance" "child" '(:lazy (:__rpcref "8"))))
@@ -180,10 +180,33 @@ Nat.add_comm (n m : Nat) : n + m = m + n
       (should (equal (substring-no-properties text)
                      "Messages (1)\n4:2 error\n[Meta.synthInstance] top\n  [Meta.synthInstance] child\n"))
       (should (equal (cdr (nael-messages-test-headings text))
-                     `((2 2 (message 3 2 "error") nil nil)
+                     `((2 2 (message 3 2 "error" 0) nil nil)
                        (3 3 ,key nil nil)
-                       (4 4 (message 3 2 "error" 0 0) nil
+                       (4 4 (message 3 2 "error" 0 0 0) nil
                           (:__rpcref "8"))))))))
+
+(ert-deftest nael-messages-test-same-start ()
+  "Messages with the same start and severity keep their traces apart."
+  (let ((children (make-hash-table :test #'equal))
+        (message (lambda (ref)
+                   (nael-messages-test-message
+                    (nael-messages-test-trace "a" ref (list :lazy (list :__rpcref ref)))))))
+    (puthash '(message 3 2 "error" 0 0)
+             (vector (nael-messages-test-trace "a" "child" '(:strict [])))
+             children)
+    (let ((text (nael-render-result-text
+                 (nael-messages-test-render
+                  (vector (funcall message "1") (funcall message "2"))
+                  3 children))))
+      (should (equal (substring-no-properties text)
+                     "Messages (2)\n4:2 error\n[a] 1\n  [a] child\n4:2 error\n[a] 2\n"))
+      (should (equal (mapcar (lambda (heading) (list (nth 2 heading) (nth 4 heading)))
+                             (cdr (nael-messages-test-headings text)))
+                     '(((message 3 2 "error" 0) nil)
+                       ((message 3 2 "error" 0 0) nil)
+                       ((message 3 2 "error" 0 0 0) nil)
+                       ((message 3 2 "error" 1) nil)
+                       ((message 3 2 "error" 1 0) (:__rpcref "2"))))))))
 
 (ert-deftest nael-messages-test-strict-trace ()
   "Children sent with a trace are shown; a collapsed trace starts folded."
@@ -206,11 +229,11 @@ Nat.add_comm (n m : Nat) : n + m = m + n
     (should (equal (substring-no-properties text)
                    "Messages (1)\n4:2 error\n[a] one\n  [a.b] inner\n  [a.b] inner2\n[a] two\n"))
     (should (equal (cdr (nael-messages-test-headings text))
-                   '((2 2 (message 3 2 "error") nil nil)
-                     (3 3 (message 3 2 "error" 0) t nil)
-                     (4 4 (message 3 2 "error" 0 0) nil nil)
-                     (5 4 (message 3 2 "error" 0 1) nil nil)
-                     (6 3 (message 3 2 "error" 1) nil nil))))
+                   '((2 2 (message 3 2 "error" 0) nil nil)
+                     (3 3 (message 3 2 "error" 0 0) t nil)
+                     (4 4 (message 3 2 "error" 0 0 0) nil nil)
+                     (5 4 (message 3 2 "error" 0 0 1) nil nil)
+                     (6 3 (message 3 2 "error" 0 1) nil nil))))
     (should (memq 'nael-render-trace-class
                   (nael-render-test-faces text (string-search "[a]" text))))))
 
@@ -578,7 +601,7 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
       (funcall success (vector (nael-messages-test-trace
                                 "Meta.synthInstance" "child" '(:strict [])))))
     (should (nael-messages-test-visible-p "[Meta.synthInstance] child"))
-    (should (member '(message 215 27 "information" 0)
+    (should (member '(message 215 27 "information" 0 0)
                     nael-infoview--expanded-traces))
     ;; No longer a trace to expand: TAB cycles as on other headings.
     (nael-infoview-test-goto "[Meta.synthInstance] ✅")

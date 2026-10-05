@@ -36,10 +36,11 @@
 ;; Messages, the results of `Lean.Widget.getInteractiveDiagnostics',
 ;; are `TaggedText' too, whose tags embed code, goals, traces and
 ;; widgets.  Each message is a heading of level 2 with the `nael-key'
-;; (message LINE CHARACTER SEVERITY), and each trace in it a heading of
-;; level 3 or deeper, with the key of the message followed by the
-;; trace's path: its index among the traces of its parent, for each
-;; enclosing trace.  Headings that a buffer should fold at first carry
+;; (message LINE CHARACTER SEVERITY N), where N counts the messages
+;; before it with the same start and severity, and each trace in it a
+;; heading of level 3 or deeper, with the key of the message followed
+;; by the trace's path: its index among the traces of its parent, for
+;; each enclosing trace.  Headings that a buffer should fold at first carry
 ;; `nael-folded'.  The server sends the children of a trace on request
 ;; only: its heading then carries `nael-trace-lazy', the reference for
 ;; `Lean.Widget.lazyTraceChildrenToInteractive'.  The position of a
@@ -324,6 +325,9 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
 (defvar nael-render--trace-count nil
   "A list whose car counts the traces rendered under the enclosing one.")
 
+(defvar nael-render--trace-depth 0
+  "Number of traces that enclose the one being rendered.")
+
 (defvar nael-render--options nil
   "The view options of the current rendering.")
 
@@ -388,21 +392,22 @@ Children that the server sends on request only are taken from
                        (gethash key nael-render--trace-children)))
          (kids (or (plist-get children :strict) fetched))
          (beg (progn (unless (bolp) (insert "\n")) (point))))
-    (insert (make-string (* 2 (max 0 (- (length key) 5))) ?\s))
+    (insert (make-string (* 2 nael-render--trace-depth) ?\s))
     (nael-render--insert (format "[%s] " (plist-get trace :cls))
                          'nael-render-trace-class)
     (nael-render--msg (plist-get trace :msg))
     ;; The heading is the trace's own line; its children follow.
     (add-text-properties
      beg (point)
-     (append (list 'outline-level (- (length key) 2) 'nael-key key)
+     (append (list 'outline-level (+ 3 nael-render--trace-depth) 'nael-key key)
              (when (and kids (eq t (plist-get trace :collapsed)))
                (list 'nael-folded t))
              (when (and lazy (not fetched))
                (list 'nael-trace-lazy lazy))))
     (insert "\n")
     (let ((nael-render--trace-key key)
-          (nael-render--trace-count (list 0)))
+          (nael-render--trace-count (list 0))
+          (nael-render--trace-depth (1+ nael-render--trace-depth)))
       (seq-doseq (child kids)
         (nael-render--msg child)
         (unless (bolp) (insert "\n"))))))
@@ -490,18 +495,20 @@ the first."
   (string-prefix-p "Imports are out of date"
                    (nael-render--plain-text (plist-get diagnostic :message))))
 
-(defun nael-render--message (diagnostic line &optional whole-file)
+(defun nael-render--message (diagnostic line whole-file occurrence)
   "Insert DIAGNOSTIC, an `InteractiveDiagnostic', as a heading and text.
 LINE is the 0-based line at which the messages were requested; a
 message that starts on another line is folded at first, unless
-WHOLE-FILE says that it is about the whole file.  A message that the
-imports are out of date gets a button to restart the file."
+WHOLE-FILE says that it is about the whole file.  OCCURRENCE counts the
+messages before it with the same start and severity, which its key
+would not tell apart otherwise.  A message that the imports are out of
+date gets a button to restart the file."
   (let* ((range (or (plist-get diagnostic :fullRange)
                     (plist-get diagnostic :range)))
          (start (plist-get range :start))
          (severity (nael-render--severity (plist-get diagnostic :severity)))
          (key (list 'message (plist-get start :line) (plist-get start :character)
-                    (car severity)))
+                    (car severity) occurrence))
          (beg (point)))
     (insert (propertize (format "%d:%d" (1+ (plist-get start :line))
                                 (plist-get start :character))
@@ -515,7 +522,8 @@ imports are out of date gets a button to restart the file."
                                    (list 'nael-folded t))))
     (insert "\n")
     (let ((nael-render--trace-key key)
-          (nael-render--trace-count (list 0)))
+          (nael-render--trace-count (list 0))
+          (nael-render--trace-depth 0))
       (nael-render--msg (plist-get diagnostic :message)))
     (unless (bolp) (insert "\n"))
     (when (and whole-file (nael-render--imports-out-of-date-p diagnostic))
@@ -542,11 +550,18 @@ left out.  Messages about the whole file come first."
       (unless (bobp) (insert "\n"))
       (nael-render--heading (format "Messages (%d)" (length diagnostics))
                             'messages)
-      (dolist (diagnostic whole-file)
-        (nael-render--message diagnostic (plist-get messages :line) t))
-      (dolist (diagnostic diagnostics)
-        (unless (memq diagnostic whole-file)
-          (nael-render--message diagnostic (plist-get messages :line)))))))
+      (let ((seen (make-hash-table :test #'equal)))
+        (dolist (diagnostic (append whole-file
+                                    (seq-difference diagnostics whole-file
+                                                    #'eq)))
+          (let ((start (plist-get (or (plist-get diagnostic :fullRange)
+                                      (plist-get diagnostic :range))
+                                  :start)))
+            (nael-render--message
+             diagnostic (plist-get messages :line)
+             (memq diagnostic whole-file)
+             (cl-incf (gethash (list start (plist-get diagnostic :severity))
+                               seen -1)))))))))
 
 (defun nael-render--apply-faces ()
   "Add the noted faces, then the diff faces of the rendered nodes."
