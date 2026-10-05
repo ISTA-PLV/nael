@@ -101,8 +101,23 @@ Language Server Protocol (LSP):
    • ‘C-c C-l’ (‘lsp’) starts lsp-mode, an alternative LSP client.  The
      key is only bound if ‘nael-lsp’ is (auto)loaded.
 
+   Signs in the left margin, while Eglot manages the buffer
+(‘nael-margin-mode’):
+
+   • ‘‼’ marks the line of an error, ‘!’ that of a warning or a note.  A
+     diagnostic that spans several lines gets a bar over them instead,
+     ‘┌’, ‘│’, ‘└’, in its color.  These are the indicators that Flymake
+     shows otherwise; Flymake still underlines the diagnostics and shows
+     their messages.  The tooltip of a sign shows the message, and
+     clicking it lists all diagnostics.
+   • 🎉 marks a proof that is complete, ⚒ the last line of one with
+     unsolved goals, where it goes on, and 🚧 a declaration that uses
+     ‘sorry’.
+   • An orange ‘│’ marks the lines that Lean is still processing.
+
    Infoview:
 
+   • In a complete proof, the goals are titled "Goals accomplished 🎉".
    • ‘v’ (‘nael-infoview-view-options’) opens a menu of what the
      infoview shows: which hypotheses to hide, whether to show the
      target first and the changes of the tactic at point, and how to
@@ -187,6 +202,17 @@ lsp-mode) when Nael is started, customize ‘nael-mode-hook’ as follows:
 
      (add-hook 'nael-mode-hook #'abbrev-mode)
      (add-hook 'nael-mode-hook #'eglot-ensure)
+
+   The signs in the margin can be changed, also for a single project in
+its ‘.dir-locals.el’.  An empty string leaves a sign out; errors and
+warnings then keep their own.  For example, with chickens:
+
+     (setq nael-margin-goals-accomplished "🐣"  ; complete proof
+           nael-margin-unsolved-goals "🥚"      ; unsolved goals
+           nael-margin-admitted "🍗")           ; uses sorry
+
+   To keep Flymake's indicators instead of the signs, set ‘nael-margin’
+to ‘nil’ before opening Lean files.
 
    Nael's Abbrev tables use the ‘:regexp’ property which is incompatible
 (https://github.com/minad/cape/discussions/158#discussioncomment-14687758)
@@ -469,22 +495,22 @@ Tag Table:
 Node: Top192
 Node: Get Started2399
 Node: Usage2736
-Node: Configuration6730
-Node: Installation8096
-Node: Installation from Melpa8448
-Node: Installation from Sources9484
-Node: Manual Installation9927
-Node: Installation via package-vc10863
-Ref: Installation via package-vc-selected-packages11536
-Ref: Installation via use-package vc12633
-Node: Installation in Doom Emacs13451
-Node: Changelog13904
-Node: Version 082 from 2026-02-2214349
-Node: Version 080 from 2026-12-1614709
-Node: Version 070 from 2025-12-1515354
-Node: Version 062 from 2025-11-3015953
-Node: Version 060 from 2025-11-3016306
-Node: License and Maintenance17404
+Node: Configuration7559
+Node: Installation9445
+Node: Installation from Melpa9797
+Node: Installation from Sources10833
+Node: Manual Installation11276
+Node: Installation via package-vc12212
+Ref: Installation via package-vc-selected-packages12885
+Ref: Installation via use-package vc13982
+Node: Installation in Doom Emacs14800
+Node: Changelog15253
+Node: Version 082 from 2026-02-2215698
+Node: Version 080 from 2026-12-1616058
+Node: Version 070 from 2025-12-1516703
+Node: Version 062 from 2025-11-3017302
+Node: Version 060 from 2025-11-3017655
+Node: License and Maintenance18753
 
 End Tag Table
 

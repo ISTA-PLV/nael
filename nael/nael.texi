@@ -85,9 +85,22 @@ Language Server Protocol (LSP):
 @samp{C-c C-l} (@code{lsp}) starts lsp-mode, an alternative LSP client.  The key is only bound if @code{nael-lsp} is (auto)loaded.
 @end itemize
 
+Signs in the left margin, while Eglot manages the buffer (@code{nael-margin-mode}):
+
+@itemize
+@item
+@samp{‼} marks the line of an error, @samp{!} that of a warning or a note.  A diagnostic that spans several lines gets a bar over them instead, @samp{┌}, @samp{│}, @samp{└}, in its color.  These are the indicators that Flymake shows otherwise; Flymake still underlines the diagnostics and shows their messages.  The tooltip of a sign shows the message, and clicking it lists all diagnostics.
+@item
+🎉 marks a proof that is complete, ⚒ the last line of one with unsolved goals, where it goes on, and 🚧 a declaration that uses @samp{sorry}.
+@item
+An orange @samp{│} marks the lines that Lean is still processing.
+@end itemize
+
 Infoview:
 
 @itemize
+@item
+In a complete proof, the goals are titled "Goals accomplished 🎉".
 @item
 @samp{v} (@code{nael-infoview-view-options}) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 
@@ -163,6 +176,16 @@ To automatically enable features (e.g. abbreviations, Eglot or lsp-mode) when Na
 (add-hook 'nael-mode-hook #'abbrev-mode)
 (add-hook 'nael-mode-hook #'eglot-ensure)
 @end lisp
+
+The signs in the margin can be changed, also for a single project in its @samp{.dir-locals.el}.  An empty string leaves a sign out; errors and warnings then keep their own.  For example, with chickens:
+
+@lisp
+(setq nael-margin-goals-accomplished "🐣"  ; complete proof
+      nael-margin-unsolved-goals "🥚"      ; unsolved goals
+      nael-margin-admitted "🍗")           ; uses sorry
+@end lisp
+
+To keep Flymake's indicators instead of the signs, set @code{nael-margin} to @samp{nil} before opening Lean files.
 
 Nael's Abbrev tables use the @samp{:regexp} property which is @uref{https://github.com/minad/cape/discussions/158#discussioncomment-14687758, incompatible} with @uref{https://github.com/company-mode/company-mode, Company}'s @code{company-abbrev} and @uref{https://github.com/minad/cape, Cape}'s @code{cape-abbrev}.  Instead, Nael supports completion-at-point natively via @code{nael-abbrev-capf}.  This CAPF is buffer-locally added to @code{completion-at-point-functions} whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the @code{nael-abbrev-capf} variable to @samp{nil}.
 

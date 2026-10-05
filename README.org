@@ -29,8 +29,15 @@ Language Server Protocol (LSP):
 - =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point, unless the infoview shows them.
 - =C-c C-l= (~lsp~) starts lsp-mode, an alternative LSP client.  The key is only bound if ~nael-lsp~ is (auto)loaded.
 
+Signs in the left margin, while Eglot manages the buffer (~nael-margin-mode~):
+
+- =‼= marks the line of an error, =!= that of a warning or a note.  A diagnostic that spans several lines gets a bar over them instead, =┌=, =│=, =└=, in its color.  These are the indicators that Flymake shows otherwise; Flymake still underlines the diagnostics and shows their messages.  The tooltip of a sign shows the message, and clicking it lists all diagnostics.
+- 🎉 marks a proof that is complete, ⚒ the last line of one with unsolved goals, where it goes on, and 🚧 a declaration that uses =sorry=.
+- An orange =│= marks the lines that Lean is still processing.
+
 Infoview:
 
+- In a complete proof, the goals are titled "Goals accomplished 🎉".
 - =v= (~nael-infoview-view-options~) opens a menu of what the infoview shows: which hypotheses to hide, whether to show the target first and the changes of the tactic at point, and how to show the expected type.
 
 - With [[https://github.com/emacs-evil/evil][Evil]], =(with-eval-after-load 'evil (nael-evil-setup))= binds keys in normal state that don't clash with its motions: =]g= and =[g= for the next and previous goal, =]h= and =[h= for headings, =gr= to refresh, =K= to describe the subterm at point, and, with a local leader, =<localleader> v= for the view options and =<localleader> y= to copy the goal.
@@ -79,6 +86,16 @@ To automatically enable features (e.g. abbreviations, Eglot or lsp-mode) when Na
 (add-hook 'nael-mode-hook #'abbrev-mode)
 (add-hook 'nael-mode-hook #'eglot-ensure)
 #+end_src
+
+The signs in the margin can be changed, also for a single project in its =.dir-locals.el=.  An empty string leaves a sign out; errors and warnings then keep their own.  For example, with chickens:
+
+#+begin_src emacs-lisp
+(setq nael-margin-goals-accomplished "🐣"  ; complete proof
+      nael-margin-unsolved-goals "🥚"      ; unsolved goals
+      nael-margin-admitted "🍗")           ; uses sorry
+#+end_src
+
+To keep Flymake's indicators instead of the signs, set ~nael-margin~ to =nil= before opening Lean files.
 
 Nael's Abbrev tables use the =:regexp= property which is [[https://github.com/minad/cape/discussions/158#discussioncomment-14687758][incompatible]] with [[https://github.com/company-mode/company-mode][Company]]'s ~company-abbrev~ and [[https://github.com/minad/cape][Cape]]'s ~cape-abbrev~.  Instead, Nael supports completion-at-point natively via ~nael-abbrev-capf~.  This CAPF is buffer-locally added to ~completion-at-point-functions~ whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the ~nael-abbrev-capf~ variable to =nil=.
 
