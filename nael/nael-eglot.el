@@ -261,6 +261,60 @@ one that says that a proof is complete; see `nael-eglot-diagnostics'."
           (list :lean (list :rpcWireFormat nael-eglot-rpc-wire-format
                             :silentDiagnosticSupport t))))
 
+;;;; Widgets in messages:
+
+(defcustom nael-eglot-widgets 'auto
+  "Whether the server sends messages with their terms, goals and traces.
+With them, the infoview shows the messages at point interactively, as
+it shows goals; this needs Lean 4.30 or later.  The cost is that the
+text of a trace that Flymake shows is only \"(trace)\".  If `auto',
+ask for them when the `lean-toolchain' file of the project names Lean
+4.30 or later, or a nightly.  Takes effect when the server starts.
+This is the option `hasWidgets' of the Lean server."
+  :type '(choice (const :tag "If the toolchain is Lean 4.30 or later" auto)
+                 (const :tag "Always" t)
+                 (const :tag "Never" nil))
+  :group 'nael-eglot)
+
+(defun nael-eglot-lean-version (directory)
+  "Return the Lean version that the `lean-toolchain' in DIRECTORY names.
+The value is a list (MAJOR MINOR), the symbol `nightly', or nil if the
+file is missing or names something else."
+  (let ((file (expand-file-name "lean-toolchain" directory)))
+    (when (file-readable-p file)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        (cond ((looking-at
+                (rx (? (* (not (any ":\n"))) ":") (? "v")
+                    (group (+ digit)) "." (group (+ digit))))
+               (list (string-to-number (match-string 1))
+                     (string-to-number (match-string 2))))
+              ((looking-at (rx (* (not (any "\n"))) "nightly"))
+               'nightly))))))
+
+(defun nael-eglot-widgets-p (directory)
+  "Return non-nil if the server for DIRECTORY should send widgets.
+See `nael-eglot-widgets'."
+  (if (eq nael-eglot-widgets 'auto)
+      (let ((version (nael-eglot-lean-version directory)))
+        (or (eq version 'nightly)
+            (and version (version-list-<= '(4 30) version))))
+    nael-eglot-widgets))
+
+(cl-defmethod eglot-initialization-options :around
+  ((_server nael-eglot-server))
+  "Ask for widgets in messages, as option `nael-eglot-widgets' says.
+Eglot calls this in the root directory of the project."
+  (let ((options (cl-call-next-method)))
+    (cond ((not (nael-eglot-widgets-p default-directory)) options)
+          ((and (hash-table-p options) (> (hash-table-count options) 0))
+           (let ((copy (copy-hash-table options)))
+             (puthash "hasWidgets" t copy)
+             copy))
+          ((consp options) (plist-put (copy-sequence options) :hasWidgets t))
+          (t (list :hasWidgets t)))))
+
 (defun nael-eglot-uri-buffer (uri)
   "Return the live buffer visiting the file of URI, or nil."
   (find-buffer-visiting (eglot-uri-to-path uri)))

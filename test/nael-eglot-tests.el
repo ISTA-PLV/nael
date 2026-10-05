@@ -129,6 +129,73 @@ message."
           (should (equal (plist-get lean :rpcWireFormat) "v1")))
       (delete-process (jsonrpc--process server)))))
 
+;;;; Widgets in messages:
+
+(defmacro nael-eglot-test-with-toolchain (toolchain &rest body)
+  "Run BODY in a directory whose `lean-toolchain' says TOOLCHAIN.
+TOOLCHAIN nil means no such file."
+  (declare (indent 1) (debug t))
+  `(let ((default-directory (file-name-as-directory
+                             (make-temp-file "nael-eglot-test" t))))
+     (unwind-protect
+         (progn
+           (when ,toolchain
+             (with-temp-file "lean-toolchain" (insert ,toolchain "\n")))
+           ,@body)
+       (delete-directory default-directory t))))
+
+(ert-deftest nael-eglot-test-lean-version ()
+  "The Lean version of a project, from its `lean-toolchain'."
+  (dolist (case '(("leanprover/lean4:v4.34.1" (4 34))
+                  ("leanprover/lean4:v4.35.0-rc3" (4 35))
+                  ("leanprover/lean4:v4.9.0" (4 9))
+                  ("v4.30.0" (4 30))
+                  ("leanprover/lean4:nightly-2026-09-01" nightly)
+                  ("leanprover/lean4-pr-releases:pr-release-1234" nil)
+                  (nil nil)))
+    (nael-eglot-test-with-toolchain (car case)
+      (should (equal (nael-eglot-lean-version default-directory)
+                     (cadr case))))))
+
+(defvar nael-eglot-test-base-options nil
+  "Initialization options of the test server before Nael adds its own.")
+
+(cl-defmethod eglot-initialization-options ((_server nael-eglot-test-server))
+  "Return `nael-eglot-test-base-options'."
+  nael-eglot-test-base-options)
+
+(ert-deftest nael-eglot-test-has-widgets ()
+  "The server is asked for widgets as `nael-eglot-widgets' says."
+  (let ((server (make-instance 'nael-eglot-test-server
+                               :process (make-pipe-process
+                                         :name "nael-eglot-test"
+                                         :noquery t))))
+    (unwind-protect
+        (cl-flet ((options (toolchain setting base)
+                    (nael-eglot-test-with-toolchain toolchain
+                      (let ((nael-eglot-widgets setting)
+                            (nael-eglot-test-base-options base))
+                        (eglot-initialization-options server)))))
+          (should (equal (options "leanprover/lean4:v4.30.0" 'auto eglot--{})
+                         '(:hasWidgets t)))
+          (should (equal (options "leanprover/lean4:nightly-2026-09-01" 'auto
+                                  nil)
+                         '(:hasWidgets t)))
+          (should (eq (options "leanprover/lean4:v4.29.1" 'auto eglot--{})
+                      eglot--{}))
+          (should (eq (options nil 'auto eglot--{}) eglot--{}))
+          (should (equal (options "leanprover/lean4:v4.28.0" t '(:other 1))
+                         '(:other 1 :hasWidgets t)))
+          (should (equal (options "leanprover/lean4:v4.34.1" nil '(:other 1))
+                         '(:other 1)))
+          (let ((table (make-hash-table :test #'equal)))
+            (puthash "other" 1 table)
+            (let ((result (options "leanprover/lean4:v4.34.1" 'auto table)))
+              (should (eq (gethash "hasWidgets" result) t))
+              (should (= (gethash "other" result) 1))
+              (should-not (gethash "hasWidgets" table)))))
+      (delete-process (jsonrpc--process server)))))
+
 (provide 'nael-eglot-tests)
 
 ;;; nael-eglot-tests.el ends here

@@ -655,6 +655,24 @@ fails because the session died is not retried."
          (list :kind kind :info info) success
          (append keys (list :retry nil))))
 
+(defun nael-rpc-get-interactive-diagnostics (handle line success &rest keys)
+  "Request the messages that touch LINE, 0-based, in the file of HANDLE.
+The server answers at once with the messages it has, whose full range
+touches LINE.  SUCCESS receives a vector of `InteractiveDiagnostic's;
+KEYS are as for `nael-rpc-call'."
+  (apply #'nael-rpc-call handle "Lean.Widget.getInteractiveDiagnostics"
+         (list :lineRange (list :start line :end (1+ line)))
+         success keys))
+
+(defun nael-rpc-lazy-trace-children (handle children success &rest keys)
+  "Request the children of a trace whose CHILDREN are a reference.
+CHILDREN is the `lazy' reference of a trace in a message from the
+session of HANDLE.  SUCCESS receives a vector of messages; KEYS are as
+for `nael-rpc-call'.  A call that fails because the session died is
+not retried."
+  (apply #'nael-rpc-call handle "Lean.Widget.lazyTraceChildrenToInteractive"
+         children success (append keys (list :retry nil))))
+
 ;;;; Debugging:
 
 (defun nael-rpc-tagged-text-string (tagged)

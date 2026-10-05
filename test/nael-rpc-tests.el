@@ -357,6 +357,29 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
         (nael-rpc--close session)
         (should-not (nael-rpc-session-keepalive-timer session))))))
 
+(ert-deftest nael-rpc-test-messages-methods ()
+  "Messages are asked for by line; trace children are not retried."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer)))
+            failure)
+        (nael-rpc-get-interactive-diagnostics handle 7 #'ignore)
+        (nael-rpc-lazy-trace-children handle '(:__rpcref "3") #'ignore
+                                      :failure (lambda (e) (setq failure e)))
+        (nael-rpc-test-connect)
+        (let ((call (plist-get (nael-rpc-test-find
+                                "Lean.Widget.getInteractiveDiagnostics")
+                               :params)))
+          (should (equal (plist-get call :params)
+                         '(:lineRange (:start 7 :end 8)))))
+        (let ((call (nael-rpc-test-find
+                     "Lean.Widget.lazyTraceChildrenToInteractive")))
+          (should (equal (plist-get (plist-get call :params) :params)
+                         '(:__rpcref "3")))
+          (nael-rpc-test-fail call nael-rpc-needs-reconnect))
+        (should (equal (plist-get failure :code) nael-rpc-needs-reconnect))
+        (should-not (nael-rpc-test-find :$/lean/rpc/connect 1))))))
+
 (provide 'nael-rpc-tests)
 
 ;;; nael-rpc-tests.el ends here
