@@ -142,6 +142,23 @@ Each is a plist with `:id', `:method', `:params', `:success-fn',
           (nael-rpc-test-answer second '(:goals [])))
         (should (= (length results) 2))))))
 
+(ert-deftest nael-rpc-test-connect-failed ()
+  "Calls waiting for a failed handshake fail; a new handle connects again."
+  (nael-rpc-test-with-fake
+    (with-temp-buffer
+      (let ((handle (nael-rpc-test-handle (current-buffer)))
+            failures)
+        (dotimes (_ 2)
+          (nael-rpc-get-interactive-goals
+           handle #'ignore :failure (lambda (e) (push e failures))))
+        (nael-rpc-test-fail (nael-rpc-test-find :$/lean/rpc/connect) -32603)
+        (should (equal (mapcar #'nael-rpc-error-code failures)
+                       '(-32603 -32603)))
+        (should-not (nael-rpc-test-find :$/lean/rpc/call))
+        (setf (nael-rpc-handle-session handle)
+              (nael-rpc--session-for 'fake "file:///A.lean"))
+        (should (nael-rpc-test-find :$/lean/rpc/connect 1))))))
+
 (ert-deftest nael-rpc-test-retry-on-dead-session ()
   "A call failing with -32900 is retried once on a new session."
   (nael-rpc-test-with-fake

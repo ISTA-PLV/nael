@@ -282,10 +282,10 @@ is the source buffer."
            (source (generate-new-buffer "nael-infoview-test-source")))
        (cl-flet ((record (what)
                    (lambda (&rest args)
-                     (let ((success (seq-find #'functionp args)))
-                       (push (list what success
-                                   (plist-get (cdr (memq success args))
-                                     :owner))
+                     (let* ((success (seq-find #'functionp args))
+                            (keys (cdr (memq success args))))
+                       (push (list what success (plist-get keys :owner)
+                                   (plist-get keys :failure))
                              nael-infoview-test-calls)))))
          (cl-letf (((symbol-function 'nael-rpc-open) (lambda (&rest _) 'handle))
                    ((symbol-function 'nael-rpc-get-interactive-goals)
@@ -306,12 +306,16 @@ is the source buffer."
              (when-let* ((buffer (nael-infoview--buffer)))
                (kill-buffer buffer))))))))
 
-(defun nael-infoview-test-answer ()
-  "Answer the requests of the update under test: one goal, nothing else."
+(defun nael-infoview-test-answer (&optional failing)
+  "Answer the requests of the update under test: one goal, nothing else.
+The request for FAILING, one of `goals', `term-goal' and `messages',
+fails instead."
   (dolist (call nael-infoview-test-calls)
-    (funcall (nth 1 call)
-             (and (eq (car call) 'goals)
-                  (list :goals (vector (nael-test-goal)))))))
+    (if (eq (car call) failing)
+        (funcall (nth 3 call) '(:code -32603 :message "Broken"))
+      (funcall (nth 1 call)
+               (and (eq (car call) 'goals)
+                    (list :goals (vector (nael-test-goal))))))))
 
 (ert-deftest nael-infoview-test-update-answered ()
   "The answers to an update are shown together."
@@ -322,6 +326,21 @@ is the source buffer."
     (with-current-buffer (nael-infoview--buffer)
       (should (string-search "⊢ n = 0" (buffer-string)))
       (should-not nael-infoview--status))))
+
+(ert-deftest nael-infoview-test-update-failed ()
+  "A failed request for goals is reported; one for messages only drops them."
+  (nael-infoview-test-with-pending-update
+    (let ((owner (nth 2 (car nael-infoview-test-calls))))
+      (nael-infoview-test-answer 'goals)
+      (should (nael-rpc-owner-released owner))
+      (with-current-buffer (nael-infoview--buffer)
+        (should (equal nael-infoview--status '(error . "Broken")))
+        (should-not (string-search "⊢ n = 0" (buffer-string))))))
+  (nael-infoview-test-with-pending-update
+    (nael-infoview-test-answer 'messages)
+    (with-current-buffer (nael-infoview--buffer)
+      (should-not nael-infoview--status)
+      (should (string-search "⊢ n = 0" (buffer-string))))))
 
 (ert-deftest nael-infoview-test-update-after-kill ()
   "Answers that arrive after the infoview was killed are dropped."
