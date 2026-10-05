@@ -136,6 +136,10 @@ goals are shown without them."
                 (save-excursion (goto-char pos)
                                 (1- (line-number-at-pos nil t)))))
         (tick (buffer-chars-modified-tick buffer))
+        (line-count (with-current-buffer buffer
+                      (save-restriction
+                        (widen)
+                        (count-lines (point-min) (point-max)))))
         (goals 'pending)
         (term-goal 'pending)
         (messages 'pending)
@@ -160,6 +164,7 @@ goals are shown without them."
                                       (nael-infoview--accomplished-title
                                        buffer pos)
                                       (list :diagnostics messages :line line
+                                            :line-count line-count
                                             :buffer buffer :tick tick))))))
          (fail (e)
            (setq error e)))

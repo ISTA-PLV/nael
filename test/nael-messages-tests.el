@@ -256,6 +256,47 @@ Nat.add_comm (n m : Nat) : n + m = m + n
                                    'outline-level text))
     (should (= (length (nael-render-result-nodes result)) 1))))
 
+(defconst nael-messages-test-imports
+  (nael-eglot-test-diagnostic
+   3 '(0 . 0) '(19 . 0)
+   :message '(:text "Imports are out of date and should be rebuilt; use the \"Restart File\" command in your editor."))
+  "A message about the whole file of 20 lines that its imports are out of date.")
+
+(ert-deftest nael-messages-test-whole-file ()
+  "Messages about the whole file are unfolded, first, and may restart it."
+  (let* ((other (nael-eglot-test-diagnostic 1 '(5 . 0) '(5 . 4)
+                                            :message '(:text "Boom")))
+         (crash (nael-eglot-test-diagnostic
+                 1 '(0 . 0) '(19 . 0) :message '(:text "Server crashed")))
+         (text (nael-render-result-text
+                (nael-render-goals nil nil nil
+                                   (list :diagnostics
+                                         (vector other nael-messages-test-imports
+                                                 crash)
+                                         :line 5 :line-count 20)))))
+    (should (equal (substring-no-properties text)
+                   "Messages (3)
+1:0 information
+Imports are out of date and should be rebuilt; use the \"Restart File\" command in your editor.
+[restart file]
+1:0 error
+Server crashed
+6:0 error
+Boom
+"))
+    ;; Not folded although they start on another line.
+    (should (equal (mapcar (lambda (heading) (nth 3 heading))
+                           (cdr (nael-messages-test-headings text)))
+                   '(nil nil nil)))
+    (should (get-text-property (string-search "[restart file]" text)
+                               'nael-restart-file text)))
+  ;; Without the number of lines, such a message is like any other.
+  (let ((text (nael-render-result-text
+               (nael-messages-test-render (vector nael-messages-test-imports)
+                                          5))))
+    (should-not (string-search "[restart file]" text))
+    (should (nth 3 (cadr (nael-messages-test-headings text))))))
+
 ;;;; The infoview:
 
 (defvar nael-messages-test-requests nil
@@ -315,6 +356,22 @@ as (CHILDREN SUCCESS FAILURE OWNER)."
     (nael-infoview--render)
     (should (nael-messages-test-visible-p "Invalid `end`"))
     (should-not (nael-messages-test-visible-p "Try this"))))
+
+(ert-deftest nael-messages-test-restart-file ()
+  "The button in a message about out-of-date imports restarts the file."
+  (nael-messages-test-with-infoview (vector nael-messages-test-imports) 5
+    (setq nael-infoview--messages
+          (plist-put nael-infoview--messages :line-count 20))
+    (nael-infoview--render)
+    (nael-infoview-test-goto "[restart file]")
+    (should (eq (seq-some (lambda (overlay) (overlay-get overlay 'keymap))
+                          (overlays-at (point)))
+                nael-infoview-restart-map))
+    (let (restarted)
+      (cl-letf (((symbol-function 'nael-eglot-restart-file)
+                 (lambda () (setq restarted (current-buffer)))))
+        (nael-infoview-restart-file))
+      (should (eq restarted source)))))
 
 (ert-deftest nael-messages-test-folds-follow-point ()
   "A message folds and unfolds with point, until the user folds it."

@@ -27,6 +27,7 @@
 (require 'nael-rpc)
 
 (declare-function nael-infoview-refresh "nael-infoview" ())
+(declare-function nael-eglot-restart-file "nael-eglot" ())
 
 (defgroup nael-infoview nil
   "Infoview for `nael-mode'."
@@ -517,6 +518,12 @@ is as `nael-infoview--messages'."
   "<mouse-2>" #'nael-infoview-apply-suggestion
   "<follow-link>" 'mouse-face)
 
+(defvar-keymap nael-infoview-restart-map
+  :doc "Keymap of the button that restarts the file in the infoview."
+  "RET" #'nael-infoview-restart-file
+  "<mouse-2>" #'nael-infoview-restart-file
+  "<follow-link>" 'mouse-face)
+
 (defvar-keymap nael-infoview-trace-map
   :doc "Keymap of the heading of a trace whose children are not shown yet."
   "TAB" #'nael-infoview-expand-trace
@@ -532,6 +539,9 @@ Each gets an overlay with a keymap, as subterms do."
                  `((nael-message-range ,nael-infoview-message-map
                                        "RET, mouse-1: go to the message")
                    (nael-suggestion ,nael-infoview-suggestion-map nil)
+                   (nael-restart-file
+                    ,nael-infoview-restart-map
+                    "RET, mouse-1: restart the file, which rebuilds its imports")
                    (nael-trace-lazy ,nael-infoview-trace-map
                                     "TAB, mouse-1: show the trace")))
     (save-excursion
@@ -598,6 +608,15 @@ since the suggestion was made, and go there."
           (insert (plist-get suggestion :suggestion))
           (setq pos (point)))))
     (nael-infoview--show-source buffer pos)))
+
+(defun nael-infoview-restart-file (&optional event)
+  "Restart the file of the shown messages, which rebuilds its imports.
+For the button in a message that the imports are out of date, at point
+or EVENT.  See `nael-eglot-restart-file'."
+  (interactive (list last-nonmenu-event))
+  (nael-infoview--event-position event)
+  (with-current-buffer (nael-infoview--source-buffer)
+    (nael-eglot-restart-file)))
 
 (defun nael-infoview--fetch-trace (key children &optional interactive)
   "Fetch CHILDREN, the reference of the trace with KEY, and show them.

@@ -47,8 +47,9 @@
 ;; `nael-folded'.  The server sends the children of a trace on request
 ;; only: its heading then carries `nael-trace-lazy', the reference for
 ;; `Lean.Widget.lazyTraceChildrenToInteractive'.  The position of a
-;; message carries `nael-message-range', and a suggestion to apply
-;; carries `nael-suggestion'.
+;; message carries `nael-message-range', a suggestion to apply carries
+;; `nael-suggestion', and a button to restart the file, in a message
+;; that its imports are out of date, carries `nael-restart-file'.
 
 ;;; Code:
 
@@ -452,10 +453,39 @@ programs for VS Code; their alternative text is inserted instead."
                                    :help (plist-get accept :hoverText))))
       (nael-render--msg (plist-get widget :alt)))))
 
-(defun nael-render--message (diagnostic line)
+(defun nael-render--whole-file-p (diagnostic line-count)
+  "Return non-nil if DIAGNOSTIC is about the whole file of LINE-COUNT lines.
+Lean gives messages about the file, such as that its imports are out of
+date, its first line as range and the whole file as full range, so that
+they are seen anywhere in it.  The same criterion as `nael-margin'."
+  (when-let* ((full (plist-get diagnostic :fullRange))
+              ((natnump line-count)))
+    (let ((start (plist-get full :start)))
+      (and (zerop (plist-get start :line))
+           (zerop (plist-get start :character))
+           (>= (plist-get (plist-get full :end) :line) (1- line-count))))))
+
+(defun nael-render--plain-text (tagged)
+  "Return the plain text of TAGGED, a `TaggedText', without its embeds."
+  (cond ((plist-member tagged :text) (plist-get tagged :text))
+        ((plist-member tagged :append)
+         (mapconcat #'nael-render--plain-text (plist-get tagged :append) ""))
+        (t "")))
+
+(defun nael-render--imports-out-of-date-p (diagnostic)
+  "Return non-nil if DIAGNOSTIC says that the imports are out of date.
+Lean says so in two ways: when the file is opened, and when a file that
+it imports changes while it is open.  The text is how VS Code recognizes
+the first."
+  (string-prefix-p "Imports are out of date"
+                   (nael-render--plain-text (plist-get diagnostic :message))))
+
+(defun nael-render--message (diagnostic line &optional whole-file)
   "Insert DIAGNOSTIC, an `InteractiveDiagnostic', as a heading and text.
 LINE is the 0-based line at which the messages were requested; a
-message that starts on another line is folded at first."
+message that starts on another line is folded at first, unless
+WHOLE-FILE says that it is about the whole file.  A message that the
+imports are out of date gets a button to restart the file."
   (let* ((range (or (plist-get diagnostic :fullRange)
                     (plist-get diagnostic :range)))
          (start (plist-get range :start))
@@ -470,29 +500,43 @@ message that starts on another line is folded at first."
     (nael-render--insert (car severity) (cdr severity))
     (add-text-properties beg (point)
                          (append (list 'outline-level 2 'nael-key key)
-                                 (unless (eql (plist-get start :line) line)
+                                 (unless (or whole-file
+                                             (eql (plist-get start :line) line))
                                    (list 'nael-folded t))))
     (insert "\n")
     (let ((nael-render--trace-key key)
           (nael-render--trace-count (list 0)))
       (nael-render--msg (plist-get diagnostic :message)))
-    (unless (bolp) (insert "\n"))))
+    (unless (bolp) (insert "\n"))
+    (when (and whole-file (nael-render--imports-out-of-date-p diagnostic))
+      (let ((beg (point)))
+        (nael-render--insert "[restart file]" 'nael-render-suggestion)
+        (put-text-property beg (point) 'nael-restart-file t)
+        (insert "\n")))))
 
 (defun nael-render--messages-section (messages)
   "Insert the section for MESSAGES; see `nael-render-goals'.
 That a proof is complete is shown above the goals, so its message is
-left out."
-  (let ((diagnostics (seq-remove
-                      (lambda (diagnostic)
-                        (seq-contains-p (plist-get diagnostic :leanTags) 2))
-                      (plist-get messages :diagnostics)))
-        (nael-render--trace-children (plist-get messages :trace-children)))
+left out.  Messages about the whole file come first."
+  (let* ((line-count (plist-get messages :line-count))
+         (diagnostics (seq-remove
+                       (lambda (diagnostic)
+                         (seq-contains-p (plist-get diagnostic :leanTags) 2))
+                       (plist-get messages :diagnostics)))
+         (whole-file (seq-filter (lambda (diagnostic)
+                                   (nael-render--whole-file-p diagnostic
+                                                              line-count))
+                                 diagnostics))
+         (nael-render--trace-children (plist-get messages :trace-children)))
     (when diagnostics
       (unless (bobp) (insert "\n"))
       (nael-render--heading (format "Messages (%d)" (length diagnostics))
                             'messages)
+      (dolist (diagnostic whole-file)
+        (nael-render--message diagnostic (plist-get messages :line) t))
       (dolist (diagnostic diagnostics)
-        (nael-render--message diagnostic (plist-get messages :line))))))
+        (unless (memq diagnostic whole-file)
+          (nael-render--message diagnostic (plist-get messages :line)))))))
 
 (defun nael-render--apply-faces ()
   "Add the noted faces, then the diff faces of the rendered nodes."
@@ -527,8 +571,10 @@ section is rendered for each of them that is non-nil.
 
 MESSAGES, if non-nil, is a plist: `:diagnostics', the result of
 `Lean.Widget.getInteractiveDiagnostics'; `:line', the 0-based line at
-which they were requested; and `:trace-children', a hash table of the
-children of traces that were fetched, by the key of the trace.
+which they were requested; `:line-count', the number of lines of the
+file, to tell messages about the whole file; and `:trace-children', a
+hash table of the children of traces that were fetched, by the key of
+the trace.
 
 OPTIONS is a plist of view options:
   :hide-instances    hide instance hypotheses, such as `inst✝ : Ring R';

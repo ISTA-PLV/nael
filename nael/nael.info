@@ -122,9 +122,12 @@ Language Server Protocol (LSP):
    • Below the goals and the expected type, the section _Messages_ shows
      Lean's messages on the line of point: errors, warnings, and output
      such as that of ‘#check’.  Messages that start on another line,
-     like an error about a whole proof, are folded.  Their terms are
-     subterms like those of goals.  ‘RET’ or ‘mouse-1’ on the position
-     of a message goes there in the source.
+     like an error about a whole proof, are folded; messages about the
+     whole file, like that its imports are out of date, are not, and
+     come first.  That message has a ‘[restart file]’ button, which does
+     what ‘C-c C-r’ does.  Their terms are subterms like those of goals.
+     ‘RET’ or ‘mouse-1’ on the position of a message goes there in the
+     source.
    • Traces, as with ‘set_option trace.Meta.synthInstance true in’, are
      headings: ‘TAB’ on one shows its children, which Lean sends on
      request only.
@@ -513,22 +516,22 @@ Tag Table:
 Node: Top192
 Node: Get Started2399
 Node: Usage2736
-Node: Configuration8334
-Node: Installation10574
-Node: Installation from Melpa10926
-Node: Installation from Sources11962
-Node: Manual Installation12405
-Node: Installation via package-vc13341
-Ref: Installation via package-vc-selected-packages14014
-Ref: Installation via use-package vc15111
-Node: Installation in Doom Emacs15929
-Node: Changelog16382
-Node: Version 082 from 2026-02-2216827
-Node: Version 080 from 2026-12-1617187
-Node: Version 070 from 2025-12-1517832
-Node: Version 062 from 2025-11-3018431
-Node: Version 060 from 2025-11-3018784
-Node: License and Maintenance19882
+Node: Configuration8528
+Node: Installation10768
+Node: Installation from Melpa11120
+Node: Installation from Sources12156
+Node: Manual Installation12599
+Node: Installation via package-vc13535
+Ref: Installation via package-vc-selected-packages14208
+Ref: Installation via use-package vc15305
+Node: Installation in Doom Emacs16123
+Node: Changelog16576
+Node: Version 082 from 2026-02-2217021
+Node: Version 080 from 2026-12-1617381
+Node: Version 070 from 2025-12-1518026
+Node: Version 062 from 2025-11-3018625
+Node: Version 060 from 2025-11-3018978
+Node: License and Maintenance20076
 
 End Tag Table
 
