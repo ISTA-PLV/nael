@@ -21,6 +21,7 @@
 (defconst nael-eglot-compat-internals
   '(eglot--capabilities
     eglot--format-markup
+    eglot--managed-buffers
     eglot--signal-textDocument/didChange
     eglot--signal-textDocument/didClose
     eglot--signal-textDocument/didOpen
@@ -60,6 +61,17 @@ The column is counted in UTF-16 code units, as LSP requires."
 (defun nael-eglot-compat-capabilities (server)
   "Return the capabilities that SERVER announced on initialization."
   (eglot--capabilities server))
+
+(defun nael-eglot-compat-managed-buffers (server)
+  "Return the buffers that SERVER manages."
+  (eglot--managed-buffers server))
+
+(defvar eglot--semtok-state)
+
+(defun nael-eglot-compat-forget-semantic-tokens ()
+  "Make Eglot ask for the semantic tokens of the current buffer again.
+Eglot keeps them for a document version.  It has them since 1.19."
+  (setq eglot--semtok-state nil))
 
 (provide 'nael-eglot-compat)
 

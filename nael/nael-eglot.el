@@ -412,6 +412,36 @@ from the silent diagnostics in `nael-eglot-diagnostics'."
                        (<= first line last))))
               nael-eglot-diagnostics)))
 
+(defvar eglot-semantic-tokens-mode)
+
+;; Lean sends the semantic tokens of the part of a file that it has
+;; processed so far, and asks for them again with
+;; `workspace/semanticTokens/refresh' until it is done, as described in
+;; Lean's `Lean/Server/ProtocolOverview.lean'.  Eglot ignores that
+;; request on purpose (as of 1.21) and keeps the tokens of a document
+;; version, so a file whose tokens were asked for too early, such as
+;; one opened while Lean is busy, lacks them until it is edited.  Nor
+;; does Eglot know that `nael-eglot-restart-file' makes its tokens
+;; outdated: the file is reopened with the same version.
+
+(defun nael-eglot-refresh-semantic-tokens ()
+  "Make Eglot ask for the semantic tokens of the current buffer again.
+Only where Eglot shows them, with `eglot-semantic-tokens-mode'."
+  (when (bound-and-true-p eglot-semantic-tokens-mode)
+    (nael-eglot-compat-forget-semantic-tokens)
+    (save-restriction
+      (widen)
+      (font-lock-flush))))
+
+(cl-defmethod eglot-handle-request
+  ((server nael-eglot-server) (_method (eql workspace/semanticTokens/refresh)))
+  "Ask SERVER again for the semantic tokens of its buffers, as Lean expects."
+  (dolist (buffer (nael-eglot-compat-managed-buffers server))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (nael-eglot-refresh-semantic-tokens))))
+  nil)
+
 (defun nael-eglot-processing-line-p (&optional line)
   "Return non-nil if the server is still processing LINE.
 LINE is 0-based as in LSP and defaults to the line of point.  The
@@ -487,7 +517,8 @@ imports."
     (user-error "Buffer is not managed by Eglot"))
   (nael-eglot-compat-did-close)
   (let ((nael-eglot--build-dependencies-once t))
-    (nael-eglot-compat-did-open)))
+    (nael-eglot-compat-did-open))
+  (nael-eglot-refresh-semantic-tokens))
 
 (provide 'nael-eglot)
 

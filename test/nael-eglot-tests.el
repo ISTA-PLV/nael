@@ -129,6 +129,56 @@ message."
           (should (equal (plist-get lean :rpcWireFormat) "v1")))
       (delete-process (jsonrpc--process server)))))
 
+;;;; Semantic tokens:
+
+(defvar eglot-semantic-tokens-mode)
+(defvar eglot--semtok-state)
+
+(ert-deftest nael-eglot-test-semantic-tokens-refresh ()
+  "Lean's requests to refresh semantic tokens make Eglot ask again."
+  (let ((server (make-instance 'nael-eglot-test-server
+                               :process (make-pipe-process
+                                         :name "nael-eglot-test"
+                                         :noquery t)))
+        (flushed nil))
+    (with-temp-buffer
+      (let ((shown (current-buffer)))
+        (with-temp-buffer
+          (let ((other (current-buffer)))
+            (with-current-buffer shown
+              (setq-local eglot-semantic-tokens-mode t
+                          eglot--semtok-state '(:data [] :docver 0)))
+            (with-current-buffer other
+              (setq-local eglot--semtok-state '(:data [] :docver 0)))
+            (unwind-protect
+                (cl-letf (((symbol-function 'nael-eglot-compat-managed-buffers)
+                           (lambda (_server) (list shown other)))
+                          ((symbol-function 'font-lock-flush)
+                           (lambda (&rest _) (push (current-buffer) flushed))))
+                  (should-not (eglot-handle-request
+                               server 'workspace/semanticTokens/refresh))
+                  (should-not (buffer-local-value 'eglot--semtok-state shown))
+                  (should (equal flushed (list shown)))
+                  ;; Without semantic tokens shown, nothing changes.
+                  (should (buffer-local-value 'eglot--semtok-state other)))
+              (delete-process (jsonrpc--process server)))))))))
+
+(ert-deftest nael-eglot-test-semantic-tokens-restart ()
+  "Restarting the file makes Eglot ask for its semantic tokens again."
+  (with-temp-buffer
+    (setq-local eglot-semantic-tokens-mode t
+                eglot--semtok-state '(:data [] :docver 0))
+    (let (sent)
+      (cl-letf (((symbol-function 'eglot-managed-p) #'always)
+                ((symbol-function 'nael-eglot-compat-did-close)
+                 (lambda () (push 'close sent)))
+                ((symbol-function 'nael-eglot-compat-did-open)
+                 (lambda () (push 'open sent)))
+                ((symbol-function 'font-lock-flush) #'ignore))
+        (nael-eglot-restart-file))
+      (should (equal sent '(open close)))
+      (should-not eglot--semtok-state))))
+
 ;;;; Widgets in messages:
 
 (defmacro nael-eglot-test-with-toolchain (toolchain &rest body)
