@@ -54,8 +54,8 @@ Set this before Nael buffers are opened."
 (defcustom nael-margin-goals-accomplished "✓"
   "Sign on the first line of a proof that the server found complete.
 The infoview shows it as well, after \"Goals accomplished\".  An empty
-string shows no sign.  The margin has room for two columns.  Emoji
-fit too, but with most fonts they make their lines taller."
+string shows no sign.  A sign has room for two columns.  Emoji fit
+too, but with most fonts they make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
@@ -63,8 +63,8 @@ fit too, but with most fonts they make their lines taller."
 (defcustom nael-margin-unsolved-goals "✗"
   "Sign on the last line of a proof that has unsolved goals.
 That is where the proof goes on.  An empty string shows the sign of the
-error instead.  The margin has room for two columns.  Emoji fit too,
-but with most fonts they make their lines taller."
+error instead.  A sign has room for two columns.  Emoji fit too, but
+with most fonts they make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
@@ -73,8 +73,8 @@ but with most fonts they make their lines taller."
   "Sign on a declaration that uses `sorry'.
 It replaces the sign of the server's warning that the declaration uses
 `sorry'.  An empty string shows the sign of the warning instead.  The
-margin has room for two columns.  Emoji fit too, but with most fonts
-they make their lines taller."
+sign has room for two columns.  Emoji fit too, but with most fonts they
+make their lines taller."
   :type 'string
   :safe #'stringp
   :group 'nael-margin)
@@ -142,9 +142,9 @@ The server reports progress often while it processes a file, and
 diagnostics a few at a time; this draws once for each burst.")
 
 (defconst nael-margin-width 2
-  "Width of the signs in the left margin, in columns.
-The margin is at least as wide, and wider where the signs are wider in
-pixels; see `nael-margin--needed-width'.")
+  "Most columns that a sign in the left margin takes; longer ones are cut.
+The margin is as wide as the widest sign, which may be wider in pixels;
+see `nael-margin--needed-width'.")
 
 ;;;; Signs:
 
@@ -389,17 +389,19 @@ may be nil, and the width it set.")
 
 (defun nael-margin--needed-width ()
   "Return how many columns the left margin needs for all signs.
-That is `nael-margin-width', unless a sign is wider in pixels than so
-many columns of the default font: emoji come from fonts of their own,
-whose glyphs may be wider.  All signs count, not only those shown, so
-that the margin does not change its width when one first appears."
-  (if (not (display-graphic-p))
-      nael-margin-width
-    (apply #'max nael-margin-width
-           (mapcar (lambda (sign)
-                     (ceiling (string-pixel-width (nael-margin-scale-emoji sign))
-                              (frame-char-width)))
-                   (nael-margin--signs-in-use)))))
+That is the width of the widest sign, and at least one column.  In
+graphical frames, it is measured in pixels: emoji come from fonts of
+their own, whose glyphs may be wider than their columns.  All signs
+count, not only those shown, so that the margin does not change its
+width when one first appears."
+  (apply #'max 1
+         (mapcar (lambda (sign)
+                   (if (display-graphic-p)
+                       (ceiling (string-pixel-width
+                                 (nael-margin-scale-emoji sign))
+                                (frame-char-width))
+                     (string-width sign)))
+                 (nael-margin--signs-in-use))))
 
 (defun nael-margin--apply-width ()
   "Give the windows that show the current buffer its left margin width."

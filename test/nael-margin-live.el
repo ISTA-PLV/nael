@@ -73,7 +73,8 @@ Return them as (LINE STRING), LINE 0-based."
   "The server's diagnostics give the expected signs."
   (with-current-buffer (nael-margin-live-open "Tiny/Signs.lean")
     (should nael-margin-mode)
-    (should (eql left-margin-width 2))
+    ;; One column, or two where `‼' falls back to `!!', as in batch mode.
+    (should (eql left-margin-width (nael-margin--needed-width)))
     (should (equal (nael-margin-live-signs) nael-margin-live-expected))))
 
 (ert-deftest nael-margin-live-flymake ()

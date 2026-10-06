@@ -91,8 +91,11 @@ The signs in the margin can be changed, also for a single project in its =.dir-l
 #+begin_src emacs-lisp
 (setq nael-margin-goals-accomplished "🐣"  ; complete proof
       nael-margin-unsolved-goals "🥚"      ; unsolved goals
-      nael-margin-admitted "🍗")           ; uses sorry
+      nael-margin-admitted "🍗"            ; uses sorry
+      nael-margin-emoji-height 0.7)        ; as tall as text lines
 #+end_src
+
+The margin is as wide as its widest sign.
 
 To keep Flymake's indicators instead of the signs, set ~nael-margin~ to =nil= before opening Lean files.
 

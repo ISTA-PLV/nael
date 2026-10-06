@@ -302,15 +302,17 @@ The buffer has LINE-COUNT lines, 20 by default."
                   #'flymake-show-buffer-diagnostics)))))
 
 (ert-deftest nael-margin-test-width ()
-  "The mode widens the left margin to two columns and gives back as much."
+  "The mode widens the left margin to its widest sign and gives back as much."
   (nael-margin-test-with-buffer nil
     (should (eql left-margin-width 0))
     (nael-margin-mode)
-    (should (eql left-margin-width 2))
-    (should (eql (car (window-margins)) 2))
+    ;; The default signs take one column.
+    (should (eql left-margin-width 1))
+    (should (eql (car (window-margins)) 1))
     (nael-margin-mode -1)
     (should (eql left-margin-width 0))
     (should-not (car (window-margins)))
+    (setq-local nael-margin-admitted "!?")
     ;; Wider margins stay as they are.
     (setq left-margin-width 4)
     (nael-margin-mode)
@@ -337,7 +339,7 @@ The buffer has LINE-COUNT lines, 20 by default."
     (set-window-margins nil nil)))
 
 (ert-deftest nael-margin-test-wide-signs ()
-  "Signs wider in pixels than two columns widen the margin further."
+  "Signs wider in pixels than their columns widen the margin further."
   (nael-margin-test-with-buffer nil
     (cl-letf (((symbol-function 'display-graphic-p) #'always)
               ((symbol-function 'frame-char-width) (lambda (&rest _) 10))
@@ -346,7 +348,7 @@ The buffer has LINE-COUNT lines, 20 by default."
                  ;; An emoji font whose glyphs are 2.3 columns wide.
                  (if (equal string "🍗") 23 (* 10 (string-width string))))))
       (nael-margin-mode)
-      (should (eql left-margin-width 2))
+      (should (eql left-margin-width 1))
       ;; All signs count, also one that no line shows.
       (setq-local nael-margin-admitted "🍗")
       (nael-margin-draw)

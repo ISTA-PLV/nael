@@ -232,7 +232,10 @@ warnings then keep their own.  For example, with chickens:
 
      (setq nael-margin-goals-accomplished "🐣"  ; complete proof
            nael-margin-unsolved-goals "🥚"      ; unsolved goals
-           nael-margin-admitted "🍗")           ; uses sorry
+           nael-margin-admitted "🍗"            ; uses sorry
+           nael-margin-emoji-height 0.7)        ; as tall as text lines
+
+   The margin is as wide as its widest sign.
 
    To keep Flymake's indicators instead of the signs, set ‘nael-margin’
 to ‘nil’ before opening Lean files.
@@ -525,21 +528,21 @@ Node: Top192
 Node: Get Started2399
 Node: Usage2736
 Node: Configuration9119
-Node: Installation11359
-Node: Installation from Melpa11711
-Node: Installation from Sources12747
-Node: Manual Installation13190
-Node: Installation via package-vc14126
-Ref: Installation via package-vc-selected-packages14799
-Ref: Installation via use-package vc15896
-Node: Installation in Doom Emacs16714
-Node: Changelog17167
-Node: Version 082 from 2026-02-2217612
-Node: Version 080 from 2026-12-1617972
-Node: Version 070 from 2025-12-1518617
-Node: Version 062 from 2025-11-3019216
-Node: Version 060 from 2025-11-3019569
-Node: License and Maintenance20667
+Node: Installation11477
+Node: Installation from Melpa11829
+Node: Installation from Sources12865
+Node: Manual Installation13308
+Node: Installation via package-vc14244
+Ref: Installation via package-vc-selected-packages14917
+Ref: Installation via use-package vc16014
+Node: Installation in Doom Emacs16832
+Node: Changelog17285
+Node: Version 082 from 2026-02-2217730
+Node: Version 080 from 2026-12-1618090
+Node: Version 070 from 2025-12-1518735
+Node: Version 062 from 2025-11-3019334
+Node: Version 060 from 2025-11-3019687
+Node: License and Maintenance20785
 
 End Tag Table
 
