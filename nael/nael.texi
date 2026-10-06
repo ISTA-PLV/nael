@@ -14,7 +14,7 @@
 @finalout
 @titlepage
 @title Nael — An Emacs major mode for Lean
-@author Mekeor Melire
+@author Mekeor Melire and ISTA PLV
 @end titlepage
 
 @contents
@@ -23,6 +23,8 @@
 @node Top
 @top Nael — An Emacs major mode for Lean
 
+This is ISTA PLV's fork of Nael, at @uref{https://github.com/ISTA-PLV/nael, github.com/ISTA-PLV/nael}.  It branched from Nael 0.8.3, which Mekeor Melire maintains at @uref{https://codeberg.org/mekeor/nael, codeberg.org/mekeor/nael}, and adds an infoview, signs in the margin and more; the chapter @emph{This Fork} says what comes from where.  The @code{nael} package on Melpa is upstream Nael, without these additions.
+
 Nael is a set of packages that extend @uref{https://www.gnu.org/software/emacs/, GNU Emacs} for the @uref{https://lean-lang.org, Lean} language.  It is a radically refactored fork of @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} with focus on simplicity, modularity and integration into Emacs' core.
 
 The @code{nael} package defines the major mode.  It also introduces simple and two-sided abbreviations per @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html, Abbrev} and @uref{https://www.gnu.org/software/emacs/manual/html_node/autotype/, Skeleton} respectively.  It teaches Emacs' built-in @uref{https://microsoft.github.io/language-server-protocol/ Language Server Protocol, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions} and tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that information, similar to the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean} that many are familiar with.  Similarly, the separate package @code{nael-lsp} may be installed when @uref{https://github.com/emacs-lsp/lsp-mode, lsp-mode} is preferred as LSP client.
@@ -30,6 +32,7 @@ The @code{nael} package defines the major mode.  It also introduces simple and t
 @end ifnottex
 
 @menu
+* This Fork::
 * Get Started::
 * Usage::
 * Configuration::
@@ -39,6 +42,11 @@ The @code{nael} package defines the major mode.  It also introduces simple and t
 
 @detailmenu
 --- The Detailed Node Listing ---
+
+This Fork
+
+* Lineage::
+* What It Adds::
 
 Installation
 
@@ -53,6 +61,7 @@ Installation from Sources
 
 Changelog
 
+* This fork, not released yet: This fork not released yet. 
 * Version 0.8.2 from 2026-02-22: Version 082 from 2026-02-22. 
 * Version 0.8.0 from 2026-12-16: Version 080 from 2026-12-16. 
 * Version 0.7.0 from 2025-12-15: Version 070 from 2025-12-15. 
@@ -62,10 +71,52 @@ Changelog
 @end detailmenu
 @end menu
 
+@node This Fork
+@chapter This Fork
+
+@menu
+* Lineage::
+* What It Adds::
+@end menu
+
+@node Lineage
+@section Lineage
+
+@itemize
+@item
+@uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} is the Lean community's Emacs mode for Lean 4.
+@item
+Nael is Mekeor Melire's fork of it, on @uref{https://codeberg.org/mekeor/nael, Codeberg} and @uref{https://melpa.org/#/nael, Melpa}.
+@item
+This fork, by ISTA PLV, branched from Nael 0.8.3 (commit @samp{c1d3497} of upstream's @samp{release} branch).  Its version number is still upstream's.
+@item
+It takes code from elsewhere: @code{nael-eglot.el}'s building of imports (@samp{dependencyBuildMode}) and restarting of files are adapted from Doug Torrance's @uref{https://github.com/d-torrance/lean4-mode, lean4-mode}; @code{nael-rpc.el} is derived from that lean4-mode's @samp{lean4-rpc.el}, which is derived from Jan Mas Rovira's @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}; the Doom Emacs module follows Doom Emacs' own @samp{:lang lean} module.  See @emph{License and Maintenance} and @samp{NOTICE}.
+@end itemize
+
+@node What It Adds
+@section What It Adds
+
+@itemize
+@item
+An infoview (@code{nael-infoview}, @samp{C-c C-i}) that talks to Lean's RPC itself, without a web view: goals and the expected type, with the changes of the tactic at point, folding and filters; subterms described by ElDoc, tooltips and the help buffer @samp{*Nael Help*}, and followed to their definitions; the messages of the line of point, with traces, suggestions to apply and links to the explanations of errors.  Files: @code{nael-rpc.el}, @code{nael-render.el}, @code{nael-infoview.el}, @code{nael-infoview-buffer.el}, @code{nael-infoview-hover.el}.
+@item
+Signs in the left margin for diagnostics, complete proofs, unsolved goals, uses of @samp{sorry} and lines being processed (@code{nael-margin-mode}, @code{nael-margin.el}).
+@item
+For Eglot: restarting the current file, which builds its imports once (@code{nael-eglot-restart-file}, @samp{C-c C-r}); not building imports when a file is opened (@code{nael-eglot-build-dependencies}); Lean's silent diagnostics and widgets in messages.
+@item
+Keys for @uref{https://github.com/emacs-evil/evil, Evil} (@code{nael-evil.el}) and a Doom Emacs module (@samp{doom/lang/nael/}).
+@item
+Smaller changes: a better syntax table, also for ElDoc, and macros recognized as such (by Alex Loitzl); the first goal is no longer echoed (@code{nael-eglot-echo-goal}); a shorter ElDoc delay in Nael buffers (@code{nael-eldoc-idle-delay}).
+@item
+Tests in @samp{test/}: @samp{emacs -Q --batch -l build.el test}, and @samp{test-live} with a Lean installation.
+@item
+This fork needs Emacs 30.1, instead of 29.1.
+@end itemize
+
 @node Get Started
 @chapter Get Started
 
-To install Nael the easy way, first set up @uref{https://melpa.org/#/getting-started, Melpa} as package-archive, then type @samp{M-x package-install RET nael RET}.  For more detailed instructions, consult the @emph{Installation} chapter below.
+The @code{nael} package on Melpa is upstream Nael, without the additions of this fork.  To install this fork, use @code{package-vc} or a clone of this repository, as the @emph{Installation} chapter below describes; in Doom Emacs, use its module.
 
 @node Usage
 @chapter Usage
@@ -214,7 +265,7 @@ Nael's LSP-based features (via Eglot or lsp-mode), require Lean version 4 to be 
 @node Installation from Melpa
 @section Installation from Melpa
 
-@code{nael} and @code{nael-lsp} packages are available on @uref{https://melpa.org/#/nael, Melpa} (and @uref{https://stable.melpa.org/#/nael, Melpa-Stable}).  To install, first add the package-archive by adding this code to your Emacs initialization file and evaluating it interactively.
+@code{nael} and @code{nael-lsp} packages are available on @uref{https://melpa.org/#/nael, Melpa} (and @uref{https://stable.melpa.org/#/nael, Melpa-Stable}).  These are upstream Nael, without the additions of this fork.  To install, first add the package-archive by adding this code to your Emacs initialization file and evaluating it interactively.
 
 @lisp
 (require 'package)
@@ -226,6 +277,8 @@ Then type @samp{M-x package-refresh-contents RET}.  Finally, choose one of the f
 
 @node Installation from Sources
 @section Installation from Sources
+
+The instructions below install this fork.  For upstream Nael, use @samp{https://codeberg.org/mekeor/nael.git} instead.
 
 When installing @code{nael-lsp} from sources, lsp-mode might not be pulled in and installed as dependency automatically, i.e. you might need to install it manually beforehand.
 
@@ -240,7 +293,7 @@ When installing @code{nael-lsp} from sources, lsp-mode might not be pulled in an
 First clone the Git repository, then, in your Emacs initialization file, add Nael to @code{load-path} and load it.  For lazy loading the autoloads-file needs to be build beforehand.
 
 @lisp
-;; git clone https://codeberg.org/mekeor/nael.git ~/path/to/nael
+;; git clone https://github.com/ISTA-PLV/nael.git ~/path/to/nael
 
 (add-to-list 'load-path "~/path/to/nael/nael")
 ;; (add-to-list 'load-path "~/path/to/nael/nael-lsp")
@@ -279,10 +332,10 @@ In your Emacs session, select packages per @code{package-vc-selected-packages} v
         '((nael
            :doc "nael/README.org"
            :lisp-dir "nael"
-           :url "https://codeberg.org/mekeor/nael.git")
+           :url "https://github.com/ISTA-PLV/nael.git")
        ;; (nael-lsp
        ;;  :lisp-dir "nael-lsp"
-       ;;  :url "https://codeberg.org/mekeor/nael.git")
+       ;;  :url "https://github.com/ISTA-PLV/nael.git")
           ))
 
 (package-initialize)
@@ -306,12 +359,12 @@ Since version 30 from 2025, Emacs' popular @code{use-package} macro supports a @
 (use-package nael
   :vc ( :doc "nael/README.org"
         :lisp-dir "nael"
-        :url "https://codeberg.org/mekeor/nael.git"))
+        :url "https://github.com/ISTA-PLV/nael.git"))
 
 ;; (use-package nael-lsp
 ;;   :after nael
 ;;   :vc ( :lisp-dir "nael-lsp"
-;;         :url "https://codeberg.org/mekeor/nael.git"))
+;;         :url "https://github.com/ISTA-PLV/nael.git"))
 @end lisp
 @end enumerate
 
@@ -324,12 +377,21 @@ The repository contains a Doom Emacs module, @samp{:lang nael}, in @samp{doom/la
 @chapter Changelog
 
 @menu
+* This fork, not released yet: This fork not released yet. 
 * Version 0.8.2 from 2026-02-22: Version 082 from 2026-02-22. 
 * Version 0.8.0 from 2026-12-16: Version 080 from 2026-12-16. 
 * Version 0.7.0 from 2025-12-15: Version 070 from 2025-12-15. 
 * Version 0.6.2 from 2025-11-30: Version 062 from 2025-11-30. 
 * Version 0.6.0 from 2025-11-30: Version 060 from 2025-11-30. 
 @end menu
+
+@node This fork not released yet
+@section This fork, not released yet
+
+@itemize
+@item
+Based on Nael 0.8.3.  For what it adds, see @emph{What It Adds} in the chapter @emph{This Fork}.  The versions below are upstream Nael's.
+@end itemize
 
 @node Version 082 from 2026-02-22
 @section Version 0.8.2 from 2026-02-22
@@ -402,10 +464,10 @@ Rename nael-abbrev-table-only-skeletons to nael-abbrev-skeleton-table.
 
 Nael is effectively licensed under GNU GPL version 3 only.  More precisely, it is licensed under Apache-2.0 and sublicensed under GPL-3.0.
 
-Parts of @code{nael-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under Apache-2.0.  @code{nael-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and licensed under the MIT License, see @samp{LICENSE.MIT}.  For details, see @samp{NOTICE}.
+The files that this fork adds are licensed under GPL-3.0-only, except @code{nael-rpc.el}.  Parts of @code{nael-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under Apache-2.0.  @code{nael-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and licensed under the MIT License, see @samp{LICENSE.MIT}.  The Doom Emacs module follows Doom Emacs' @samp{:lang lean} module, under the MIT License.  The test fixtures are recorded from @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, under Apache-2.0.  For details, see @samp{NOTICE} and @samp{test/fixtures/README.org}.
 
-This is a fork of Nael maintained by @emph{ISTA PLV}.
+This fork is maintained by @emph{ISTA PLV} at @uref{https://github.com/ISTA-PLV/nael, github.com/ISTA-PLV/nael}; please report problems with its additions there.
 
-Nael is maintained by @emph{Mekeor Melire} (@email{mailto:mekeor@@posteo.de, mekeor@@posteo.de}) on @uref{https://codeberg.org/mekeor/nael, Codeberg}.
+Upstream Nael is maintained by @emph{Mekeor Melire} (@email{mailto:mekeor@@posteo.de, mekeor@@posteo.de}) on @uref{https://codeberg.org/mekeor/nael, Codeberg}.
 
 @bye
