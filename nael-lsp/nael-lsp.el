@@ -7,7 +7,7 @@
 ;; Maintainer: Mekeor Melire <mekeor@posteo.de>
 ;; Package-Requires: ((emacs "29.1") (lsp-mode "9") (nael "0.8.3"))
 ;; SPDX-License-Identifier: GPL-3.0-only
-;; URL: https://codeberg.org/mekeor/nael
+;; URL: https://github.com/ISTA-PLV/nael
 ;; Version: 0.8.3
 
 ;; This code is licensed under GNU General Public License version 3,

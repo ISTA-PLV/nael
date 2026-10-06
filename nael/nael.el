@@ -30,7 +30,7 @@
 ;; Maintainer: Mekeor Melire <mekeor@posteo.de>
 ;; Package-Requires: ((emacs "30.1"))
 ;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only AND MIT
-;; URL: https://codeberg.org/mekeor/nael
+;; URL: https://github.com/ISTA-PLV/nael
 ;; Version: 0.8.3
 
 ;; This is licensed under GNU General Public License (version 3 only),
@@ -47,7 +47,7 @@
 ;; - After installation, as local Info manual per C-h i d nael RET or
 ;;   (info "(nael) Top")
 ;;
-;; - As HTML webpage at <https://codeberg.org/mekeor/nael>.
+;; - As HTML webpage at <https://github.com/ISTA-PLV/nael>.
 
 ;;; Code:
 
@@ -74,7 +74,7 @@
   "Major mode for Lean."
   :group 'languages
   :link '(emacs-library-link :tag "Source Lisp File" "nael.el")
-  :link '(url-link :tag "Website" "https://codeberg.org/mekeor/nael")
+  :link '(url-link :tag "Website" "https://github.com/ISTA-PLV/nael")
   :prefix "nael-"
   :tag "Nael")
 
