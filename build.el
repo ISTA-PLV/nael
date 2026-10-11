@@ -15,8 +15,9 @@
 ;; depending on passed command-line arguments:
 
 ;; - Pass `abbreviations' to generate the Emacs-Lisp source files
-;;   `lena/lena-abbrev.el' and `lena/lena-skeleton.el' based on data
-;;   from the official Lean plugin for V. S. Code.
+;;   `lena/lena-abbrev.el', `lena/lena-skeleton.el' and
+;;   `lena/lena-quail.el' based on data from the official Lean plugin
+;;   for V. S. Code.
 ;; - Pass `autoloads' to generate `*/*-autoloads.el' files.
 ;; - Pass `compile' to generate `*/*.elc' files.  It fails on any
 ;;   warning.
@@ -643,11 +644,6 @@ expanded whenever suitable characters are inserted.\"
 ;; method `Lena' for conveniently inserting Unicode characters that
 ;; are common in Lean code.
 
-;; It also defines `lena-quail-only-isearch-mode' as minor mode which
-;; makes the current input method take effect only within Isearch.
-;; With this minor mode, the Lena input method can be used together
-;; with Abbrev Mode.
-
 ;; For more information on Emacs' input methods, consult the
 ;; corresponding Info manual:
 ;;
@@ -656,21 +652,6 @@ expanded whenever suitable characters are inserted.\"
 ;;; Code:
 
 (require 'quail)
-
-(defun lena-quail-only-isearch (key)
-  \"When Isearch ongoing, use Quail for key; else just insert key.\"
-  (if isearch-mode (quail-input-method key) (insert key) nil))
-
-(defvar-local lena-quail-only-isearch-backup nil
-  \"`input-method-function' before `lena-quail-only-isearch-mode'.\")
-
-(define-minor-mode lena-quail-only-isearch-mode
-  \"Make input-method only take effect in Isearch.\"
-  (if (bound-and-true-p lena-quail-only-isearch-mode)
-      (setq-local lena-quail-only-isearch-backup input-method-function
-                  input-method-function #'lena-quail-only-isearch)
-    (setq-local input-method-function lena-quail-only-isearch-backup
-                lena-quail-only-isearch-backup nil)))
 
 (quail-define-package
  \"Lena\" ;; name
