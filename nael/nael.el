@@ -371,16 +371,17 @@
 ;;;; Preparation:
 
 ;; Our goal is to avoid loading `nael-abbrev' / `abbrev', `nael-eglot'
-;; / `eglot' and `nael-lsp' / `lsp', until the user calls one of their
-;; autoloaded commands.  We are lucky that `post-self-insert-hook' is
-;; strictly loaded and that `eglot-server-initialized-hook',
+;; / `eglot', `nael-lsp' / `lsp' and `nael-quail' / `quail', until the
+;; user calls one of their autoloaded commands or activates the input
+;; method.  We are lucky that `post-self-insert-hook' is strictly
+;; loaded and that `eglot-server-initialized-hook',
 ;; `eglot-managed-mode-hook' as well as `lsp-managed-mode-hook' are
 ;; all initialized to nil, in usual Emacs manner.  Thus, it's fine to
 ;; call `add-hook' on them, even if they have not been defined as
 ;; variables yet.
 
 ;; We could introduce a hook, with all of
-;; `nael-prepare-{abbrev,eglot,lsp}' being default members of it,
+;; `nael-prepare-{abbrev,eglot,lsp,quail}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
 ;; `nael-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
@@ -467,6 +468,29 @@ least evaluated an autoload statement for
     (add-hook 'flymake-mode-hook
               #'nael-flymake-configure nil 'local)))
 
+;; Register the Nael input method without loading `nael-quail'.  Like
+;; the input methods in Emacs' `leim-list', `quail-use-package' loads
+;; the library only once the input method is activated.
+(register-input-method
+ "Nael" "UTF-8" #'quail-use-package "Nael"
+ "TeX-like input method for Lean language and `nael-mode'."
+ "nael-quail")
+
+(defcustom nael-prepare-quail t
+  "Whether the Nael input method should be prepared for `nael-mode'.
+
+When non-nil, `nael-mode' makes Nael the buffer's default input method
+so that \\[toggle-input-method] activates it."
+  :type 'boolean
+  :group 'nael)
+
+(defun nael-prepare-quail ()
+  "Prepare the Nael input method for `nael-mode'."
+  (interactive)
+  (when nael-prepare-quail
+    (setq-local default-input-method
+                "Nael")))
+
 ;;;; Mode:
 
 (defcustom nael-mode-hook nil
@@ -491,6 +515,7 @@ least evaluated an autoload statement for
   (nael-prepare-abbrev)
   (nael-prepare-eglot)
   (nael-prepare-lsp)
+  (nael-prepare-quail)
   ;; Navigation:
   (setq-local add-log-current-defun-function
               #'nael-navigation-defun-name)
