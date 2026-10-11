@@ -17,12 +17,11 @@ Nael is a set of packages that extend GNU Emacs
 Lean4-Mode (https://github.com/leanprover-community/lean4-mode) with
 focus on simplicity, modularity and integration into Emacs' core.
 
-   The ‘nael’ package defines the major mode.  It also introduces simple
-and two-sided abbreviations per Abbrev
-(https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html)
-and Skeleton
-(https://www.gnu.org/software/emacs/manual/html_node/autotype/)
-respectively.  It teaches Emacs' built-in LSP
+   The ‘nael’ package defines the major mode.  It also introduces the
+‘Nael’ input method
+(https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html)
+for typing Unicode characters common in Lean, such as ‘\a’ for ‘α’.  It
+teaches Emacs' built-in LSP
 (https://microsoft.github.io/language-server-protocol/ Language Server
 Protocol) client Eglot
 (https://www.gnu.org/software/emacs/manual/html_node/eglot/) about
@@ -92,14 +91,15 @@ Language Server Protocol (LSP):
    • ‘C-c C-l’ (‘lsp’) starts lsp-mode, an alternative LSP client.  The
      key is only bound if ‘nael-lsp’ is (auto)loaded.
 
-   Abbreviations:
+   Input method:
 
-   • ‘C-c C-a’ (‘abbrev-mode’) enables abbreviations.
-   • ‘C-c C-k’ (‘nael-abbrev-help’) echoes abbreviations that expand to
-     the character at point, or, if active, to the selected region.
-   • ‘C-x '’ (‘expand-abbrev’) expands the abbreviation before point
-     without any inserting any character.  (Usually, you'd insert a
-     space or newline to expand.)
+   • ‘C-\’ (‘toggle-input-method’) toggles the ‘Nael’ input method.
+     While it is active, typing an abbreviation like ‘\a’ or ‘\to’
+     inserts the corresponding character, here ‘α’ or ‘→’.  This also
+     works within Isearch and the minibuffer.
+   • ‘C-u C-x =’ (‘describe-char’) describes the character at point.
+     While the input method is active, this includes how to type the
+     character.
 
    Build:
 
@@ -140,21 +140,22 @@ You can bind custom keys in ‘nael-mode-map’ like this:
 
      (keymap-set nael-mode-map "C-c ." #'highlight-symbol-at-point)
 
-   To automatically enable features (e.g.  abbreviations, Eglot or
-lsp-mode) when Nael is started, customize ‘nael-mode-hook’ as follows:
+   To automatically enable features (e.g.  Eglot or lsp-mode) when Nael
+is started, customize ‘nael-mode-hook’ as follows:
 
-     (add-hook 'nael-mode-hook #'abbrev-mode)
      (add-hook 'nael-mode-hook #'eglot-ensure)
 
-   Nael's Abbrev tables use the ‘:regexp’ property which is incompatible
-(https://github.com/minad/cape/discussions/158#discussioncomment-14687758)
-with Company (https://github.com/company-mode/company-mode)'s
-‘company-abbrev’ and Cape (https://github.com/minad/cape)'s
-‘cape-abbrev’.  Instead, Nael supports completion-at-point natively via
-‘nael-abbrev-capf’.  This CAPF is buffer-locally added to
-‘completion-at-point-functions’ whenever Abbrev mode is enabled inside
-Nael.  To ditch this feature, set the ‘nael-abbrev-capf’ variable to
-‘nil’.
+   Nael makes ‘Nael’ the default input method of its buffers, so that
+‘C-\’ activates it.  To keep your global default input method instead,
+set ‘nael-prepare-quail’ to ‘nil’.  To activate the input method
+automatically, add this to your init file:
+
+     (add-hook 'nael-mode-hook (lambda () (activate-input-method "Nael")))
+
+   The input method does not include abbreviations that place point
+between two inserted strings, such as ‘\<>’ for ‘⟨⟩’.  Type the opening
+character instead, e.g.  ‘\<’ for ‘⟨’.  For brackets like ‘⟨’, ‘⟦’ and
+‘⦃’, ‘electric-pair-mode’ can insert the closing one.
 
 
 File: nael.info,  Node: Installation,  Next: Changelog,  Prev: Configuration,  Up: Top
@@ -407,23 +408,23 @@ GPL-3.0.
 
 Tag Table:
 Node: Top192
-Node: Get Started2368
-Node: Usage2705
-Node: Configuration4448
-Node: Installation5814
-Node: Installation from Melpa6135
-Node: Installation from Sources7171
-Node: Manual Installation7579
-Node: Installation via package-vc8515
-Ref: Installation via package-vc-selected-packages9188
-Ref: Installation via use-package vc10285
-Node: Changelog11103
-Node: Version 082 from 2026-02-2211548
-Node: Version 080 from 2026-12-1611908
-Node: Version 070 from 2025-12-1512553
-Node: Version 062 from 2025-11-3013152
-Node: Version 060 from 2025-11-3013505
-Node: License and Maintenance14603
+Node: Get Started2342
+Node: Usage2679
+Node: Configuration4474
+Node: Installation5855
+Node: Installation from Melpa6176
+Node: Installation from Sources7212
+Node: Manual Installation7620
+Node: Installation via package-vc8556
+Ref: Installation via package-vc-selected-packages9229
+Ref: Installation via use-package vc10326
+Node: Changelog11144
+Node: Version 082 from 2026-02-2211589
+Node: Version 080 from 2026-12-1611949
+Node: Version 070 from 2025-12-1512594
+Node: Version 062 from 2025-11-3013193
+Node: Version 060 from 2025-11-3013546
+Node: License and Maintenance14644
 
 End Tag Table
 

@@ -13,7 +13,7 @@
 
 Nael is a set of packages that extend [[https://www.gnu.org/software/emacs/][GNU Emacs]] for the [[https://lean-lang.org][Lean]] language.  It is a radically refactored fork of [[https://github.com/leanprover-community/lean4-mode][Lean4-Mode]] with focus on simplicity, modularity and integration into Emacs' core.
 
-The ~nael~ package defines the major mode.  It also introduces simple and two-sided abbreviations per [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html][Abbrev]] and [[https://www.gnu.org/software/emacs/manual/html_node/autotype/][Skeleton]] respectively.  It teaches Emacs' built-in [[https://microsoft.github.io/language-server-protocol/ Language Server Protocol][LSP]] client [[https://www.gnu.org/software/emacs/manual/html_node/eglot/][Eglot]] about [[https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean][Lean-specific LSP-extensions]] and tells [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html][ElDoc]] to display that information, similar to the “[[https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview][info view]]” in [[https://marketplace.visualstudio.com/items?itemName=leanprover.lean4][vscode-lean]] that many are familiar with.  Similarly, the separate package ~nael-lsp~ may be installed when [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]] is preferred as LSP client.
+The ~nael~ package defines the major mode.  It also introduces the ~Nael~ [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html][input method]] for typing Unicode characters common in Lean, such as =\a= for =α=.  It teaches Emacs' built-in [[https://microsoft.github.io/language-server-protocol/ Language Server Protocol][LSP]] client [[https://www.gnu.org/software/emacs/manual/html_node/eglot/][Eglot]] about [[https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean][Lean-specific LSP-extensions]] and tells [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html][ElDoc]] to display that information, similar to the “[[https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview][info view]]” in [[https://marketplace.visualstudio.com/items?itemName=leanprover.lean4][vscode-lean]] that many are familiar with.  Similarly, the separate package ~nael-lsp~ may be installed when [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]] is preferred as LSP client.
 
 * Get Started
 
@@ -27,11 +27,10 @@ Language Server Protocol (LSP):
 - =C-h .= (~eldoc-doc-buffer~) displays the ElDoc documentation buffer showing tactic state and expected goal at point.
 - =C-c C-l= (~lsp~) starts lsp-mode, an alternative LSP client.  The key is only bound if ~nael-lsp~ is (auto)loaded.
 
-Abbreviations:
+Input method:
 
-- =C-c C-a= (~abbrev-mode~) enables abbreviations.
-- =C-c C-k= (~nael-abbrev-help~) echoes abbreviations that expand to the character at point, or, if active, to the selected region.
-- =C-x '= (~expand-abbrev~) expands the abbreviation before point without any inserting any character.  (Usually, you'd insert a space or newline to expand.)
+- =C-\= (~toggle-input-method~) toggles the ~Nael~ input method.  While it is active, typing an abbreviation like =\a= or =\to= inserts the corresponding character, here =α= or =→=.  This also works within Isearch and the minibuffer.
+- =C-u C-x == (~describe-char~) describes the character at point.  While the input method is active, this includes how to type the character.
 
 Build:
 
@@ -58,14 +57,19 @@ As an exception, Emacs customization groups cannot include keymaps.  You can bin
 (keymap-set nael-mode-map "C-c ." #'highlight-symbol-at-point)
 #+end_src
 
-To automatically enable features (e.g. abbreviations, Eglot or lsp-mode) when Nael is started, customize ~nael-mode-hook~ as follows:
+To automatically enable features (e.g. Eglot or lsp-mode) when Nael is started, customize ~nael-mode-hook~ as follows:
 
 #+begin_src emacs-lisp
-(add-hook 'nael-mode-hook #'abbrev-mode)
 (add-hook 'nael-mode-hook #'eglot-ensure)
 #+end_src
 
-Nael's Abbrev tables use the =:regexp= property which is [[https://github.com/minad/cape/discussions/158#discussioncomment-14687758][incompatible]] with [[https://github.com/company-mode/company-mode][Company]]'s ~company-abbrev~ and [[https://github.com/minad/cape][Cape]]'s ~cape-abbrev~.  Instead, Nael supports completion-at-point natively via ~nael-abbrev-capf~.  This CAPF is buffer-locally added to ~completion-at-point-functions~ whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the ~nael-abbrev-capf~ variable to =nil=.
+Nael makes ~Nael~ the default input method of its buffers, so that =C-\= activates it.  To keep your global default input method instead, set ~nael-prepare-quail~ to =nil=.  To activate the input method automatically, add this to your init file:
+
+#+begin_src emacs-lisp
+(add-hook 'nael-mode-hook (lambda () (activate-input-method "Nael")))
+#+end_src
+
+The input method does not include abbreviations that place point between two inserted strings, such as =\<>= for =⟨⟩=.  Type the opening character instead, e.g. =\<= for =⟨=.  For brackets like =⟨=, =⟦= and =⦃=, ~electric-pair-mode~ can insert the closing one.
 
 * Installation
 

@@ -61,8 +61,6 @@
 (declare-function flymake-goto-next-error "flymake"
                   (&optional n filter interactive))
 (declare-function lsp "lsp-mode" (&optional arg))
-(declare-function nael-abbrev-configure "nael-abbrev" ())
-(declare-function nael-abbrev-help "nael-abbrev" (&optional beg end))
 (declare-function nael-eglot-configure-when-initialized "nael-eglot"
                   (_))
 (declare-function nael-eglot-configure-when-managed "nael-eglot" ())
@@ -370,37 +368,21 @@
 
 ;;;; Preparation:
 
-;; Our goal is to avoid loading `nael-abbrev' / `abbrev', `nael-eglot'
-;; / `eglot', `nael-lsp' / `lsp' and `nael-quail' / `quail', until the
-;; user calls one of their autoloaded commands or activates the input
-;; method.  We are lucky that `post-self-insert-hook' is strictly
-;; loaded and that `eglot-server-initialized-hook',
-;; `eglot-managed-mode-hook' as well as `lsp-managed-mode-hook' are
-;; all initialized to nil, in usual Emacs manner.  Thus, it's fine to
-;; call `add-hook' on them, even if they have not been defined as
-;; variables yet.
+;; Our goal is to avoid loading `nael-eglot' / `eglot', `nael-lsp' /
+;; `lsp' and `nael-quail' / `quail', until the user calls one of their
+;; autoloaded commands or activates the input method.  We are lucky
+;; that `eglot-server-initialized-hook', `eglot-managed-mode-hook' as
+;; well as `lsp-managed-mode-hook' are all initialized to nil, in usual
+;; Emacs manner.  Thus, it's fine to call `add-hook' on them, even if
+;; they have not been defined as variables yet.
 
 ;; We could introduce a hook, with all of
-;; `nael-prepare-{abbrev,eglot,lsp,quail}' being default members of it,
+;; `nael-prepare-{eglot,lsp,quail}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
 ;; `nael-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
 ;; like `add-hook' rely on this practice.  Thus, we use boolean flags
 ;; instead.
-
-(defcustom nael-prepare-abbrev t
-  "Whether `abbrev-mode' should be prepared for `nael-mode'."
-  :type 'boolean
-  :group 'nael)
-
-(defun nael-prepare-abbrev ()
-  "Prepare `abbrev-mode' for `nael-mode'.
-
-Expand symbol-including abbreviations when adequate character inserted."
-  (interactive)
-  (when nael-prepare-abbrev
-    (add-hook 'abbrev-mode-hook
-              #'nael-abbrev-configure nil 'local)))
 
 (defcustom nael-prepare-eglot t
   "Whether `eglot' should be prepared for `nael-mode'."
@@ -495,16 +477,14 @@ so that \\[toggle-input-method] activates it."
 
 (defcustom nael-mode-hook nil
   "Hook run when entering `nael-mode'."
-  :options '(abbrev-mode eglot-ensure imenu-add-menubar-index lsp)
+  :options '(eglot-ensure imenu-add-menubar-index lsp)
   :type 'hook
   :group 'nael)
 
 (defvar-keymap nael-mode-map
   "<remap> <display-local-help>" #'eldoc-doc-buffer
-  "C-c C-a" #'abbrev-mode
   "C-c C-c" #'project-compile
-  "C-c C-e" #'eglot
-  "C-c C-k" #'nael-abbrev-help)
+  "C-c C-e" #'eglot)
 
 ;;;###autoload
 (define-derived-mode nael-mode prog-mode "Nael"
@@ -512,7 +492,6 @@ so that \\[toggle-input-method] activates it."
 
 \\{nael-mode-map}"
   ;; Preparations:
-  (nael-prepare-abbrev)
   (nael-prepare-eglot)
   (nael-prepare-lsp)
   (nael-prepare-quail)

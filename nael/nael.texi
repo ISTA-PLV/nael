@@ -25,7 +25,7 @@
 
 Nael is a set of packages that extend @uref{https://www.gnu.org/software/emacs/, GNU Emacs} for the @uref{https://lean-lang.org, Lean} language.  It is a radically refactored fork of @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} with focus on simplicity, modularity and integration into Emacs' core.
 
-The @code{nael} package defines the major mode.  It also introduces simple and two-sided abbreviations per @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html, Abbrev} and @uref{https://www.gnu.org/software/emacs/manual/html_node/autotype/, Skeleton} respectively.  It teaches Emacs' built-in @uref{https://microsoft.github.io/language-server-protocol/ Language Server Protocol, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions} and tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that information, similar to the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean} that many are familiar with.  Similarly, the separate package @code{nael-lsp} may be installed when @uref{https://github.com/emacs-lsp/lsp-mode, lsp-mode} is preferred as LSP client.
+The @code{nael} package defines the major mode.  It also introduces the @code{Nael} @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html, input method} for typing Unicode characters common in Lean, such as @samp{\a} for @samp{α}.  It teaches Emacs' built-in @uref{https://microsoft.github.io/language-server-protocol/ Language Server Protocol, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions} and tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that information, similar to the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean} that many are familiar with.  Similarly, the separate package @code{nael-lsp} may be installed when @uref{https://github.com/emacs-lsp/lsp-mode, lsp-mode} is preferred as LSP client.
 
 @end ifnottex
 
@@ -80,15 +80,13 @@ Language Server Protocol (LSP):
 @samp{C-c C-l} (@code{lsp}) starts lsp-mode, an alternative LSP client.  The key is only bound if @code{nael-lsp} is (auto)loaded.
 @end itemize
 
-Abbreviations:
+Input method:
 
 @itemize
 @item
-@samp{C-c C-a} (@code{abbrev-mode}) enables abbreviations.
+@samp{C-\} (@code{toggle-input-method}) toggles the @code{Nael} input method.  While it is active, typing an abbreviation like @samp{\a} or @samp{\to} inserts the corresponding character, here @samp{α} or @samp{→}.  This also works within Isearch and the minibuffer.
 @item
-@samp{C-c C-k} (@code{nael-abbrev-help}) echoes abbreviations that expand to the character at point, or, if active, to the selected region.
-@item
-@samp{C-x '} (@code{expand-abbrev}) expands the abbreviation before point without any inserting any character.  (Usually, you'd insert a space or newline to expand.)
+@samp{C-u C-x =} (@code{describe-char}) describes the character at point.  While the input method is active, this includes how to type the character.
 @end itemize
 
 Build:
@@ -129,14 +127,19 @@ As an exception, Emacs customization groups cannot include keymaps.  You can bin
 (keymap-set nael-mode-map "C-c ." #'highlight-symbol-at-point)
 @end lisp
 
-To automatically enable features (e.g. abbreviations, Eglot or lsp-mode) when Nael is started, customize @code{nael-mode-hook} as follows:
+To automatically enable features (e.g. Eglot or lsp-mode) when Nael is started, customize @code{nael-mode-hook} as follows:
 
 @lisp
-(add-hook 'nael-mode-hook #'abbrev-mode)
 (add-hook 'nael-mode-hook #'eglot-ensure)
 @end lisp
 
-Nael's Abbrev tables use the @samp{:regexp} property which is @uref{https://github.com/minad/cape/discussions/158#discussioncomment-14687758, incompatible} with @uref{https://github.com/company-mode/company-mode, Company}'s @code{company-abbrev} and @uref{https://github.com/minad/cape, Cape}'s @code{cape-abbrev}.  Instead, Nael supports completion-at-point natively via @code{nael-abbrev-capf}.  This CAPF is buffer-locally added to @code{completion-at-point-functions} whenever Abbrev mode is enabled inside Nael.  To ditch this feature, set the @code{nael-abbrev-capf} variable to @samp{nil}.
+Nael makes @code{Nael} the default input method of its buffers, so that @samp{C-\} activates it.  To keep your global default input method instead, set @code{nael-prepare-quail} to @samp{nil}.  To activate the input method automatically, add this to your init file:
+
+@lisp
+(add-hook 'nael-mode-hook (lambda () (activate-input-method "Nael")))
+@end lisp
+
+The input method does not include abbreviations that place point between two inserted strings, such as @samp{\<>} for @samp{⟨⟩}.  Type the opening character instead, e.g. @samp{\<} for @samp{⟨}.  For brackets like @samp{⟨}, @samp{⟦} and @samp{⦃}, @code{electric-pair-mode} can insert the closing one.
 
 @node Installation
 @chapter Installation
