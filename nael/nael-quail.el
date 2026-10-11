@@ -17,11 +17,6 @@
 ;; method `Nael' for conveniently inserting Unicode characters that
 ;; are common in Lean code.
 
-;; It also defines `nael-quail-only-isearch-mode' as minor mode which
-;; makes the current input method take effect only within Isearch.
-;; With this minor mode, the Nael input method can be used together
-;; with Abbrev Mode.
-
 ;; For more information on Emacs' input methods, consult the
 ;; corresponding Info manual:
 ;;
@@ -30,21 +25,6 @@
 ;;; Code:
 
 (require 'quail)
-
-(defun nael-quail-only-isearch (key)
-  "When Isearch ongoing, use Quail for key; else just insert key."
-  (if isearch-mode (quail-input-method key) (insert key) nil))
-
-(defvar-local nael-quail-only-isearch-backup nil
-  "`input-method-function' before `nael-quail-only-isearch-mode'.")
-
-(define-minor-mode nael-quail-only-isearch-mode
-  "Make input-method only take effect in Isearch."
-  (if (bound-and-true-p nael-quail-only-isearch-mode)
-      (setq-local nael-quail-only-isearch-backup input-method-function
-                  input-method-function nael-quail-only-isearch)
-    (setq-local input-method-function nael-quail-only-isearch-backup
-                nael-quail-only-isearch-backup nil)))
 
 (quail-define-package
  "Nael" ;; name
