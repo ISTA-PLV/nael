@@ -371,16 +371,17 @@
 
 ;;;; Preparation:
 
-;; Our goal is to avoid loading `lena-abbrev' / `abbrev' and
-;; `lena-eglot' / `eglot', until the user calls one of their
-;; autoloaded commands.  We are lucky that `post-self-insert-hook' is
-;; strictly loaded and that `eglot-server-initialized-hook' as well as
-;; `eglot-managed-mode-hook' are initialized to nil, in usual Emacs
-;; manner.  Thus, it's fine to call `add-hook' on them, even if they
-;; have not been defined as variables yet.
+;; Our goal is to avoid loading `lena-abbrev' / `abbrev', `lena-eglot'
+;; / `eglot' and `lena-quail' / `quail', until the user calls one of
+;; their autoloaded commands or activates the input method.  We are
+;; lucky that `post-self-insert-hook' is strictly loaded and that
+;; `eglot-server-initialized-hook' as well as `eglot-managed-mode-hook'
+;; are initialized to nil, in usual Emacs manner.  Thus, it's fine to
+;; call `add-hook' on them, even if they have not been defined as
+;; variables yet.
 
-;; We could introduce a hook, with both of
-;; `lena-prepare-{abbrev,eglot}' being default members of it,
+;; We could introduce a hook, with all of
+;; `lena-prepare-{abbrev,eglot,quail}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
 ;; `lena-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
@@ -444,6 +445,29 @@ Expand symbol-including abbreviations when adequate character inserted."
     (add-hook 'flymake-mode-hook
               #'lena-flymake-configure nil 'local)))
 
+;; Register the Lena input method without loading `lena-quail'.  Like
+;; the input methods in Emacs' `leim-list', `quail-use-package' loads
+;; the library only once the input method is activated.
+(register-input-method
+ "Lena" "UTF-8" #'quail-use-package "Lena"
+ "TeX-like input method for Lean language and `lena-mode'."
+ "lena-quail")
+
+(defcustom lena-prepare-quail t
+  "Whether the Lena input method should be prepared for `lena-mode'.
+
+When non-nil, `lena-mode' makes Lena the buffer's default input method
+so that \\[toggle-input-method] activates it."
+  :type 'boolean
+  :group 'lena)
+
+(defun lena-prepare-quail ()
+  "Prepare the Lena input method for `lena-mode'."
+  (interactive)
+  (when lena-prepare-quail
+    (setq-local default-input-method
+                "Lena")))
+
 ;;;; Mode:
 
 (defcustom lena-mode-hook nil
@@ -469,6 +493,7 @@ Expand symbol-including abbreviations when adequate character inserted."
   ;; Preparations:
   (lena-prepare-abbrev)
   (lena-prepare-eglot)
+  (lena-prepare-quail)
   ;; Navigation:
   (setq-local add-log-current-defun-function
               #'lena-navigation-defun-name)
