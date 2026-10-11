@@ -163,21 +163,14 @@
 
 (defconst build-abbrev-alist
   (when (member "abbreviations" build-targets)
-    ;; Drop abbreviations that contain a space or a backslash
-    ;; character.  Lena's former Abbrev-based implementation could not
-    ;; handle them, and the input method has kept the same set of
-    ;; abbreviations.  As of writing this, ("+ " . "⊹") is the only
-    ;; pair affected by the space character.
-    (seq-remove
-     (lambda (pair) (string-match-p "[ \\]" (car pair)))
-     (with-temp-buffer
-       (url-insert-file-contents
-        (concat "https://raw.githubusercontent.com"
-                "/leanprover/vscode-lean4/refs/heads/master"
-                "/lean4-unicode-input/src/abbreviations.json"))
-       (goto-char (point-min))
-       (let ((json-key-type 'string))
-         (json-read)))))
+    (with-temp-buffer
+      (url-insert-file-contents
+       (concat "https://raw.githubusercontent.com"
+               "/leanprover/vscode-lean4/refs/heads/master"
+               "/lean4-unicode-input/src/abbreviations.json"))
+      (goto-char (point-min))
+      (let ((json-key-type 'string))
+        (json-read))))
   "Raw abbreviations alist mapping strings to strings.
 
 Values may include `$CURSOR'.")
