@@ -14,8 +14,9 @@ Emacs' core. Lena adds an infoview, signs in the
 margin and more. See /Lineage and Credits/ for more information about Lena's
 lineage.
 
-The ~lena~ package defines the major mode. It also introduces simple and two-sided
-abbreviations per [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html][Abbrev]] and [[https://www.gnu.org/software/emacs/manual/html_node/autotype/][Skeleton]] respectively. Lena teaches Emacs' built-in
+The ~lena~ package defines the major mode. It also introduces the ~Lena~
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html][input method]] for typing Unicode characters common in Lean, such as =\a= for =α=.
+Lena teaches Emacs' built-in
 [[https://microsoft.github.io/language-server-protocol/][LSP]] client [[https://www.gnu.org/software/emacs/manual/html_node/eglot/][Eglot]] about [[https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean][Lean-specific LSP-extensions]], tells [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html][ElDoc]] to display that
 information, and shows it in an infoview, like the “[[https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview][info view]]” in [[https://marketplace.visualstudio.com/items?itemName=leanprover.lean4][vscode-lean]].
 The separate package ~lena-evil~ binds keys for [[https://github.com/emacs-evil/evil][Evil]].
@@ -172,13 +173,13 @@ Infoview, on a subterm of a goal:
   window, and =M-,= (~xref-go-back~) returns to the infoview. In Doom Emacs, these
   are =gd= and =C-o=.
 
-Abbreviations:
+Input method:
 
-- =C-c C-a= (~abbrev-mode~) enables abbreviations.
-- =C-c C-k= (~lena-abbrev-help~) echoes abbreviations that expand to the character
-  at point, or, if active, to the selected region.
-- =C-x '= (~expand-abbrev~) expands the abbreviation before point without
-  inserting any character. (Usually, you'd insert a space or newline to expand.)
+- =C-\= (~toggle-input-method~) toggles the ~Lena~ input method. While it is
+  active, typing an abbreviation like =\a= or =\to= inserts the corresponding
+  character, here =α= or =→=. This also works within Isearch and the minibuffer.
+- =C-u C-x == (~describe-char~) describes the character at point. While the input
+  method is active, this includes how to type the character.
 
 Build:
 
@@ -213,11 +214,10 @@ custom keys in ~lena-mode-map~ like this:
 (keymap-set lena-mode-map "C-c ." #'highlight-symbol-at-point)
 #+end_src
 
-To automatically enable features (e.g. abbreviations or Eglot) when Lena is
-started, customize ~lena-mode-hook~ as follows:
+To automatically enable features (e.g. Eglot) when Lena is started, customize
+~lena-mode-hook~ as follows:
 
 #+begin_src emacs-lisp
-(add-hook 'lena-mode-hook #'abbrev-mode)
 (add-hook 'lena-mode-hook #'eglot-ensure)
 #+end_src
 
@@ -242,12 +242,19 @@ later. Then the text of a trace that Flymake shows is only "(trace)", as in VS
 Code. To keep the full text in Flymake instead, set ~lena-eglot-widgets~ to =nil=
 before Lean starts.
 
-*The following behavior will likely change soon*: Lena's Abbrev tables use the
-=:regexp= property which is [[https://github.com/minad/cape/discussions/158#discussioncomment-14687758][incompatible]] with [[https://github.com/company-mode/company-mode][Company]]'s ~company-abbrev~ and [[https://github.com/minad/cape][Cape]]'s
-~cape-abbrev~. Instead, Lena supports completion-at-point natively via
-~lena-abbrev-capf~. This CAPF is buffer-locally added to
-~completion-at-point-functions~ whenever Abbrev mode is enabled inside Lena. To
-ditch this feature, set the ~lena-abbrev-capf~ variable to =nil=.
+Lena makes ~Lena~ the default input method of its buffers, so that =C-\=
+activates it. To keep your global default input method instead, set
+~lena-prepare-quail~ to =nil=. To activate the input method automatically, add
+this to your init file:
+
+#+begin_src emacs-lisp
+(add-hook 'lena-mode-hook (lambda () (activate-input-method "Lena")))
+#+end_src
+
+The input method does not include abbreviations that place point between two
+inserted strings, such as =\<>= for =⟨⟩=. Type the opening character instead,
+e.g. =\<= for =⟨=. For brackets like =⟨=, =⟦= and =⦃=, ~electric-pair-mode~ can insert
+the closing one.
 
 * Installation
 

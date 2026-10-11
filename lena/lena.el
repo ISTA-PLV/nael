@@ -60,8 +60,6 @@
 ;; Avoid strict loading of optional features, files or dependencies.
 (declare-function flymake-goto-next-error "flymake"
                   (&optional n filter interactive))
-(declare-function lena-abbrev-configure "lena-abbrev" ())
-(declare-function lena-abbrev-help "lena-abbrev" (&optional beg end))
 (declare-function lena-eglot-configure-when-initialized "lena-eglot"
                   (_))
 (declare-function lena-eglot-configure-when-managed "lena-eglot" ())
@@ -371,36 +369,21 @@
 
 ;;;; Preparation:
 
-;; Our goal is to avoid loading `lena-abbrev' / `abbrev', `lena-eglot'
-;; / `eglot' and `lena-quail' / `quail', until the user calls one of
-;; their autoloaded commands or activates the input method.  We are
-;; lucky that `post-self-insert-hook' is strictly loaded and that
+;; Our goal is to avoid loading `lena-eglot' / `eglot' and
+;; `lena-quail' / `quail', until the user calls one of their autoloaded
+;; commands or activates the input method.  We are lucky that
 ;; `eglot-server-initialized-hook' as well as `eglot-managed-mode-hook'
 ;; are initialized to nil, in usual Emacs manner.  Thus, it's fine to
 ;; call `add-hook' on them, even if they have not been defined as
 ;; variables yet.
 
-;; We could introduce a hook, with all of
-;; `lena-prepare-{abbrev,eglot,quail}' being default members of it,
+;; We could introduce a hook, with both of
+;; `lena-prepare-{eglot,quail}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
 ;; `lena-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
 ;; like `add-hook' rely on this practice.  Thus, we use boolean flags
 ;; instead.
-
-(defcustom lena-prepare-abbrev t
-  "Whether `abbrev-mode' should be prepared for `lena-mode'."
-  :type 'boolean
-  :group 'lena)
-
-(defun lena-prepare-abbrev ()
-  "Prepare `abbrev-mode' for `lena-mode'.
-
-Expand symbol-including abbreviations when adequate character inserted."
-  (interactive)
-  (when lena-prepare-abbrev
-    (add-hook 'abbrev-mode-hook
-              #'lena-abbrev-configure nil 'local)))
 
 (defcustom lena-prepare-eglot t
   "Whether `eglot' should be prepared for `lena-mode'."
@@ -472,17 +455,15 @@ so that \\[toggle-input-method] activates it."
 
 (defcustom lena-mode-hook nil
   "Hook run when entering `lena-mode'."
-  :options '(abbrev-mode eglot-ensure imenu-add-menubar-index)
+  :options '(eglot-ensure imenu-add-menubar-index)
   :type 'hook
   :group 'lena)
 
 (defvar-keymap lena-mode-map
   "<remap> <display-local-help>" #'eldoc-doc-buffer
-  "C-c C-a" #'abbrev-mode
   "C-c C-c" #'project-compile
   "C-c C-e" #'eglot
   "C-c C-i" #'lena-infoview
-  "C-c C-k" #'lena-abbrev-help
   "C-c C-r" #'lena-eglot-restart-file)
 
 ;;;###autoload
@@ -491,7 +472,6 @@ so that \\[toggle-input-method] activates it."
 
 \\{lena-mode-map}"
   ;; Preparations:
-  (lena-prepare-abbrev)
   (lena-prepare-eglot)
   (lena-prepare-quail)
   ;; Navigation:
