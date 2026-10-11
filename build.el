@@ -14,7 +14,7 @@
 ;; via `./build.el'.  Its purpose is to generate other files,
 ;; depending on passed command-line arguments:
 
-;; - Pass `abbreviations' to generate the Emacs-Lisp source file
+;; - Pass `quail' to generate the Emacs-Lisp source file
 ;;   `lena/lena-quail.el' based on data from the official Lean plugin
 ;;   for V. S. Code.
 ;; - Pass `autoloads' to generate `*/*-autoloads.el' files.
@@ -31,14 +31,14 @@
 ;;   a few minutes.
 
 ;; If no command-line arguments are passed, the following defaults
-;; are targeted: `abbreviations', `info' and `root-readme'.
+;; are targeted: `quail', `info' and `root-readme'.
 
 ;;; Code:
 
 (defconst build-targets
   (or command-line-args-left
       (list
-       "abbreviations"
+       "quail"
        ;; "autoloads"
        ;; "compile"
        "info"
@@ -159,10 +159,10 @@
     (when (member "root-readme" build-targets)
       (write-file "../README.org"))))
 
-;;;; Build target `abbreviations':
+;;;; Build target `quail':
 
-(defconst build-abbrev-alist
-  (when (member "abbreviations" build-targets)
+(defconst build-quail-alist
+  (when (member "quail" build-targets)
     (with-temp-buffer
       (url-insert-file-contents
        (concat "https://raw.githubusercontent.com"
@@ -175,21 +175,22 @@
 
 Values may include `$CURSOR'.")
 
-(defconst build-abbrev-separator
-  (regexp-quote "$CURSOR"))
+(defconst build-quail-cursor
+  (regexp-quote "$CURSOR")
+  "Regexp matching the marker for point in abbreviation expansions.")
 
 ;; Drop abbreviations whose expansion includes `$CURSOR', such as
 ;; \<> for ⟨⟩, because Quail cannot place point within an expansion.
-(defconst build-abbrev-singletons
+(defconst build-quail-rules
   (seq-remove (lambda (pair)
-                (string-match-p build-abbrev-separator (cdr pair)))
-              build-abbrev-alist))
+                (string-match-p build-quail-cursor (cdr pair)))
+              build-quail-alist))
 
 ;; For editing the strings that include Elisp code, it's best to
 ;; install the package `separedit', then type C-u M-x separedit-dwim
 ;; RET emacs-lisp-mode RET.
 
-(when (member "abbreviations" build-targets)
+(when (member "quail" build-targets)
   (with-temp-file "lena/lena-quail.el"
     (insert
      (format
@@ -251,16 +252,15 @@ Values may include `$CURSOR'.")
 ;; buffer-read-only: t
 ;; End:
 "
-      (let ((max (1- (length build-abbrev-singletons))))
-        (string-join
-         (seq-map-indexed
-          (lambda (pair index)
-            (format "%s(%S [%S])"
-                    (if (eq 0 index) "" "  ")
-                    (concat "\\" (car pair))
-                    (cdr pair)))
-          build-abbrev-singletons)
-         "\n"))
+      (string-join
+       (seq-map-indexed
+        (lambda (pair index)
+          (format "%s(%S [%S])"
+                  (if (eq 0 index) "" "  ")
+                  (concat "\\" (car pair))
+                  (cdr pair)))
+        build-quail-rules)
+       "\n")
       "Local Variables"))))
 
 
