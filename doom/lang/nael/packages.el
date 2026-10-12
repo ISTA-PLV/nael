@@ -13,10 +13,3 @@
            :files ("nael/*.el" "nael/nael.info" "nael/nael.texi"
                    "nael/NOTICE" "nael/LICENSE*")))
 
-;; The infoview needs Eglot; with lsp-mode, Nael displays goals with
-;; ElDoc only.
-(when (and (modulep! +lsp)
-           (modulep! :tools lsp -eglot))
-  (package! nael-lsp
-    :recipe (:host github :repo "ISTA-PLV/nael"
-             :files ("nael-lsp/*.el"))))

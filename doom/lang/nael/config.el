@@ -30,11 +30,10 @@
       (sp-local-pair "«" "»")
       (sp-local-pair "⟨" "⟩")
       (sp-local-pair "⟪" "⟫")))
+  ;; Lean always uses Eglot, also when `:tools lsp' uses lsp-mode for
+  ;; other languages.
   (when (modulep! +lsp)
-    (if (modulep! :tools lsp +eglot)
-        (setq nael-prepare-lsp nil)
-      (setq nael-prepare-eglot nil))
-    (add-hook 'nael-mode-local-vars-hook #'lsp! 'append))
+    (add-hook 'nael-mode-local-vars-hook #'eglot-ensure 'append))
   (map! :map nael-mode-map
         :localleader
         "a" #'nael-abbrev-help

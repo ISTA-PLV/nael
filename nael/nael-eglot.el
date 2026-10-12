@@ -93,13 +93,13 @@ That is the case while the infoview is visible and works."
   (and (fboundp 'nael-infoview-shows-goals-p)
        (nael-infoview-shows-goals-p)))
 
-(defun nael-eglot-eldoc-goal-fn (cb get)
-  "Construct ElDoc CB handler function for Lean LSP goal response with GET."
+(defun nael-eglot-eldoc-goal-fn (cb)
+  "Construct ElDoc CB handler function for Lean LSP goal response."
   (lambda (response)
     (apply
      cb
      (if-let*
-         ((goals (funcall get response :goals))
+         ((goals (plist-get response :goals))
           ((not (seq-empty-p goals)))
           (first-goal (seq-first goals))
           (first-goal (nael-eglot-eldoc-fontify first-goal)))
@@ -134,21 +134,18 @@ Extra.html#Lean.Lsp.PlainGoal"
      (nael-eglot-server-or-lose)
      :$/lean/plainGoal
      (nael-eglot-compat-position-params)
-     :success-fn (nael-eglot-eldoc-goal-fn cb #'plist-get))
+     :success-fn (nael-eglot-eldoc-goal-fn cb))
     t))
 
-(defun nael-eglot-eldoc-term-goal-fn (cb get format)
-  "Construct ElDoc CB handler function for Lean LSP term-goal response.
-
-Use callback CB, GET to access a slot of the response, and FORMAT as
-function to format / render a string, possibly with markup."
+(defun nael-eglot-eldoc-term-goal-fn (cb)
+  "Construct ElDoc CB handler function for Lean LSP term-goal response."
   (lambda (response)
     (apply
      cb
      (if-let*
-         ((goal (funcall get response :goal))
+         ((goal (plist-get response :goal))
           ((not (string= "" goal)))
-          (doc (funcall format goal)))
+          (doc (nael-eglot-compat-format-markup goal)))
          (list (concat
                 ;; Propertize `\n' so that `:extend' works.
                 (propertize "Expected type:\n"
@@ -173,8 +170,7 @@ Extra.html#Lean.Lsp.PlainTermGoal"
      (nael-eglot-server-or-lose)
      :$/lean/plainTermGoal
      (nael-eglot-compat-position-params)
-     :success-fn (nael-eglot-eldoc-term-goal-fn
-                  cb #'plist-get #'nael-eglot-compat-format-markup))
+     :success-fn (nael-eglot-eldoc-term-goal-fn cb))
     t))
 
 ;;;###autoload

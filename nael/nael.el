@@ -57,10 +57,8 @@
 (require 'seq)
 
 ;; Avoid strict loading of optional features, files or dependencies.
-(defvar lsp-managed-mode-hook)
 (declare-function flymake-goto-next-error "flymake"
                   (&optional n filter interactive))
-(declare-function lsp "lsp-mode" (&optional arg))
 (declare-function nael-abbrev-configure "nael-abbrev" ())
 (declare-function nael-abbrev-help "nael-abbrev" (&optional beg end))
 (declare-function nael-eglot-configure-when-initialized "nael-eglot"
@@ -68,7 +66,6 @@
 (declare-function nael-eglot-configure-when-managed "nael-eglot" ())
 (declare-function nael-eglot-restart-file "nael-eglot" ())
 (declare-function nael-infoview "nael-infoview" ())
-(declare-function nael-lsp-configure-when-managed "nael-lsp" ())
 
 (defgroup nael nil
   "Major mode for Lean."
@@ -372,17 +369,16 @@
 
 ;;;; Preparation:
 
-;; Our goal is to avoid loading `nael-abbrev' / `abbrev', `nael-eglot'
-;; / `eglot' and `nael-lsp' / `lsp', until the user calls one of their
+;; Our goal is to avoid loading `nael-abbrev' / `abbrev' and
+;; `nael-eglot' / `eglot', until the user calls one of their
 ;; autoloaded commands.  We are lucky that `post-self-insert-hook' is
-;; strictly loaded and that `eglot-server-initialized-hook',
-;; `eglot-managed-mode-hook' as well as `lsp-managed-mode-hook' are
-;; all initialized to nil, in usual Emacs manner.  Thus, it's fine to
-;; call `add-hook' on them, even if they have not been defined as
-;; variables yet.
+;; strictly loaded and that `eglot-server-initialized-hook' as well as
+;; `eglot-managed-mode-hook' are initialized to nil, in usual Emacs
+;; manner.  Thus, it's fine to call `add-hook' on them, even if they
+;; have not been defined as variables yet.
 
-;; We could introduce a hook, with all of
-;; `nael-prepare-{abbrev,eglot,lsp}' being default members of it,
+;; We could introduce a hook, with both of
+;; `nael-prepare-{abbrev,eglot}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
 ;; `nael-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
@@ -424,29 +420,6 @@ Expand symbol-including abbreviations when adequate character inserted."
     (add-hook 'eglot-managed-mode-hook
               #'nael-eglot-configure-when-managed nil 'local)))
 
-(defcustom nael-prepare-lsp t
-  "Whether `lsp-mode' should be prepared for `nael-mode'."
-  :type 'boolean
-  :group 'nael)
-
-(defun nael-prepare-lsp ()
-  "Prepare `lsp-mode' for `nael-mode'.
-
-Note that if you call `lsp-mode' inside a buffer majored by `nael-mode',
-it is unguardedly assumed that you have `nael-lsp' package installed and
-that either you have `nael-lsp' loaded, or `nael-lsp-autoloads', or at
-least evaluated an autoload statement for
-`nael-lsp-configure-when-managed'."
-  (interactive)
-  (when nael-prepare-lsp
-    ;; The `lsp-language-id-configuration' variable needs to be
-    ;; modified so early, that hooks don't work.  We have no choice
-    ;; but `with-eval-after-load'.
-    (with-eval-after-load 'lsp-mode
-      (require 'nael-lsp))
-    (add-hook 'lsp-managed-mode-hook
-              #'nael-lsp-configure-when-managed nil 'local)))
-
 ;; Let's use the same interface (a configure-function, a
 ;; prepare-option and -function) for Flymake too because we don't load
 ;; or invoke it in `nael-mode' itself.
@@ -473,7 +446,7 @@ least evaluated an autoload statement for
 
 (defcustom nael-mode-hook nil
   "Hook run when entering `nael-mode'."
-  :options '(abbrev-mode eglot-ensure imenu-add-menubar-index lsp)
+  :options '(abbrev-mode eglot-ensure imenu-add-menubar-index)
   :type 'hook
   :group 'nael)
 
@@ -494,7 +467,6 @@ least evaluated an autoload statement for
   ;; Preparations:
   (nael-prepare-abbrev)
   (nael-prepare-eglot)
-  (nael-prepare-lsp)
   ;; Navigation:
   (setq-local add-log-current-defun-function
               #'nael-navigation-defun-name)

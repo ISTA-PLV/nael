@@ -51,7 +51,7 @@
 
 ;;;; Build target `compile':
 
-;; TODO: Make dependencies `markdown-mode' and `lsp-mode' available.
+;; TODO: Make dependency `markdown-mode' available.
 (when (member "compile" build-targets)
   (dolist (dir (file-expand-wildcards "nael*"))
     (let ((load-path
