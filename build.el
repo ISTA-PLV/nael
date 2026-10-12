@@ -18,8 +18,11 @@
 ;;   `lena/lena-abbrev.el' and `lena/lena-skeleton.el' based on data
 ;;   from the official Lean plugin for V. S. Code.
 ;; - Pass `autoloads' to generate `*/*-autoloads.el' files.
-;; - Pass `compile' to generate `*/*.elc' files.  (This currenlty only
-;;   succeeds for `lena' package.)
+;; - Pass `compile' to generate `*/*.elc' files.  It fails on any
+;;   warning.
+;; - Pass `lint' to check the packages with `checkdoc' and, if it is in
+;;   `load-path', `package-lint'.  It fails on any `checkdoc' complaint
+;;   and on errors of `package-lint'; its warnings are only shown.
 ;; - Pass `info' to generate `lena/lena.info' and `lena/lena.texi'.
 ;; - Pass `root-readme' to copy `lena/README.org' to `./README.org'.
 ;; - Pass `test' to run the unit tests in `test/*-tests.el'.
@@ -53,14 +56,72 @@
 
 ;; TODO: Make dependency `markdown-mode' available.
 (when (member "compile" build-targets)
-  (dolist (dir (file-expand-wildcards "lena*"))
-    (let ((load-path
-           ;; Each package needs itself in `load-path'.  `lena-*'
-           ;; packages each need `lena' in `load-path' too.
-           (append (mapcar #'file-truename (list dir "lena"))
-                   load-path))
-          (dir (file-truename dir)))
-      (byte-recompile-directory dir 0 t))))
+  (require 'bytecomp)
+  (let ((failed nil))
+    (dolist (dir (file-expand-wildcards "lena*"))
+      (let ((load-path
+             ;; Each package needs itself in `load-path'.  `lena-*'
+             ;; packages each need `lena' in `load-path' too.
+             (append (mapcar #'file-truename (list dir "lena"))
+                     load-path))
+            (byte-compile-error-on-warn t))
+        (dolist (file (directory-files dir t (rx ".el" eos)))
+          (unless (or (string-suffix-p "-autoloads.el" file)
+                      (string-suffix-p "-pkg.el" file)
+                      (byte-compile-file file))
+            (setq failed t)))))
+    (when failed
+      (kill-emacs 1))))
+
+;;;; Build target `lint':
+
+(when (member "lint" build-targets)
+  (require 'checkdoc)
+  (let ((failed nil)
+        (root default-directory)
+        ;; Generated from data of the Lean plugin for V. S. Code.
+        (generated '("lena-abbrev.el" "lena-skeleton.el")))
+    (dolist (dir (file-expand-wildcards "lena*"))
+      (dolist (file (directory-files dir t (rx ".el" eos)))
+        (unless (or (string-suffix-p "-autoloads.el" file)
+                    (string-suffix-p "-pkg.el" file)
+                    (member (file-name-nondirectory file) generated))
+          (with-current-buffer (find-file-noselect file)
+            (let ((sentence-end-double-space t)
+                  ;; Its guesses at imperative verbs misfire on
+                  ;; docstrings of variables and predicates.
+                  (checkdoc-verb-check-experimental-flag nil)
+                  (checkdoc-autofix-flag 'never)
+                  (checkdoc-create-error-function
+                   (lambda (text start _end &optional _unfixable)
+                     (setq failed t)
+                     (message "%s:%d: %s" (file-relative-name file root)
+                              (line-number-at-pos start) text)
+                     nil)))
+              (checkdoc-current-buffer t))))))
+    (if (not (require 'package-lint nil t))
+        (message "package-lint is not in `load-path'; skipping it")
+      (package-initialize)
+      (dolist (dir (file-expand-wildcards "lena*"))
+        (let ((package-lint-main-file
+               (file-truename (file-name-concat dir (concat dir ".el")))))
+          (dolist (file (directory-files dir t (rx ".el" eos)))
+            (unless (or (string-suffix-p "-autoloads.el" file)
+                        (string-suffix-p "-pkg.el" file))
+              (with-current-buffer (find-file-noselect file)
+                (pcase-dolist (`(,line ,column ,type ,text)
+                               (package-lint-buffer))
+                  ;; Lena is not in any package archive yet, and without
+                  ;; archives no dependency is installable.
+                  (unless (and (string-match-p "is not installable" text)
+                               (or (string-match-p "\\_<lena\\_>" text)
+                                   (null package-archive-contents)))
+                    (when (eq type 'error)
+                      (setq failed t))
+                    (message "%s:%d:%d: %s: %s" (file-relative-name file root)
+                             line column type text)))))))))
+    (when failed
+      (kill-emacs 1))))
 
 ;;;; Build targets `info' and `root-readme':
 

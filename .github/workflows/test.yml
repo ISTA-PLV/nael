@@ -1,0 +1,68 @@
+name: test
+
+on:
+  push:
+    branches: [lena, main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.emacs == 'snapshot' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs: ['30.1', '30.2', snapshot]
+    env:
+      # Evil and package-lint, so that the Evil tests run and `lint'
+      # checks the package headers.
+      DEPS: >-
+        (progn
+          (require 'package)
+          (setq package-user-dir (expand-file-name "elpa-ci" (getenv "RUNNER_TEMP")))
+          (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+          (package-initialize))
+    steps:
+      - uses: actions/checkout@v4
+      - uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs }}
+      - name: Install Evil and package-lint
+        run: >-
+          emacs -Q --batch --eval "$DEPS"
+          --eval "(progn (package-refresh-contents) (package-install 'evil) (package-install 'package-lint))"
+      - name: Compile
+        run: emacs -Q --batch --eval "$DEPS" -l build.el compile
+      - name: Lint
+        run: emacs -Q --batch --eval "$DEPS" -l build.el lint
+      - name: Unit tests
+        run: emacs -Q --batch --eval "$DEPS" -l build.el test
+
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: purcell/setup-emacs@master
+        with:
+          version: '30.2'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-${{ hashFiles('test/lean/lean-toolchain') }}
+      - uses: actions/cache@v4
+        with:
+          path: test/lean/.lake
+          key: lake-${{ hashFiles('test/lean/lean-toolchain') }}-${{ hashFiles('test/lean/lakefile.toml', 'test/lean/**/*.lean') }}
+          restore-keys: lake-${{ hashFiles('test/lean/lean-toolchain') }}-
+      - name: Install elan
+        run: |
+          if [ ! -x ~/.elan/bin/elan ]; then
+            curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+              | sh -s -- -y --default-toolchain none
+          fi
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Fetch the Lean toolchain
+        working-directory: test/lean
+        run: lake --version
+      - name: Live tests
+        run: emacs -Q --batch -l build.el test-live

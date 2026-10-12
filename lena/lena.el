@@ -541,6 +541,7 @@ Expand symbol-including abbreviations when adequate character inserted."
   (add-to-list 'projectile-project-root-files-bottom-up "lakefile.toml"))
 
 (with-eval-after-load 'org-src
+  (defvar org-src-lang-modes)
   (add-to-list 'org-src-lang-modes
                (cons "lean" 'lena)))
 
@@ -548,6 +549,7 @@ Expand symbol-including abbreviations when adequate character inserted."
 ;; into a new package that depends on it.  But a single expression is
 ;; not worth a package.
 (with-eval-after-load 'markdown-mode
+  (defvar markdown-code-lang-modes)
   (add-to-list 'markdown-code-lang-modes
                (cons "lean" 'lena-mode)))
 

@@ -432,6 +432,7 @@ the description can be described in turn."
 
 (cl-defmethod xref-backend-identifier-at-point
   ((_backend (eql lena-infoview)))
+  "Return the text of the subterm at point, carrying its node."
   (when-let* ((node (lena-render-node-at (point))))
     (propertize (truncate-string-to-width
                  (replace-regexp-in-string
@@ -443,6 +444,7 @@ the description can be described in turn."
 
 (cl-defmethod xref-backend-identifier-completion-table
   ((_backend (eql lena-infoview)))
+  "Return nil: subterms cannot be completed, only taken from point."
   nil)
 
 (defun lena-infoview--xref-item (link)
@@ -474,6 +476,7 @@ Return nil if the target file cannot be read."
 
 (cl-defmethod xref-backend-definitions
   ((_backend (eql lena-infoview)) identifier)
+  "Return xref items for the definitions of the subterm IDENTIFIER."
   (let ((node (or (get-text-property 0 'lena-node identifier)
                   ;; Doom Emacs may pass the text without properties.
                   (lena-render-node-at (point))
