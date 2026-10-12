@@ -27,6 +27,7 @@ jobs:
       - uses: purcell/setup-emacs@master
         with:
           version: ${{ matrix.emacs }}
+      - run: emacs --version
       - name: Install Evil and package-lint
         run: >-
           emacs -Q --batch --eval "$DEPS"
@@ -45,6 +46,7 @@ jobs:
       - uses: purcell/setup-emacs@master
         with:
           version: '30.2'
+      - run: emacs --version
       - uses: actions/cache@v4
         with:
           path: ~/.elan

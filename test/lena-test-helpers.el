@@ -17,6 +17,10 @@
 (require 'lena-infoview)
 (require 'lena-margin)
 
+;; Flymake of Emacs 31 runs its backends only in trusted buffers, and
+;; the tests' buffers are their own.
+(setq trusted-content :all)
+
 ;;;; Fixtures:
 
 (defconst lena-test-fixtures

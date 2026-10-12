@@ -112,10 +112,13 @@
                 (pcase-dolist (`(,line ,column ,type ,text)
                                (package-lint-buffer))
                   ;; Lena is not in any package archive yet, and without
-                  ;; archives no dependency is installable.
-                  (unless (and (string-match-p "is not installable" text)
-                               (or (string-match-p "\\_<lena\\_>" text)
-                                   (null package-archive-contents)))
+                  ;; archives no dependency is installable.  Newer
+                  ;; package-lint takes `any' in `rx' forms for the
+                  ;; function of Emacs 31.
+                  (unless (or (and (string-match-p "is not installable" text)
+                                   (or (string-match-p "\\_<lena\\_>" text)
+                                       (null package-archive-contents)))
+                              (string-match-p "if you need `any'" text))
                     (when (eq type 'error)
                       (setq failed t))
                     (message "%s:%d:%d: %s: %s" (file-relative-name file root)

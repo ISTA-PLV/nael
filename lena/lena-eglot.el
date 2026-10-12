@@ -232,7 +232,7 @@ for any output."
 
 This is a list (PROGRAM [ARGS...]) or (HOST PORT [TCP-ARGS...]) as
 described for CONTACT in `eglot-server-programs'.  Eglot uses it to
-start a server of class `lena-eglot-server'."
+start a server whose class is the symbol `lena-eglot-server'."
   :type '(choice (repeat :tag "(PROGRAM [ARGS...])" string)
                  (sexp :tag "Other"))
   :group 'lena-eglot)
