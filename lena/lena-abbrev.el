@@ -1,4 +1,4 @@
-;;; nael-abbrev.el --- Abbrev for Nael  -*- lexical-binding: t; -*-
+;;; lena-abbrev.el --- Abbrev for Lena  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Mekeor Melire
 
@@ -32,9 +32,9 @@
 ;;      implement this class of abbreviations.
 ;;
 ;; As a consequence, this file defines three Abbrev tables.
-;; `nael-abbrev-singleton-table' and `nael-abbrev-skeleton-table' have
+;; `lena-abbrev-singleton-table' and `lena-abbrev-skeleton-table' have
 ;; self-explaining names.  The recommended Abbrev table for
-;; `nael-mode' is `nael-abbrev-table' which inherits elements from
+;; `lena-mode' is `lena-abbrev-table' which inherits elements from
 ;; both aforementioned Abbrev tables.
 
 ;; One crucial challenge in the development of this file was that
@@ -47,7 +47,7 @@
 ;; But at the time of writing (August 2025), `self-insert-command'
 ;; rules out automatic expansion of abbreviations that end in
 ;; non-word-constituent characters.  As a workaround, you can call
-;; function `nael-abbrev-configure'.  It will add `nael-abbrev-expand'
+;; function `lena-abbrev-configure'.  It will add `lena-abbrev-expand'
 ;; to the `post-self-insert-hook' which considers expansion for a
 ;; suitably wider range of characters.
 
@@ -56,18 +56,18 @@
 (require 'abbrev)
 (require 'cl-lib)
 
-(require 'nael-skeleton)
+(require 'lena-skeleton)
 
-(defgroup nael-abbrev nil
-  "`abbrev-mode' configured for `nael-mode'."
-  :group 'nael
+(defgroup lena-abbrev nil
+  "`abbrev-mode' configured for `lena-mode'."
+  :group 'lena
   :group 'abbrev-mode
-  :link '(emacs-library-link :tag "Source Lisp File" "nael-abbrev.el")
-  :prefix "nael-abbrev-")
+  :link '(emacs-library-link :tag "Source Lisp File" "lena-abbrev.el")
+  :prefix "lena-abbrev-")
 
-(defconst nael-abbrev-regexp "\\(\\\\[]-~!-#&-+.-:<-?A-[-]+\\)")
+(defconst lena-abbrev-regexp "\\(\\\\[]-~!-#&-+.-:<-?A-[-]+\\)")
 
-(define-abbrev-table 'nael-abbrev-singleton-table
+(define-abbrev-table 'lena-abbrev-singleton-table
   '(("\\a" "α" nil :system t)
     ("\\b" "β" nil :system t)
     ("\\c" "χ" nil :system t)
@@ -1896,72 +1896,72 @@
     ("\\miny" "⧿" nil :system t)
     ("\\heq" "≍" nil :system t)
     ("\\r!" "¡" nil :system t))
-  "Abbrev table with singleton abbreviations for `nael-mode'.
+  "Abbrev table with singleton abbreviations for `lena-mode'.
 
 All abbreviations expand to single strings.  During expansion, point is
 reserved at the end of expansion."
-  :regexp nael-abbrev-regexp)
+  :regexp lena-abbrev-regexp)
 
-(define-abbrev-table 'nael-abbrev-skeleton-table
-  '(("\\{}" "" nael-skeleton-7b7d :system t)
-    ("\\{}_" "" nael-skeleton-7b7d5f :system t)
-    ("\\{{}}" "" nael-skeleton-7b7b7d7d :system t)
-    ("\\[]" "" nael-skeleton-5b5d :system t)
-    ("\\[]_" "" nael-skeleton-5b5d5f :system t)
-    ("\\[[]]" "" nael-skeleton-5b5b5d5d :system t)
-    ("\\<>" "" nael-skeleton-3c3e :system t)
-    ("\\()" "" nael-skeleton-2829 :system t)
-    ("\\()_" "" nael-skeleton-28295f :system t)
-    ("\\([])'" "" nael-skeleton-285b5d2927 :system t)
-    ("\\(())" "" nael-skeleton-28282929 :system t)
-    ("\\f<>" "" nael-skeleton-663c3e :system t)
-    ("\\f<<>>" "" nael-skeleton-663c3c3e3e :system t)
-    ("\\[--]" "" nael-skeleton-5b2d2d5d :system t)
-    ("\\||||" "" nael-skeleton-7c7c7c7c :system t)
-    ("\\nnnorm" "" nael-skeleton-6e6e6e6f726d :system t)
-    ("\\norm" "" nael-skeleton-6e6f726d :system t)
-    ("\\floor" "" nael-skeleton-666c6f6f72 :system t)
-    ("\\ceil" "" nael-skeleton-6365696c :system t)
-    ("\\nfloor" "" nael-skeleton-6e666c6f6f72 :system t)
-    ("\\nceil" "" nael-skeleton-6e6365696c :system t)
-    ("\\s[]" "" nael-skeleton-735b5d :system t)
-    ("\\simplex" "" nael-skeleton-73696d706c6578 :system t))
-  "Abbrev table with Skeleton abbreviations for `nael-mode'.
+(define-abbrev-table 'lena-abbrev-skeleton-table
+  '(("\\{}" "" lena-skeleton-7b7d :system t)
+    ("\\{}_" "" lena-skeleton-7b7d5f :system t)
+    ("\\{{}}" "" lena-skeleton-7b7b7d7d :system t)
+    ("\\[]" "" lena-skeleton-5b5d :system t)
+    ("\\[]_" "" lena-skeleton-5b5d5f :system t)
+    ("\\[[]]" "" lena-skeleton-5b5b5d5d :system t)
+    ("\\<>" "" lena-skeleton-3c3e :system t)
+    ("\\()" "" lena-skeleton-2829 :system t)
+    ("\\()_" "" lena-skeleton-28295f :system t)
+    ("\\([])'" "" lena-skeleton-285b5d2927 :system t)
+    ("\\(())" "" lena-skeleton-28282929 :system t)
+    ("\\f<>" "" lena-skeleton-663c3e :system t)
+    ("\\f<<>>" "" lena-skeleton-663c3c3e3e :system t)
+    ("\\[--]" "" lena-skeleton-5b2d2d5d :system t)
+    ("\\||||" "" lena-skeleton-7c7c7c7c :system t)
+    ("\\nnnorm" "" lena-skeleton-6e6e6e6f726d :system t)
+    ("\\norm" "" lena-skeleton-6e6f726d :system t)
+    ("\\floor" "" lena-skeleton-666c6f6f72 :system t)
+    ("\\ceil" "" lena-skeleton-6365696c :system t)
+    ("\\nfloor" "" lena-skeleton-6e666c6f6f72 :system t)
+    ("\\nceil" "" lena-skeleton-6e6365696c :system t)
+    ("\\s[]" "" lena-skeleton-735b5d :system t)
+    ("\\simplex" "" lena-skeleton-73696d706c6578 :system t))
+  "Abbrev table with Skeleton abbreviations for `lena-mode'.
 
 All abbreviations expand to two strings with point being placed between
 the left and the right part.  The name is derived from `skeleton', a
 built-in Emacs package used to implement this class of abbreviations."
-  :regexp nael-abbrev-regexp)
+  :regexp lena-abbrev-regexp)
 
-(define-abbrev-table 'nael-abbrev-table
+(define-abbrev-table 'lena-abbrev-table
   nil
-"Abbrev table for `nael-mode'.
+"Abbrev table for `lena-mode'.
 
 It includes both singleton abbreviations that expand to single strings,
 as well as Skeleton abbreviations that expand to two strings, with point
 being placed between the left and the right part."
-  :regexp nael-abbrev-regexp
-  :parents (list nael-abbrev-singleton-table
-                 nael-abbrev-skeleton-table))
+  :regexp lena-abbrev-regexp
+  :parents (list lena-abbrev-singleton-table
+                 lena-abbrev-skeleton-table))
 
-(defcustom nael-abbrev-configure-table nael-abbrev-table
-  "Abbrev table activated by `nael-abbrev-configure'.
+(defcustom lena-abbrev-configure-table lena-abbrev-table
+  "Abbrev table activated by `lena-abbrev-configure'.
 When nil, no Abbrev table will be activated."
   :type '(choice (const :tag "Do not activate any Abbrev table" nil)
                  (sexp :tag "Activate an Abbrev table"))
-  :options '( nael-abbrev-table
-              nael-abbrev-singleton-table
-              nael-abbrev-skeleton-table)
-  :group 'nael-abbrev)
+  :options '( lena-abbrev-table
+              lena-abbrev-singleton-table
+              lena-abbrev-skeleton-table)
+  :group 'lena-abbrev)
 
 ;;;; Completion at point function (CAPF):
 
-(defcustom nael-abbrev-capf t
-  "Whether to set up function `nael-abbrev-capf' as CAPF buffer-locally."
+(defcustom lena-abbrev-capf t
+  "Whether to set up function `lena-abbrev-capf' as CAPF buffer-locally."
   :type 'boolean
-  :group 'nael-abbrev)
+  :group 'lena-abbrev)
 
-(defun nael-abbrev-capf-exit (_string status)
+(defun lena-abbrev-capf-exit (_string status)
   "Exit CAPF by expanding the abbrev unless completion might continue.
 
 When STATUS is `exact', the user might continue the completion, so we
@@ -1969,30 +1969,30 @@ should not exit."
   (unless (eq status 'exact)
     (expand-abbrev)))
 
-(defun nael-abbrev-capf-annotation (abbrev)
+(defun lena-abbrev-capf-annotation (abbrev)
   "Annotate ABBREV with its expansion."
   (truncate-string-to-width (abbrev-expansion abbrev) 30 0 nil t))
 
-(defvar nael-abbrev-capf-properties
-  (list :annotation-function #'nael-abbrev-capf-annotation
-        :category 'nael-abbrev
+(defvar lena-abbrev-capf-properties
+  (list :annotation-function #'lena-abbrev-capf-annotation
+        :category 'lena-abbrev
         :exclusive 'no
-        :exit-function #'nael-abbrev-capf-exit)
-  "Completion properties for function `nael-abbrev-capf'.
+        :exit-function #'lena-abbrev-capf-exit)
+  "Completion properties for function `lena-abbrev-capf'.
 
 See `completion-at-point-functions'.")
 
-(defvar nael-abbrev-capf-cache nil
-  "Cache used to speed up function `nael-abbrev-capf'.")
+(defvar lena-abbrev-capf-cache nil
+  "Cache used to speed up function `lena-abbrev-capf'.")
 
-(defun nael-abbrev-capf-reset ()
-  "Wipe cache of function `nael-abbrev-capf'.
+(defun lena-abbrev-capf-reset ()
+  "Wipe cache of function `lena-abbrev-capf'.
 
 As a consequence, this forces recollection of abbreviations later on."
   (interactive)
-  (setq nael-abbrev-capf-cache nil))
+  (setq lena-abbrev-capf-cache nil))
 
-(defun nael-abbrev-table-ancestors (tables)
+(defun lena-abbrev-table-ancestors (tables)
   "List of TABLES and their recursive ancestors."
   (when tables
     (let (ancestors)
@@ -2002,7 +2002,7 @@ As a consequence, this forces recollection of abbreviations later on."
           (cl-pushnew parent ancestors)))
       ancestors)))
 
-(defun nael-abbrev-capf-collect ()
+(defun lena-abbrev-capf-collect ()
   "From active Abbrev tables, collect all abbreviations.
 
 Returns an obarray whose symbol names are abbreviations.
@@ -2011,40 +2011,40 @@ Since CAPFs should be cheap to compute, this uses a cache.  The keys is
 just the list of active tables given per `abbrev--active-tables',
 compared with `equal'.  This should be fine because Abbrev tables are
 not expected to be modified frequently.  If needed, the cache can be
-reset with `nael-abbrev-capf-reset'."
+reset with `lena-abbrev-capf-reset'."
   (let ((tbls (abbrev--active-tables)))
-    (or (alist-get tbls nael-abbrev-capf-cache nil nil #'equal)
-        (setf (alist-get tbls nael-abbrev-capf-cache nil nil #'equal)
+    (or (alist-get tbls lena-abbrev-capf-cache nil nil #'equal)
+        (setf (alist-get tbls lena-abbrev-capf-cache nil nil #'equal)
               (let ((abbrevs (obarray-make)))
-                (dolist (tbl (nael-abbrev-table-ancestors tbls))
+                (dolist (tbl (lena-abbrev-table-ancestors tbls))
                   (mapatoms (lambda (abbrev)
                               (intern (symbol-name abbrev) abbrevs))
                             tbl))
                 abbrevs)))))
 
-(defun nael-abbrev-capf ()
-  "Complete Nael abbreviation at point.
+(defun lena-abbrev-capf ()
+  "Complete Lena abbreviation at point.
 
-If the text before point matches `nael-abbrev-regexp', provide
+If the text before point matches `lena-abbrev-regexp', provide
 completion at point."
   (save-match-data
-    (when (looking-back nael-abbrev-regexp (line-beginning-position))
+    (when (looking-back lena-abbrev-regexp (line-beginning-position))
       (append (list (match-beginning 0)
                     (match-end 0)
-                    (nael-abbrev-capf-collect))
-              nael-abbrev-capf-properties))))
+                    (lena-abbrev-capf-collect))
+              lena-abbrev-capf-properties))))
 
 ;;;; Help at point:
 
-(defface nael-abbrev-help-point '((t :box 1))
+(defface lena-abbrev-help-point '((t :box 1))
   "Face of character where point would be positioned after expansion."
-  :group 'nael-abbrev)
+  :group 'lena-abbrev)
 
-(defface nael-abbrev-help-abbrev '((t :inherit help-key-binding))
+(defface lena-abbrev-help-abbrev '((t :inherit help-key-binding))
   "Face of abbreviation."
-  :group 'nael-abbrev)
+  :group 'lena-abbrev)
 
-(defun nael-abbrev-help-lookup (tables query)
+(defun lena-abbrev-help-lookup (tables query)
   "Accumulate pairs of abbrevs and expansions matching QUERY in TABLES."
   (let (matches)
     (dolist (table tables)
@@ -2071,20 +2071,20 @@ completion at point."
                          (unless (eobp)
                            (put-text-property
                             (point) (1+ (point)) 'face
-                            'nael-abbrev-help-point))
+                            'lena-abbrev-help-point))
                          (buffer-substring (point-min)
                                            (point-max)))))))
               (abbrev (symbol-name sym))
               ((not (string-empty-p abbrev))))
            (push (cons (propertize abbrev
-                                   'face 'nael-abbrev-help-abbrev)
+                                   'face 'lena-abbrev-help-abbrev)
                        expansion)
                  matches)))
        table))
     matches))
 
 ;;;###autoload
-(defun nael-abbrev-help (&optional beg end)
+(defun lena-abbrev-help (&optional beg end)
   "Echo abbreviations for region (from BEG to END) or character at point.
 
 When region is usable (`use-region-p'), act on string in region.  When
@@ -2106,9 +2106,9 @@ This command is inspired by `quail-show-key'."
       ;; set in the current buffer, we set the region bounds manually.
       (setq beg (region-beginning) end (region-end)))
     (if-let* ((query (buffer-substring-no-properties beg end))
-              (tables (nael-abbrev-table-ancestors
+              (tables (lena-abbrev-table-ancestors
                        (abbrev--active-tables)))
-              (pairs (nael-abbrev-help-lookup tables query))
+              (pairs (lena-abbrev-help-lookup tables query))
               (max (apply #'max (mapcar (lambda (pair)
                                           (string-width (car pair)))
                                         pairs))))
@@ -2127,7 +2127,7 @@ This command is inspired by `quail-show-key'."
 
 ;;;; Expansion and Configuration:
 
-(defun nael-abbrev-expand ()
+(defun lena-abbrev-expand ()
   "Expand symbol-including abbreviation before point.
 
 This function is meant to be used in `post-self-insert-hook'.  In
@@ -2144,24 +2144,24 @@ character."
       (forward-char))))
 
 ;;;###autoload
-(defun nael-abbrev-configure ()
-  "Configure `abbrev-mode' for `nael-mode'.
+(defun lena-abbrev-configure ()
+  "Configure `abbrev-mode' for `lena-mode'.
 
 Buffer-locally sets `local-abbrev-table' to
-`nael-abbrev-configure-table' and adds `nael-abbrev-expand' to
+`lena-abbrev-configure-table' and adds `lena-abbrev-expand' to
 `post-self-insert-hook' so that symbol-including abbreviations are
 expanded whenever suitable characters are inserted."
-  (when nael-abbrev-table
-    (setq-local local-abbrev-table nael-abbrev-configure-table))
+  (when lena-abbrev-table
+    (setq-local local-abbrev-table lena-abbrev-configure-table))
   (add-hook 'post-self-insert-hook
-            #'nael-abbrev-expand nil 'local)
-  (when nael-abbrev-capf
+            #'lena-abbrev-expand nil 'local)
+  (when lena-abbrev-capf
     (add-hook 'completion-at-point-functions
-              #'nael-abbrev-capf nil 'local)))
+              #'lena-abbrev-capf nil 'local)))
 
-(provide 'nael-abbrev)
+(provide 'lena-abbrev)
 
-;;; nael-abbrev.el ends here
+;;; lena-abbrev.el ends here
 
 ;; Local Variables:
 ;; buffer-read-only: t

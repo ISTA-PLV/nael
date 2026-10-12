@@ -1,11 +1,11 @@
-;;; nael-evil-tests.el --- Tests for nael-evil  -*- lexical-binding: t; -*-
+;;; lena-evil-tests.el --- Tests for lena-evil  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
 ;; SPDX-License-Identifier: GPL-3.0-only
 
 ;; This is licensed under GNU General Public License (version 3 only),
-;; see nael/LICENSE.GPL3.
+;; see lena/LICENSE.GPL3.
 
 ;;; Commentary:
 
@@ -15,39 +15,39 @@
 ;;; Code:
 
 (require 'ert)
-(require 'nael-evil)
-(require 'nael-test-helpers)
+(require 'lena-evil)
+(require 'lena-test-helpers)
 
-(ert-deftest nael-evil-test-keys ()
+(ert-deftest lena-evil-test-keys ()
   "In Evil's normal state, the infoview and its help buffer have their keys."
   (unless (require 'evil nil t)
     (ert-skip "Evil is not installed"))
-  (nael-evil-setup)
+  (lena-evil-setup)
   (evil-set-leader 'normal (kbd ",") 'localleader)
-  (nael-test-with-goals
+  (lena-test-with-goals
     (evil-local-mode)
     (evil-normal-state)
     (pcase-dolist (`(,key . ,command)
-                   '(("]g" . nael-infoview-next-goal)
-                     ("[g" . nael-infoview-previous-goal)
+                   '(("]g" . lena-infoview-next-goal)
+                     ("[g" . lena-infoview-previous-goal)
                      ("]h" . outline-next-visible-heading)
-                     ("gr" . nael-infoview-refresh)
-                     ("K" . nael-infoview-describe)
+                     ("gr" . lena-infoview-refresh)
+                     ("K" . lena-infoview-describe)
                      ("q" . quit-window)
-                     (", v" . nael-infoview-view-options)
-                     (", y" . nael-infoview-copy-goal)))
+                     (", v" . lena-infoview-view-options)
+                     (", y" . lena-infoview-copy-goal)))
       (should (eq (key-binding (kbd key)) command)))
     ;; Subterms keep their own keys.
-    (nael-test-goto "IProp GF")
-    (should (eq (key-binding (kbd "RET")) #'nael-infoview-describe)))
-  (with-current-buffer (nael-infoview--help-buffer)
+    (lena-test-goto "IProp GF")
+    (should (eq (key-binding (kbd "RET")) #'lena-infoview-describe)))
+  (with-current-buffer (lena-infoview--help-buffer)
     (unwind-protect
         (progn
           (evil-local-mode)
           (evil-normal-state)
-          (should (eq (key-binding (kbd "K")) #'nael-infoview-describe)))
+          (should (eq (key-binding (kbd "K")) #'lena-infoview-describe)))
       (kill-buffer))))
 
-(provide 'nael-evil-tests)
+(provide 'lena-evil-tests)
 
-;;; nael-evil-tests.el ends here
+;;; lena-evil-tests.el ends here

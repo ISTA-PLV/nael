@@ -1,4 +1,4 @@
-;;; nael-eglot.el --- Eglot for Nael  -*- lexical-binding: t; -*-
+;;; lena-eglot.el --- Eglot for Lena  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Free Software Foundation, Inc.
 ;; Copyright © 2025 Mekeor Melire
@@ -13,10 +13,10 @@
 
 ;;; Commentary:
 
-;; This file configures `eglot' and `eldoc' for `nael-mode'.  Not only
+;; This file configures `eglot' and `eldoc' for `lena-mode'.  Not only
 ;; but in particular, it defines the function
-;; `nael-eglot-configure-when-managed' which is meant to be locally
-;; hooked onto `eglot-managed-mode-hook' in Nael buffers.  When
+;; `lena-eglot-configure-when-managed' which is meant to be locally
+;; hooked onto `eglot-managed-mode-hook' in Lena buffers.  When
 ;; called, it teaches Eglot about some LSP requests information (such
 ;; as information about the proof goals at point) that are special to
 ;; the Lean LSP server; and it teaches ElDoc how to display this
@@ -28,72 +28,72 @@
 (require 'eglot)
 (require 'seq)
 
-(require 'nael)
-(require 'nael-eglot-compat)
+(require 'lena)
+(require 'lena-eglot-compat)
 
-(declare-function nael-margin-update "nael-margin" ())
+(declare-function lena-margin-update "lena-margin" ())
 
-(defgroup nael-eglot nil
-  "`eglot' and `eldoc' configured for `nael-mode'."
-  :group 'nael
+(defgroup lena-eglot nil
+  "`eglot' and `eldoc' configured for `lena-mode'."
+  :group 'lena
   :group 'eglot
-  :link '(emacs-library-link :tag "Source Lisp File" "nael-eglot.el")
-  :prefix "nael-eglot-")
+  :link '(emacs-library-link :tag "Source Lisp File" "lena-eglot.el")
+  :prefix "lena-eglot-")
 
-(defface nael-eglot-eldoc-header
+(defface lena-eglot-eldoc-header
   '((t (:inherit font-lock-function-name-face :weight bold)))
-  "Face for section-headers of Nael-specific ElDoc documentations."
-  :group 'nael-eglot)
+  "Face for section-headers of Lena-specific ElDoc documentations."
+  :group 'lena-eglot)
 
-(defcustom nael-eglot-echo-goal nil
+(defcustom lena-eglot-echo-goal nil
   "Whether to show the first goal in the echo area."
   :type 'boolean
-  :group 'nael-eglot)
+  :group 'lena-eglot)
 
-(defcustom nael-eldoc-idle-delay 0.05
-  "Buffer-local value of `eldoc-idle-delay' in Nael buffers.
+(defcustom lena-eldoc-idle-delay 0.05
+  "Buffer-local value of `eldoc-idle-delay' in Lena buffers.
 It also applies to the infoview and its help buffer.
 If nil, leave `eldoc-idle-delay' alone."
   :type '(choice (number :tag "Seconds")
                  (const :tag "Keep global value" nil))
-  :group 'nael-eglot)
+  :group 'lena-eglot)
 
-(defvar nael-eglot-eldoc-fontify-buffer "*Nael Eglot ElDoc Fontify*"
-  "Name of buffer that is reused in order to fontify Nael code.")
+(defvar lena-eglot-eldoc-fontify-buffer "*Lena Eglot ElDoc Fontify*"
+  "Name of buffer that is reused in order to fontify Lena code.")
 
-(defun nael-eglot-eldoc-fontify (string)
-  "Apply Nael font-lock rules to STRING."
+(defun lena-eglot-eldoc-fontify (string)
+  "Apply Lena font-lock rules to STRING."
   (with-current-buffer
-      (get-buffer-create nael-eglot-eldoc-fontify-buffer)
+      (get-buffer-create lena-eglot-eldoc-fontify-buffer)
     (erase-buffer)
     (insert string)
-    (set-syntax-table nael-mode-syntax-table)
-    (setq-local font-lock-defaults nael-font-lock-defaults)
+    (set-syntax-table lena-mode-syntax-table)
+    (setq-local font-lock-defaults lena-font-lock-defaults)
     (font-lock-ensure)
     (buffer-string)))
 
-(defun nael-eglot-flush-changes ()
+(defun lena-eglot-flush-changes ()
   "Send pending changes of the current buffer to the server now.
 
 Eglot delays `textDocument/didChange' by `eglot-send-changes-idle-time'.
 A request about a position must not overtake the edits before it, or the
 server answers for text it has not seen yet."
-  (nael-eglot-compat-flush))
+  (lena-eglot-compat-flush))
 
-(defun nael-eglot-server-or-lose ()
+(defun lena-eglot-server-or-lose ()
   "Return the Eglot server of the current buffer or signal an error."
   (or (eglot-current-server)
       (jsonrpc-error "No current JSON-RPC connection")))
 
-(declare-function nael-infoview-shows-goals-p "nael-infoview" ())
+(declare-function lena-infoview-shows-goals-p "lena-infoview" ())
 
-(defun nael-eglot-eldoc-goals-elsewhere-p ()
+(defun lena-eglot-eldoc-goals-elsewhere-p ()
   "Return non-nil if goals are displayed elsewhere than by ElDoc.
 That is the case while the infoview is visible and works."
-  (and (fboundp 'nael-infoview-shows-goals-p)
-       (nael-infoview-shows-goals-p)))
+  (and (fboundp 'lena-infoview-shows-goals-p)
+       (lena-infoview-shows-goals-p)))
 
-(defun nael-eglot-eldoc-goal-fn (cb)
+(defun lena-eglot-eldoc-goal-fn (cb)
   "Construct ElDoc CB handler function for Lean LSP goal response."
   (lambda (response)
     (apply
@@ -102,11 +102,11 @@ That is the case while the infoview is visible and works."
          ((goals (plist-get response :goals))
           ((not (seq-empty-p goals)))
           (first-goal (seq-first goals))
-          (first-goal (nael-eglot-eldoc-fontify first-goal)))
+          (first-goal (lena-eglot-eldoc-fontify first-goal)))
          (list (concat
                 ;; Propertize `\n' so that `:extend' works.
                 (propertize "Tactic state:\n"
-                            'face 'nael-eglot-eldoc-header)
+                            'face 'lena-eglot-eldoc-header)
                 "\n"
                 ;; Avoid rendering `first-goal' twice.
                 (replace-regexp-in-string "^" "  " first-goal)
@@ -114,12 +114,12 @@ That is the case while the infoview is visible and works."
                  (lambda (goal)
                    (concat "\n\n" (replace-regexp-in-string
                                    "^" "  "
-                                   (nael-eglot-eldoc-fontify goal))))
+                                   (lena-eglot-eldoc-fontify goal))))
                  (seq-drop goals 1) 'string))
-               :echo (if nael-eglot-echo-goal first-goal 'skip))
+               :echo (if lena-eglot-echo-goal first-goal 'skip))
        (list nil)))))
 
-(defun nael-eglot-eldoc-goal (cb &rest _)
+(defun lena-eglot-eldoc-goal (cb &rest _)
   "ElDoc documentation function for plain goal.
 
 Callback CB is provided to any member of
@@ -128,16 +128,16 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainGoal"
-  (unless (nael-eglot-eldoc-goals-elsewhere-p)
-    (nael-eglot-flush-changes)
+  (unless (lena-eglot-eldoc-goals-elsewhere-p)
+    (lena-eglot-flush-changes)
     (jsonrpc-async-request
-     (nael-eglot-server-or-lose)
+     (lena-eglot-server-or-lose)
      :$/lean/plainGoal
-     (nael-eglot-compat-position-params)
-     :success-fn (nael-eglot-eldoc-goal-fn cb))
+     (lena-eglot-compat-position-params)
+     :success-fn (lena-eglot-eldoc-goal-fn cb))
     t))
 
-(defun nael-eglot-eldoc-term-goal-fn (cb)
+(defun lena-eglot-eldoc-term-goal-fn (cb)
   "Construct ElDoc CB handler function for Lean LSP term-goal response."
   (lambda (response)
     (apply
@@ -145,17 +145,17 @@ Extra.html#Lean.Lsp.PlainGoal"
      (if-let*
          ((goal (plist-get response :goal))
           ((not (string= "" goal)))
-          (doc (nael-eglot-compat-format-markup goal)))
+          (doc (lena-eglot-compat-format-markup goal)))
          (list (concat
                 ;; Propertize `\n' so that `:extend' works.
                 (propertize "Expected type:\n"
-                            'face 'nael-eglot-eldoc-header)
+                            'face 'lena-eglot-eldoc-header)
                 "\n" (replace-regexp-in-string "^" "  " doc))
                ;; Don't echo any docstring at all.
                :echo 'skip)
        (list nil)))))
 
-(defun nael-eglot-eldoc-term-goal (cb &rest _)
+(defun lena-eglot-eldoc-term-goal (cb &rest _)
   "ElDoc documentation function for plain goal.
 
 Callback CB is provided to any member of
@@ -164,39 +164,39 @@ Callback CB is provided to any member of
 The request target path is `$/lean/plainTermGoal' as documented here:
 https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Lsp/\
 Extra.html#Lean.Lsp.PlainTermGoal"
-  (unless (nael-eglot-eldoc-goals-elsewhere-p)
-    (nael-eglot-flush-changes)
+  (unless (lena-eglot-eldoc-goals-elsewhere-p)
+    (lena-eglot-flush-changes)
     (jsonrpc-async-request
-     (nael-eglot-server-or-lose)
+     (lena-eglot-server-or-lose)
      :$/lean/plainTermGoal
-     (nael-eglot-compat-position-params)
-     :success-fn (nael-eglot-eldoc-term-goal-fn cb))
+     (lena-eglot-compat-position-params)
+     :success-fn (lena-eglot-eldoc-term-goal-fn cb))
     t))
 
 ;;;###autoload
-(defun nael-eglot-configure-when-managed ()
-  "Buffer-locally set up ElDoc and Eglot for Nael.
+(defun lena-eglot-configure-when-managed ()
+  "Buffer-locally set up ElDoc and Eglot for Lena.
 
 Use ElDoc documentation strategy `compose', apply
-`nael-eldoc-idle-delay' and add ElDoc documentation functions for
-goal and term goal.  Turn `nael-margin-mode' on or off, as option
-`nael-margin' says and as Eglot manages the buffer or not."
+`lena-eldoc-idle-delay' and add ElDoc documentation functions for
+goal and term goal.  Turn `lena-margin-mode' on or off, as option
+`lena-margin' says and as Eglot manages the buffer or not."
   (interactive)
-  (require 'nael-margin)
-  (nael-margin-update)
+  (require 'lena-margin)
+  (lena-margin-update)
   (setq-local eldoc-documentation-strategy
               #'eldoc-documentation-compose)
-  (when nael-eldoc-idle-delay
-    (setq-local eldoc-idle-delay nael-eldoc-idle-delay))
+  (when lena-eldoc-idle-delay
+    (setq-local eldoc-idle-delay lena-eldoc-idle-delay))
   (add-hook 'eldoc-documentation-functions
-            #'nael-eglot-eldoc-goal -90 'local)
+            #'lena-eglot-eldoc-goal -90 'local)
   (add-hook 'eldoc-documentation-functions
-            #'nael-eglot-eldoc-term-goal -80 'local)
+            #'lena-eglot-eldoc-term-goal -80 'local)
   (add-hook 'change-major-mode-hook
-            #'nael-eglot-close-before-mode-change -90 'local))
+            #'lena-eglot-close-before-mode-change -90 'local))
 
 ;; Setting up the major mode of a managed buffer again, as `M-x
-;; nael-mode' in a Nael buffer or `normal-mode' do, makes Eglot open
+;; lena-mode' in a Lena buffer or `normal-mode' do, makes Eglot open
 ;; the document a second time without closing it first: Eglot only
 ;; turns itself off in the buffer on `change-major-mode-hook', and on
 ;; `after-change-major-mode-hook' it manages the buffer again and sends
@@ -209,17 +209,17 @@ goal and term goal.  Turn `nael-margin-mode' on or off, as option
 ;; is not reported upstream yet; remove this once Eglot closes the
 ;; document itself.
 
-(defun nael-eglot-close-before-mode-change ()
+(defun lena-eglot-close-before-mode-change ()
   "Tell the server that the document is closed, if Eglot manages it.
 For `change-major-mode-hook', where Eglot does not do so itself.
 When the buffer is reverted, Eglot has closed it already."
   ;; Emacs 31 renames the variable to `revert-buffer-in-progress'.
   (when (and (eglot-managed-p)
              (not (with-no-warnings revert-buffer-in-progress-p)))
-    (nael-eglot-compat-did-close)))
+    (lena-eglot-compat-did-close)))
 
 ;;;###autoload
-(defun nael-eglot-configure-when-initialized (_)
+(defun lena-eglot-configure-when-initialized (_)
   "Buffer-locally correct Eglot's expectations on Lean LSP server.
 
 Since `lake serve' does not output anything, instruct Eglot to not wait
@@ -227,42 +227,42 @@ for any output."
   (setq-local eglot-sync-connect
               nil))
 
-(defcustom nael-eglot-contact (list "lake" "serve")
-  "Contact for Eglot server program for `nael-mode'.
+(defcustom lena-eglot-contact (list "lake" "serve")
+  "Contact for Eglot server program for `lena-mode'.
 
 This is a list (PROGRAM [ARGS...]) or (HOST PORT [TCP-ARGS...]) as
 described for CONTACT in `eglot-server-programs'.  Eglot uses it to
-start a server of class `nael-eglot-server'."
+start a server of class `lena-eglot-server'."
   :type '(choice (repeat :tag "(PROGRAM [ARGS...])" string)
                  (sexp :tag "Other"))
-  :group 'nael-eglot)
+  :group 'lena-eglot)
 
-(defclass nael-eglot-server (eglot-lsp-server) ()
+(defclass lena-eglot-server (eglot-lsp-server) ()
   :documentation "Eglot server class for the Lean language server.")
 
 (add-to-list 'eglot-server-programs
-             (cons 'nael-mode
+             (cons 'lena-mode
                    (lambda (&optional _interactive _project)
-                     (cons 'nael-eglot-server nael-eglot-contact))))
+                     (cons 'lena-eglot-server lena-eglot-contact))))
 
 ;;;; Lean extensions of LSP:
 
-(defconst nael-eglot-rpc-wire-format "v1"
-  "Encoding of RPC references that Nael asks the server for.
+(defconst lena-eglot-rpc-wire-format "v1"
+  "Encoding of RPC references that Lena asks the server for.
 Wire format \"v1\" encodes a reference as {\"__rpcref\": ID}.  Servers
 of Lean versions before 4.30 do not know it and use \"v0\", {\"p\": ID}.")
 
-(cl-defmethod eglot-client-capabilities :around ((_server nael-eglot-server))
+(cl-defmethod eglot-client-capabilities :around ((_server lena-eglot-server))
   "Add the Lean-specific client capabilities to those of Eglot.
 Besides the RPC wire format, ask for silent diagnostics, such as the
-one that says that a proof is complete; see `nael-eglot-diagnostics'."
+one that says that a proof is complete; see `lena-eglot-diagnostics'."
   (append (cl-call-next-method)
-          (list :lean (list :rpcWireFormat nael-eglot-rpc-wire-format
+          (list :lean (list :rpcWireFormat lena-eglot-rpc-wire-format
                             :silentDiagnosticSupport t))))
 
 ;;;; Widgets in messages:
 
-(defcustom nael-eglot-widgets 'auto
+(defcustom lena-eglot-widgets 'auto
   "Whether the server sends messages with their terms, goals and traces.
 With them, the infoview shows the messages at point interactively, as
 it shows goals; this needs Lean 4.30 or later.  The cost is that the
@@ -273,9 +273,9 @@ This is the option `hasWidgets' of the Lean server."
   :type '(choice (const :tag "If the toolchain is Lean 4.30 or later" auto)
                  (const :tag "Always" t)
                  (const :tag "Never" nil))
-  :group 'nael-eglot)
+  :group 'lena-eglot)
 
-(defun nael-eglot-lean-version (directory)
+(defun lena-eglot-lean-version (directory)
   "Return the Lean version that the `lean-toolchain' for DIRECTORY names.
 The file is looked for in DIRECTORY and its parents.  The value is a
 list (MAJOR MINOR), the symbol `nightly', or nil if there is no such
@@ -294,21 +294,21 @@ file or it names something else."
               ((looking-at (rx (* (not (any "\n"))) "nightly"))
                'nightly))))))
 
-(defun nael-eglot-widgets-p (directory)
+(defun lena-eglot-widgets-p (directory)
   "Return non-nil if the server for DIRECTORY should send widgets.
-See `nael-eglot-widgets'."
-  (if (eq nael-eglot-widgets 'auto)
-      (let ((version (nael-eglot-lean-version directory)))
+See `lena-eglot-widgets'."
+  (if (eq lena-eglot-widgets 'auto)
+      (let ((version (lena-eglot-lean-version directory)))
         (or (eq version 'nightly)
             (and version (version-list-<= '(4 30) version))))
-    nael-eglot-widgets))
+    lena-eglot-widgets))
 
 (cl-defmethod eglot-initialization-options :around
-  ((_server nael-eglot-server))
-  "Ask for widgets in messages, as option `nael-eglot-widgets' says.
+  ((_server lena-eglot-server))
+  "Ask for widgets in messages, as option `lena-eglot-widgets' says.
 Eglot calls this in the root directory of the project."
   (let ((options (cl-call-next-method)))
-    (cond ((not (nael-eglot-widgets-p default-directory)) options)
+    (cond ((not (lena-eglot-widgets-p default-directory)) options)
           ((and (hash-table-p options) (> (hash-table-count options) 0))
            (let ((copy (copy-hash-table options)))
              (puthash "hasWidgets" t copy)
@@ -316,52 +316,52 @@ Eglot calls this in the root directory of the project."
           ((consp options) (plist-put (copy-sequence options) :hasWidgets t))
           (t (list :hasWidgets t)))))
 
-(defun nael-eglot-uri-buffer (uri)
+(defun lena-eglot-uri-buffer (uri)
   "Return the live buffer visiting the file of URI, or nil."
   (find-buffer-visiting (eglot-uri-to-path uri)))
 
-(defvar-local nael-eglot-file-progress nil
+(defvar-local lena-eglot-file-progress nil
   "Regions of the current buffer that the server is still processing.
 This is the latest `processing' vector of `$/lean/fileProgress': each
 element is a plist with an LSP `:range' and a `:kind', where 1 means
 processing and 2 means a fatal error.  An empty vector means done.")
 
-(defvar nael-eglot-file-progress-functions nil
+(defvar lena-eglot-file-progress-functions nil
   "Abnormal hook run when the server reports progress on a buffer.
 Each function is called in that buffer with the new value of
-`nael-eglot-file-progress' as argument.")
+`lena-eglot-file-progress' as argument.")
 
-(defvar-local nael-eglot-diagnostics nil
+(defvar-local lena-eglot-diagnostics nil
   "The diagnostics that the server published last for the current buffer.
 This is a vector of LSP diagnostics with Lean's extensions: a diagnostic
 may have a `:fullRange' besides its `:range', `:leanTags' (see
-`nael-eglot-diagnostic-tag-p'), and `:isSilent'.  Silent diagnostics are
+`lena-eglot-diagnostic-tag-p'), and `:isSilent'.  Silent diagnostics are
 kept here, but Eglot, and so Flymake, never sees them.")
 
-(defvar nael-eglot-diagnostics-functions nil
+(defvar lena-eglot-diagnostics-functions nil
   "Abnormal hook run when the server publishes diagnostics for a buffer.
 Each function is called in that buffer with the vector of LSP
 diagnostics as argument, after Eglot has handled them.  The vector
-includes the silent diagnostics; see `nael-eglot-diagnostics'.")
+includes the silent diagnostics; see `lena-eglot-diagnostics'.")
 
 (cl-defmethod eglot-handle-notification
-  ((_server nael-eglot-server) (_method (eql $/lean/fileProgress))
+  ((_server lena-eglot-server) (_method (eql $/lean/fileProgress))
    &key textDocument processing &allow-other-keys)
   "Record PROCESSING for the buffer of TEXTDOCUMENT and run hooks."
-  (when-let* ((buffer (nael-eglot-uri-buffer
+  (when-let* ((buffer (lena-eglot-uri-buffer
                        (plist-get textDocument :uri))))
     (with-current-buffer buffer
-      (setq nael-eglot-file-progress processing)
-      (run-hook-with-args 'nael-eglot-file-progress-functions
+      (setq lena-eglot-file-progress processing)
+      (run-hook-with-args 'lena-eglot-file-progress-functions
                           processing))))
 
 (cl-defmethod eglot-handle-notification :around
-  ((server nael-eglot-server)
+  ((server lena-eglot-server)
    (method (eql textDocument/publishDiagnostics))
    &rest args &key uri diagnostics &allow-other-keys)
   "Hand the DIAGNOSTICS for URI to Eglot without the silent ones.
 Silent diagnostics would be shown as notes otherwise.  Keep all in
-`nael-eglot-diagnostics' and run `nael-eglot-diagnostics-functions'.
+`lena-eglot-diagnostics' and run `lena-eglot-diagnostics-functions'.
 SERVER, METHOD and ARGS are passed on."
   (apply #'cl-call-next-method server method
          (plist-put (copy-sequence args) :diagnostics
@@ -370,22 +370,22 @@ SERVER, METHOD and ARGS are passed on."
                                                 t))
                                           diagnostics)
                               'vector)))
-  (when-let* ((buffer (nael-eglot-uri-buffer uri)))
+  (when-let* ((buffer (lena-eglot-uri-buffer uri)))
     (with-current-buffer buffer
-      (setq nael-eglot-diagnostics diagnostics)
-      (run-hook-with-args 'nael-eglot-diagnostics-functions
+      (setq lena-eglot-diagnostics diagnostics)
+      (run-hook-with-args 'lena-eglot-diagnostics-functions
                           diagnostics))))
 
-(defconst nael-eglot-diagnostic-tags
+(defconst lena-eglot-diagnostic-tags
   '((unsolved-goals . 1) (goals-accomplished . 2))
   "Lean's tags of diagnostics, as in the `:leanTags' of a diagnostic.")
 
-(defun nael-eglot-diagnostic-tag-p (diagnostic tag)
-  "Return non-nil if DIAGNOSTIC has TAG, a key of `nael-eglot-diagnostic-tags'."
+(defun lena-eglot-diagnostic-tag-p (diagnostic tag)
+  "Return non-nil if DIAGNOSTIC has TAG, a key of `lena-eglot-diagnostic-tags'."
   (seq-contains-p (plist-get diagnostic :leanTags)
-                  (alist-get tag nael-eglot-diagnostic-tags)))
+                  (alist-get tag lena-eglot-diagnostic-tags)))
 
-(defun nael-eglot-diagnostic-lines (diagnostic &optional full)
+(defun lena-eglot-diagnostic-lines (diagnostic &optional full)
   "Return the first and last line of DIAGNOSTIC, 0-based, as a cons.
 The server shortens a diagnostic's `:range' to its first line; with
 FULL non-nil, use its `:fullRange' instead, when it has one.  A range
@@ -400,18 +400,18 @@ that ends at the start of a line ends on the line before."
       (cl-decf last))
     (cons first last)))
 
-(defun nael-eglot-goals-accomplished-p (&optional line)
+(defun lena-eglot-goals-accomplished-p (&optional line)
   "Return non-nil if LINE lies in a proof that the server found complete.
 LINE is 0-based and defaults to the line of point.  The answer comes
-from the silent diagnostics in `nael-eglot-diagnostics'."
+from the silent diagnostics in `lena-eglot-diagnostics'."
   (let ((line (or line (1- (line-number-at-pos nil t)))))
     (seq-some (lambda (diagnostic)
-                (and (nael-eglot-diagnostic-tag-p diagnostic
+                (and (lena-eglot-diagnostic-tag-p diagnostic
                                                   'goals-accomplished)
                      (pcase-let ((`(,first . ,last)
-                                  (nael-eglot-diagnostic-lines diagnostic t)))
+                                  (lena-eglot-diagnostic-lines diagnostic t)))
                        (<= first line last))))
-              nael-eglot-diagnostics)))
+              lena-eglot-diagnostics)))
 
 (defvar eglot-semantic-tokens-mode)
 
@@ -422,32 +422,32 @@ from the silent diagnostics in `nael-eglot-diagnostics'."
 ;; request on purpose (as of 1.24) and keeps the tokens of a document
 ;; version, so a file whose tokens were asked for too early, such as
 ;; one opened while Lean is busy, lacks them until it is edited.  Nor
-;; does Eglot know that `nael-eglot-restart-file' makes its tokens
+;; does Eglot know that `lena-eglot-restart-file' makes its tokens
 ;; outdated: the file is reopened with the same version.  Remove the
 ;; handler once Eglot asks again itself; the restart still needs this.
 
-(defun nael-eglot-refresh-semantic-tokens ()
+(defun lena-eglot-refresh-semantic-tokens ()
   "Make Eglot ask for the semantic tokens of the current buffer again.
 Only where Eglot shows them, with `eglot-semantic-tokens-mode'."
   (when (bound-and-true-p eglot-semantic-tokens-mode)
-    (nael-eglot-compat-forget-semantic-tokens)
+    (lena-eglot-compat-forget-semantic-tokens)
     (save-restriction
       (widen)
       (font-lock-flush))))
 
 (cl-defmethod eglot-handle-request
-  ((server nael-eglot-server) (_method (eql workspace/semanticTokens/refresh)))
+  ((server lena-eglot-server) (_method (eql workspace/semanticTokens/refresh)))
   "Ask SERVER again for the semantic tokens of its buffers, as Lean expects."
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       (when (and (eglot-managed-p) (eq (eglot-current-server) server))
-        (nael-eglot-refresh-semantic-tokens))))
+        (lena-eglot-refresh-semantic-tokens))))
   nil)
 
-(defun nael-eglot-processing-line-p (&optional line)
+(defun lena-eglot-processing-line-p (&optional line)
   "Return non-nil if the server is still processing LINE.
 LINE is 0-based as in LSP and defaults to the line of point.  The
-answer comes from the latest `nael-eglot-file-progress'; regions where
+answer comes from the latest `lena-eglot-file-progress'; regions where
 processing stopped with a fatal error do not count."
   (let ((line (or line (1- (line-number-at-pos nil t)))))
     (seq-some (lambda (item)
@@ -456,7 +456,7 @@ processing stopped with a fatal error do not count."
                        (<= (plist-get (plist-get range :start) :line)
                            line
                            (plist-get (plist-get range :end) :line)))))
-              nael-eglot-file-progress)))
+              lena-eglot-file-progress)))
 
 ;;;; Building dependencies:
 
@@ -467,33 +467,33 @@ processing stopped with a fatal error do not count."
 ;; restart command checks `eglot-managed-p' instead of
 ;; `eglot-current-server'.
 
-(defcustom nael-eglot-build-dependencies nil
+(defcustom lena-eglot-build-dependencies nil
   "Whether opening a file makes the server build its imports.
 
 If nil, opening a file never starts a build; when imports are out of
-date, the server says so, and `nael-eglot-restart-file' builds them.
+date, the server says so, and `lena-eglot-restart-file' builds them.
 If non-nil, every opening builds whatever is out of date, which may
 take long.  This corresponds to the setting
 `lean4.automaticallyBuildDependencies' of the Lean extension for
 VS Code, which is off by default as well."
   :type 'boolean
-  :group 'nael-eglot)
+  :group 'lena-eglot)
 
-(defvar nael-eglot--build-dependencies-once nil
-  "Non-nil while `nael-eglot-restart-file' reopens a file.")
+(defvar lena-eglot--build-dependencies-once nil
+  "Non-nil while `lena-eglot-restart-file' reopens a file.")
 
-(defun nael-eglot-dependency-build-mode ()
+(defun lena-eglot-dependency-build-mode ()
   "Return the `dependencyBuildMode' for a `textDocument/didOpen'.
 
 The server treats a missing mode as \"always\", so a mode is sent with
 every opening.  Unlike \"always\", \"once\" does not build again when
 the file worker restarts after a crash or an import change."
-  (cond (nael-eglot-build-dependencies "always")
-        (nael-eglot--build-dependencies-once "once")
+  (cond (lena-eglot-build-dependencies "always")
+        (lena-eglot--build-dependencies-once "once")
         (t "never")))
 
 (cl-defmethod jsonrpc-connection-send :around
-  ((server nael-eglot-server) &rest args &key method params
+  ((server lena-eglot-server) &rest args &key method params
    &allow-other-keys)
   "Add `dependencyBuildMode' to `textDocument/didOpen' sent to SERVER.
 
@@ -504,11 +504,11 @@ field is added here.  Pass ARGS with METHOD and PARAMS on."
              (plist-put (copy-sequence args) :params
                         (append params
                                 (list :dependencyBuildMode
-                                      (nael-eglot-dependency-build-mode)))))
+                                      (lena-eglot-dependency-build-mode)))))
     (apply #'cl-call-next-method server args)))
 
 ;;;###autoload
-(defun nael-eglot-restart-file ()
+(defun lena-eglot-restart-file ()
   "Restart the server's processing of the current file.
 
 Close and reopen the file on the server, which builds imports that are
@@ -517,11 +517,11 @@ imports."
   (interactive)
   (unless (eglot-managed-p)
     (user-error "Buffer is not managed by Eglot"))
-  (nael-eglot-compat-did-close)
-  (let ((nael-eglot--build-dependencies-once t))
-    (nael-eglot-compat-did-open))
-  (nael-eglot-refresh-semantic-tokens))
+  (lena-eglot-compat-did-close)
+  (let ((lena-eglot--build-dependencies-once t))
+    (lena-eglot-compat-did-open))
+  (lena-eglot-refresh-semantic-tokens))
 
-(provide 'nael-eglot)
+(provide 'lena-eglot)
 
-;;; nael-eglot.el ends here
+;;; lena-eglot.el ends here

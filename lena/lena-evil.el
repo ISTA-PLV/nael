@@ -1,4 +1,4 @@
-;;; nael-evil.el --- Evil bindings for Nael's infoview  -*- lexical-binding: t; -*-
+;;; lena-evil.el --- Evil bindings for Lena's infoview  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
@@ -27,33 +27,33 @@
 ;; `za'.  The local-leader keys need a local leader, see
 ;; `evil-set-leader'.
 ;;
-;; Nothing is bound until `nael-evil-setup' is called, for instance:
+;; Nothing is bound until `lena-evil-setup' is called, for instance:
 ;;
-;;   (with-eval-after-load 'evil (nael-evil-setup))
+;;   (with-eval-after-load 'evil (lena-evil-setup))
 
 ;;; Code:
 
-(require 'nael-infoview)
+(require 'lena-infoview)
 
 (declare-function evil-define-key* "evil-core")
 
 ;;;###autoload
-(defun nael-evil-setup ()
-  "Bind keys for Evil in Nael's infoview and its help buffer."
+(defun lena-evil-setup ()
+  "Bind keys for Evil in Lena's infoview and its help buffer."
   (require 'evil)
-  (evil-define-key* '(normal motion) nael-infoview-mode-map
-    "]g" #'nael-infoview-next-goal
-    "[g" #'nael-infoview-previous-goal
+  (evil-define-key* '(normal motion) lena-infoview-mode-map
+    "]g" #'lena-infoview-next-goal
+    "[g" #'lena-infoview-previous-goal
     "]h" #'outline-next-visible-heading
     "[h" #'outline-previous-visible-heading
-    "gr" #'nael-infoview-refresh
-    "K" #'nael-infoview-describe
+    "gr" #'lena-infoview-refresh
+    "K" #'lena-infoview-describe
     "q" #'quit-window
-    (kbd "<localleader>v") #'nael-infoview-view-options
-    (kbd "<localleader>y") #'nael-infoview-copy-goal)
-  (evil-define-key* '(normal motion) nael-infoview-help-mode-map
-    "K" #'nael-infoview-describe))
+    (kbd "<localleader>v") #'lena-infoview-view-options
+    (kbd "<localleader>y") #'lena-infoview-copy-goal)
+  (evil-define-key* '(normal motion) lena-infoview-help-mode-map
+    "K" #'lena-infoview-describe))
 
-(provide 'nael-evil)
+(provide 'lena-evil)
 
-;;; nael-evil.el ends here
+;;; lena-evil.el ends here

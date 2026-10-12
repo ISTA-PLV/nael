@@ -1,4 +1,4 @@
-;;; nael.el --- Major mode for Lean  -*- lexical-binding: t; -*-
+;;; lena.el --- Major mode for Lean  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2013-2014 Microsoft Corp.
 ;; Copyright © 2014-2015 Soonho Kong
@@ -27,7 +27,8 @@
 ;;         Yael Dillies <yael.dillies@gmail.com>
 ;;         Yury G. Kudryashov <urkud@urkud.name>
 ;; Keywords: languages
-;; Maintainer: Mekeor Melire <mekeor@posteo.de>
+;; Maintainer: Klaus Kraßnitzer <klaus.krassnitzer@ista.ac.at>
+;;             Alex Loitzl <alexander.loitzl@gmail.com>
 ;; Package-Requires: ((emacs "30.1"))
 ;; SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only AND MIT
 ;; URL: https://github.com/ISTA-PLV/nael
@@ -39,13 +40,13 @@
 
 ;;; Commentary:
 
-;; `nael-mode' is a major mode for the Lean language.  For more
+;; `lena-mode' is a major mode for the Lean language.  For more
 ;; information, read the manual:
 ;;
-;; - As Org file `README.org' in the `nael' folder or repository.
+;; - As Org file `README.org' in the `lena' folder or repository.
 ;;
-;; - After installation, as local Info manual per C-h i d nael RET or
-;;   (info "(nael) Top")
+;; - After installation, as local Info manual per C-h i d lena RET or
+;;   (info "(lena) Top")
 ;;
 ;; - As HTML webpage at <https://github.com/ISTA-PLV/nael>.
 
@@ -59,23 +60,23 @@
 ;; Avoid strict loading of optional features, files or dependencies.
 (declare-function flymake-goto-next-error "flymake"
                   (&optional n filter interactive))
-(declare-function nael-abbrev-configure "nael-abbrev" ())
-(declare-function nael-abbrev-help "nael-abbrev" (&optional beg end))
-(declare-function nael-eglot-configure-when-initialized "nael-eglot"
+(declare-function lena-abbrev-configure "lena-abbrev" ())
+(declare-function lena-abbrev-help "lena-abbrev" (&optional beg end))
+(declare-function lena-eglot-configure-when-initialized "lena-eglot"
                   (_))
-(declare-function nael-eglot-configure-when-managed "nael-eglot" ())
-(declare-function nael-eglot-restart-file "nael-eglot" ())
-(declare-function nael-infoview "nael-infoview" ())
+(declare-function lena-eglot-configure-when-managed "lena-eglot" ())
+(declare-function lena-eglot-restart-file "lena-eglot" ())
+(declare-function lena-infoview "lena-infoview" ())
 
-(defgroup nael nil
+(defgroup lena nil
   "Major mode for Lean."
   :group 'languages
-  :link '(emacs-library-link :tag "Source Lisp File" "nael.el")
+  :link '(emacs-library-link :tag "Source Lisp File" "lena.el")
   :link '(url-link :tag "Website" "https://github.com/ISTA-PLV/nael")
-  :prefix "nael-"
-  :tag "Nael")
+  :prefix "lena-"
+  :tag "Lena")
 
-(defvar nael-mode-syntax-table
+(defvar lena-mode-syntax-table
   (let ((table (make-syntax-table)))
     ;; Parentheses:
     (modify-syntax-entry ?\[ "(]" table)
@@ -87,7 +88,7 @@
     (modify-syntax-entry ?/  ". 14nb" table)
     (modify-syntax-entry ?-  ". 123"  table)
     (modify-syntax-entry ?\n ">"      table)
-    ;; « » registered as comments, content fixed in `nael-font-lock-defaults`
+    ;; « » registered as comments, content fixed in `lena-font-lock-defaults`
     (modify-syntax-entry ?«  "< c"      table)
     (modify-syntax-entry ?»  "> c"      table)
 
@@ -146,19 +147,19 @@
     (modify-syntax-entry ?\\ "/"  table)
 
     table)
-  "Syntax table used in `nael-mode'.")
+  "Syntax table used in `lena-mode'.")
 
-(defconst nael-syntax-definition-pre
+(defconst lena-syntax-definition-pre
   (rx (zero-or-more (or "noncomputable" "partial" "unsafe"
                         "private" "protected" "public" space))))
 
-(defconst nael-syntax-definition
+(defconst lena-syntax-definition
   (rx
    ;; Use `line-start' rather than `word-start' for speed.
-   (zero-or-more line-start (regexp nael-syntax-definition-pre))
+   (zero-or-more line-start (regexp lena-syntax-definition-pre))
    line-start
    (group
-    (regexp nael-syntax-definition-pre)
+    (regexp lena-syntax-definition-pre)
     (or "axiom" "class" "constant" "def" "definition" "inductive"
         "instance" "lemma" "opaque" "structure" "theorem"
         (group "class" (zero-or-more space) "inductive")))
@@ -171,7 +172,7 @@
    (group-n 99 (zero-or-more (not (any " \t\n\r{([:")))))
   "Regular expression matching definitions.")
 
-(defvar nael-font-lock-defaults
+(defvar lena-font-lock-defaults
   (list
    (list
     (list (rx symbol-start "attribute" symbol-end
@@ -198,7 +199,7 @@
           '(1 'font-lock-function-name-face))
 
     ;; Definitions:
-    (list nael-syntax-definition
+    (list lena-syntax-definition
           '(1 'font-lock-keyword-face)
           '(99 'font-lock-function-name-face))
 
@@ -280,12 +281,12 @@
           '(1 font-lock-comment-face t)
           '(2 nil t)
           '(3 font-lock-comment-face t))))
-  "Defaults for `font-lock-mode' used by `nael-mode'.")
+  "Defaults for `font-lock-mode' used by `lena-mode'.")
 
 ;;;; Auxiliary Functions and Commands:
 
-(defun nael-comment-insert ()
-  "`comment-insert-comment-function' for `nael-mode'."
+(defun lena-comment-insert ()
+  "`comment-insert-comment-function' for `lena-mode'."
   (interactive)
   (if (save-excursion (beginning-of-line)
                       (looking-at-p "[[:blank:]]*$"))
@@ -301,7 +302,7 @@
       (insert " "))
     (insert "-- ")))
 
-(defun nael-fill-paragraph (&optional justify)
+(defun lena-fill-paragraph (&optional justify)
   "Fill comment paragraph at point.  Maybe JUSTIFY."
   (interactive)
   (when (save-excursion (nth 4 (syntax-ppss (point))))
@@ -340,37 +341,37 @@
                (forward-char))
           (fill-comment-paragraph justify))))))
 
-;; TODO: Both `nael-navigation-defun-beginning' and
-;; `nael-navigation-defun-name' currently lack support for `mutual'
+;; TODO: Both `lena-navigation-defun-beginning' and
+;; `lena-navigation-defun-name' currently lack support for `mutual'
 ;; blocks, i.e. mutually recursive definitions.
 
-(defun nael-navigation-defun-end ()
-  "`end-of-defun-function' for `nael-mode'."
+(defun lena-navigation-defun-end ()
+  "`end-of-defun-function' for `lena-mode'."
   (interactive)
-  (when (re-search-forward nael-syntax-definition nil t)
+  (when (re-search-forward lena-syntax-definition nil t)
     (goto-char (match-beginning 0))))
 
-(defun nael-navigation-defun-beginning ()
-  "`beginning-of-defun-function' for `nael-mode'."
+(defun lena-navigation-defun-beginning ()
+  "`beginning-of-defun-function' for `lena-mode'."
   (interactive)
-  (re-search-backward nael-syntax-definition nil t))
+  (re-search-backward lena-syntax-definition nil t))
 
-(defun nael-navigation-defun-name ()
-  "`add-log-current-defun-function' for `nael-mode'."
+(defun lena-navigation-defun-name ()
+  "`add-log-current-defun-function' for `lena-mode'."
   (save-excursion
-    (when (nael-navigation-defun-beginning)
+    (when (lena-navigation-defun-beginning)
       (forward-symbol 1)
       (forward-whitespace 1)
       (symbol-at-point))))
 
-(defvar nael-imenu-generic-expression
-  (list (list nil nael-syntax-definition 99))
-  "`imenu-generic-expression' for `nael-mode'.")
+(defvar lena-imenu-generic-expression
+  (list (list nil lena-syntax-definition 99))
+  "`imenu-generic-expression' for `lena-mode'.")
 
 ;;;; Preparation:
 
-;; Our goal is to avoid loading `nael-abbrev' / `abbrev' and
-;; `nael-eglot' / `eglot', until the user calls one of their
+;; Our goal is to avoid loading `lena-abbrev' / `abbrev' and
+;; `lena-eglot' / `eglot', until the user calls one of their
 ;; autoloaded commands.  We are lucky that `post-self-insert-hook' is
 ;; strictly loaded and that `eglot-server-initialized-hook' as well as
 ;; `eglot-managed-mode-hook' are initialized to nil, in usual Emacs
@@ -378,116 +379,116 @@
 ;; have not been defined as variables yet.
 
 ;; We could introduce a hook, with both of
-;; `nael-prepare-{abbrev,eglot}' being default members of it,
+;; `lena-prepare-{abbrev,eglot}' being default members of it,
 ;; which we could run in the beginning of the definition-body of
-;; `nael-mode'.  As mentioned, though, it's uncommon in Emacs to have
+;; `lena-mode'.  As mentioned, though, it's uncommon in Emacs to have
 ;; hooks initialized with non-nil values and some common functions
 ;; like `add-hook' rely on this practice.  Thus, we use boolean flags
 ;; instead.
 
-(defcustom nael-prepare-abbrev t
-  "Whether `abbrev-mode' should be prepared for `nael-mode'."
+(defcustom lena-prepare-abbrev t
+  "Whether `abbrev-mode' should be prepared for `lena-mode'."
   :type 'boolean
-  :group 'nael)
+  :group 'lena)
 
-(defun nael-prepare-abbrev ()
-  "Prepare `abbrev-mode' for `nael-mode'.
+(defun lena-prepare-abbrev ()
+  "Prepare `abbrev-mode' for `lena-mode'.
 
 Expand symbol-including abbreviations when adequate character inserted."
   (interactive)
-  (when nael-prepare-abbrev
+  (when lena-prepare-abbrev
     (add-hook 'abbrev-mode-hook
-              #'nael-abbrev-configure nil 'local)))
+              #'lena-abbrev-configure nil 'local)))
 
-(defcustom nael-prepare-eglot t
-  "Whether `eglot' should be prepared for `nael-mode'."
+(defcustom lena-prepare-eglot t
+  "Whether `eglot' should be prepared for `lena-mode'."
   :type 'boolean
-  :group 'nael)
+  :group 'lena)
 
-(defun nael-prepare-eglot ()
-  "Prepare `eglot' for `nael-mode'."
+(defun lena-prepare-eglot ()
+  "Prepare `eglot' for `lena-mode'."
   (interactive)
-  (when nael-prepare-eglot
+  (when lena-prepare-eglot
     ;; We want to add an entry to `eglot-server-programs' but we want
     ;; to avoid stricly loading `eglot' here.  Unfortunately, Eglot
     ;; doesn't offer any hook that'd be run before it accesses
     ;; `eglot-server-programs'.  We have no choice but
     ;; `with-eval-after-load'.
     (with-eval-after-load 'eglot
-      (require 'nael-eglot))
+      (require 'lena-eglot))
     (add-hook 'eglot-server-initialized-hook
-              #'nael-eglot-configure-when-initialized nil 'local)
+              #'lena-eglot-configure-when-initialized nil 'local)
     (add-hook 'eglot-managed-mode-hook
-              #'nael-eglot-configure-when-managed nil 'local)))
+              #'lena-eglot-configure-when-managed nil 'local)))
 
 ;; Let's use the same interface (a configure-function, a
 ;; prepare-option and -function) for Flymake too because we don't load
-;; or invoke it in `nael-mode' itself.
+;; or invoke it in `lena-mode' itself.
 
-(defun nael-flymake-configure ()
+(defun lena-flymake-configure ()
   "Use Flymake to jump to errors."
   (interactive)
   (setq-local next-error-function
               #'flymake-goto-next-error))
 
-(defcustom nael-prepare-flymake t
-  "Whether `flymake-mode' should be prepared for `nael-mode'."
+(defcustom lena-prepare-flymake t
+  "Whether `flymake-mode' should be prepared for `lena-mode'."
   :type 'boolean
-  :group 'nael)
+  :group 'lena)
 
-(defun nael-prepare-flymake ()
-  "Prepare `flymake-mode' for `nael-mode'."
+(defun lena-prepare-flymake ()
+  "Prepare `flymake-mode' for `lena-mode'."
   (interactive)
-  (when nael-prepare-flymake
+  (when lena-prepare-flymake
     (add-hook 'flymake-mode-hook
-              #'nael-flymake-configure nil 'local)))
+              #'lena-flymake-configure nil 'local)))
 
 ;;;; Mode:
 
-(defcustom nael-mode-hook nil
-  "Hook run when entering `nael-mode'."
+(defcustom lena-mode-hook nil
+  "Hook run when entering `lena-mode'."
   :options '(abbrev-mode eglot-ensure imenu-add-menubar-index)
   :type 'hook
-  :group 'nael)
+  :group 'lena)
 
-(defvar-keymap nael-mode-map
+(defvar-keymap lena-mode-map
   "<remap> <display-local-help>" #'eldoc-doc-buffer
   "C-c C-a" #'abbrev-mode
   "C-c C-c" #'project-compile
   "C-c C-e" #'eglot
-  "C-c C-i" #'nael-infoview
-  "C-c C-k" #'nael-abbrev-help
-  "C-c C-r" #'nael-eglot-restart-file)
+  "C-c C-i" #'lena-infoview
+  "C-c C-k" #'lena-abbrev-help
+  "C-c C-r" #'lena-eglot-restart-file)
 
 ;;;###autoload
-(define-derived-mode nael-mode prog-mode "Nael"
+(define-derived-mode lena-mode prog-mode "Lena"
   "Major mode for Lean.
 
-\\{nael-mode-map}"
+\\{lena-mode-map}"
   ;; Preparations:
-  (nael-prepare-abbrev)
-  (nael-prepare-eglot)
+  (lena-prepare-abbrev)
+  (lena-prepare-eglot)
   ;; Navigation:
   (setq-local add-log-current-defun-function
-              #'nael-navigation-defun-name)
+              #'lena-navigation-defun-name)
   (setq-local beginning-of-defun-function
-              #'nael-navigation-defun-beginning)
+              #'lena-navigation-defun-beginning)
   (setq-local end-of-defun-function
-              #'nael-navigation-defun-end)
+              #'lena-navigation-defun-end)
   ;; Paragraphs and filling:
   (setq-local paragraph-start
               "[[:blank:]]*$")
   (setq-local paragraph-separate
               "[[:blank:]]*$")
   (setq-local fill-paragraph-function
-              #'nael-fill-paragraph)
+              #'lena-fill-paragraph)
   ;; Comments:
   (setq-local comment-end
               "-/")
   (setq-local comment-end-skip
               "[[:space:]]*-/")
   (setq-local comment-insert-comment-function
-              #'nael-comment-insert)
+              #'lena-comment-insert)
   (setq-local comment-padding
               1)
   (setq-local comment-quote-nested ;; Comments may be nested.
@@ -504,7 +505,7 @@ Expand symbol-including abbreviations when adequate character inserted."
               t)
   ;; Font-lock:
   (setq-local font-lock-defaults
-              nael-font-lock-defaults)
+              lena-font-lock-defaults)
   ;; Compile:
   (setq-local compilation-mode-font-lock-keywords
               nil)
@@ -512,9 +513,9 @@ Expand symbol-including abbreviations when adequate character inserted."
               "lake build ")
   ;; Imenu:
   (setq-local imenu-generic-expression
-              nael-imenu-generic-expression)
+              lena-imenu-generic-expression)
   ;; Flymake:
-  (nael-flymake-configure))
+  (lena-flymake-configure))
 
 ;; Lean language specification requires UTF-8 encoding.
 (modify-coding-system-alist 'file "\\.lean\\'" 'utf-8)
@@ -523,7 +524,7 @@ Expand symbol-including abbreviations when adequate character inserted."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist
-             (cons "\\.lean\\'" 'nael-mode))
+             (cons "\\.lean\\'" 'lena-mode))
 
 (add-to-list 'project-vc-extra-root-markers
              "lakefile.lean")
@@ -541,15 +542,15 @@ Expand symbol-including abbreviations when adequate character inserted."
 
 (with-eval-after-load 'org-src
   (add-to-list 'org-src-lang-modes
-               (cons "lean" 'nael)))
+               (cons "lean" 'lena)))
 
 ;; If the code that requires `markdown-mode' grows, we will extract it
 ;; into a new package that depends on it.  But a single expression is
 ;; not worth a package.
 (with-eval-after-load 'markdown-mode
   (add-to-list 'markdown-code-lang-modes
-               (cons "lean" 'nael-mode)))
+               (cons "lean" 'lena-mode)))
 
-(provide 'nael)
+(provide 'lena)
 
-;;; nael.el ends here
+;;; lena.el ends here

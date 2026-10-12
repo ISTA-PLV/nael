@@ -1,4 +1,4 @@
-;;; nael-eglot-compat.el --- Eglot internals used by Nael  -*- lexical-binding: t; -*-
+;;; lena-eglot-compat.el --- Eglot internals used by Lena  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
@@ -9,16 +9,16 @@
 
 ;;; Commentary:
 
-;; Nael needs a few functions that Eglot does not export.  Every use of
+;; Lena needs a few functions that Eglot does not export.  Every use of
 ;; such an internal goes through this file, so that a change in Eglot
 ;; breaks one place only, and so that a missing internal is reported
-;; when Nael is loaded rather than when it is first called.
+;; when Lena is loaded rather than when it is first called.
 
 ;;; Code:
 
 (require 'eglot)
 
-(defconst nael-eglot-compat-internals
+(defconst lena-eglot-compat-internals
   '(eglot--capabilities
     eglot--format-markup
     eglot--signal-textDocument/didChange
@@ -26,56 +26,56 @@
     eglot--signal-textDocument/didOpen
     eglot--TextDocumentPositionParams
     jsonrpc--next-request-id)
-  "Internal functions of Eglot and jsonrpc that Nael calls.")
+  "Internal functions of Eglot and jsonrpc that Lena calls.")
 
-(when-let* ((missing (seq-remove #'fboundp nael-eglot-compat-internals)))
+(when-let* ((missing (seq-remove #'fboundp lena-eglot-compat-internals)))
   (display-warning
-   'nael
-   (format "This version of Eglot lacks functions that Nael uses: %s"
+   'lena
+   (format "This version of Eglot lacks functions that Lena uses: %s"
            (mapconcat #'symbol-name missing ", "))
    :warning))
 
-(defun nael-eglot-compat-flush ()
+(defun lena-eglot-compat-flush ()
   "Send pending changes of the current buffer to its server."
   (eglot--signal-textDocument/didChange))
 
-(defun nael-eglot-compat-did-close ()
+(defun lena-eglot-compat-did-close ()
   "Send `textDocument/didClose' for the current buffer."
   (eglot--signal-textDocument/didClose))
 
-(defun nael-eglot-compat-did-open ()
+(defun lena-eglot-compat-did-open ()
   "Send `textDocument/didOpen' for the current buffer."
   (eglot--signal-textDocument/didOpen))
 
-(defun nael-eglot-compat-position-params (&optional pos)
+(defun lena-eglot-compat-position-params (&optional pos)
   "Return LSP `TextDocumentPositionParams' for POS, or point.
 The column is counted in UTF-16 code units, as LSP requires."
   (save-excursion
     (when pos (goto-char pos))
     (eglot--TextDocumentPositionParams)))
 
-(defun nael-eglot-compat-format-markup (markup)
+(defun lena-eglot-compat-format-markup (markup)
   "Render MARKUP, an LSP `MarkupContent' or string, as Eglot does."
   (eglot--format-markup markup))
 
-(defun nael-eglot-compat-capabilities (server)
+(defun lena-eglot-compat-capabilities (server)
   "Return the capabilities that SERVER announced on initialization."
   (eglot--capabilities server))
 
-(defun nael-eglot-compat-last-request-id (connection)
+(defun lena-eglot-compat-last-request-id (connection)
   "Return the id of the request just sent through CONNECTION.
 Only for jsonrpc 1.0.25 (Emacs 30), whose `jsonrpc-async-request'
-returns nil instead of the id; remove this once Nael needs a later
+returns nil instead of the id; remove this once Lena needs a later
 jsonrpc."
   (jsonrpc--next-request-id connection))
 
 (defvar eglot--semtok-state)
 
-(defun nael-eglot-compat-forget-semantic-tokens ()
+(defun lena-eglot-compat-forget-semantic-tokens ()
   "Make Eglot ask for the semantic tokens of the current buffer again.
 Eglot keeps them for a document version.  It has them since 1.19."
   (setq eglot--semtok-state nil))
 
-(provide 'nael-eglot-compat)
+(provide 'lena-eglot-compat)
 
-;;; nael-eglot-compat.el ends here
+;;; lena-eglot-compat.el ends here

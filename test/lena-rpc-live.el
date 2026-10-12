@@ -1,33 +1,33 @@
-;;; nael-rpc-live.el --- Tests for nael-rpc against Lean  -*- lexical-binding: t; -*-
+;;; lena-rpc-live.el --- Tests for lena-rpc against Lean  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
 ;; SPDX-License-Identifier: GPL-3.0-only
 
 ;; This is licensed under GNU General Public License (version 3 only),
-;; see nael/LICENSE.GPL3.
+;; see lena/LICENSE.GPL3.
 
 ;;; Commentary:
 
-;; Tests for `nael-rpc' against a real Lean server, run by Eglot on the
+;; Tests for `lena-rpc' against a real Lean server, run by Eglot on the
 ;; Lake project in `test/lean/'.  They need `lake' in `exec-path' and
 ;; are skipped otherwise.  The test of keep-alives waits 35 seconds and
-;; only runs if the environment variable NAEL_TEST_SLOW is set.
+;; only runs if the environment variable LENA_TEST_SLOW is set.
 ;;
 ;; Run with: emacs -Q --batch -l build.el test-live
 
 ;;; Code:
 
 (require 'ert)
-(require 'nael-render)
-(require 'nael-rpc)
+(require 'lena-render)
+(require 'lena-rpc)
 
-(defconst nael-rpc-live-root
+(defconst lena-rpc-live-root
   (file-name-as-directory
    (expand-file-name "lean" (file-name-directory
                              (or load-file-name buffer-file-name)))))
 
-(defconst nael-rpc-live-text
+(defconst lena-rpc-live-text
   "import Tiny.B
 
 theorem t (n : Nat) (h : n = b) : n + 0 = 1 := by
@@ -36,190 +36,190 @@ theorem t (n : Nat) (h : n = b) : n + 0 = 1 := by
 "
   "Contents of `Tiny/A.lean', restored after each test.")
 
-(defvar nael-rpc-live-buffer nil)
+(defvar lena-rpc-live-buffer nil)
 
-(defun nael-rpc-live-wait (predicate &optional seconds)
+(defun lena-rpc-live-wait (predicate &optional seconds)
   "Process input until PREDICATE holds or SECONDS (default 60) pass."
   (let ((deadline (+ (float-time) (or seconds 60))))
     (while (and (not (funcall predicate)) (< (float-time) deadline))
       (accept-process-output nil 0.05))
     (funcall predicate)))
 
-(defun nael-rpc-live-processed-p ()
+(defun lena-rpc-live-processed-p ()
   "Return non-nil if the server has finished processing the buffer."
-  (and (vectorp nael-eglot-file-progress)
-       (seq-empty-p nael-eglot-file-progress)))
+  (and (vectorp lena-eglot-file-progress)
+       (seq-empty-p lena-eglot-file-progress)))
 
-(defun nael-rpc-live-buffer ()
+(defun lena-rpc-live-buffer ()
   "Return the buffer of `Tiny/A.lean', managed by Eglot and processed."
   (unless (executable-find "lake")
     (ert-skip "No `lake' in `exec-path'"))
-  (unless (buffer-live-p nael-rpc-live-buffer)
-    (let ((default-directory nael-rpc-live-root))
+  (unless (buffer-live-p lena-rpc-live-buffer)
+    (let ((default-directory lena-rpc-live-root))
       (call-process "lake" nil nil nil "build"))
     (setq project-find-functions
-          (list (lambda (_) (cons 'transient nael-rpc-live-root))))
-    (setq nael-rpc-live-buffer
-          (find-file-noselect (concat nael-rpc-live-root "Tiny/A.lean")))
-    (with-current-buffer nael-rpc-live-buffer
-      (nael-mode)
-      (let ((default-directory nael-rpc-live-root))
+          (list (lambda (_) (cons 'transient lena-rpc-live-root))))
+    (setq lena-rpc-live-buffer
+          (find-file-noselect (concat lena-rpc-live-root "Tiny/A.lean")))
+    (with-current-buffer lena-rpc-live-buffer
+      (lena-mode)
+      (let ((default-directory lena-rpc-live-root))
         (apply #'eglot (eglot--guess-contact)))
-      (should (nael-rpc-live-wait #'eglot-managed-p 30))))
-  (with-current-buffer nael-rpc-live-buffer
-    (unless (equal (buffer-string) nael-rpc-live-text)
+      (should (lena-rpc-live-wait #'eglot-managed-p 30))))
+  (with-current-buffer lena-rpc-live-buffer
+    (unless (equal (buffer-string) lena-rpc-live-text)
       (erase-buffer)
-      (insert nael-rpc-live-text)
+      (insert lena-rpc-live-text)
       (set-buffer-modified-p nil)
-      (nael-eglot-flush-changes)
-      (setq nael-eglot-file-progress nil))
-    (should (nael-rpc-live-wait #'nael-rpc-live-processed-p 60)))
-  nael-rpc-live-buffer)
+      (lena-eglot-flush-changes)
+      (setq lena-eglot-file-progress nil))
+    (should (lena-rpc-live-wait #'lena-rpc-live-processed-p 60)))
+  lena-rpc-live-buffer)
 
-(defun nael-rpc-live-goto (line column)
+(defun lena-rpc-live-goto (line column)
   "Go to 1-based LINE and 0-based COLUMN."
   (goto-char (point-min))
   (forward-line (1- line))
   (move-to-column column))
 
-(defun nael-rpc-live-sync (call)
+(defun lena-rpc-live-sync (call)
   "Call CALL with success and failure functions; wait; return the outcome.
 The outcome is (ok . RESULT), (error . ERROR) or nil after 30 seconds."
   (let (outcome)
     (funcall call
              (lambda (result) (setq outcome (cons 'ok result)))
              (lambda (error) (setq outcome (cons 'error error))))
-    (nael-rpc-live-wait (lambda () outcome) 30)
+    (lena-rpc-live-wait (lambda () outcome) 30)
     outcome))
 
-(defun nael-rpc-live-goals (handle &optional owner)
+(defun lena-rpc-live-goals (handle &optional owner)
   "Return the outcome of a goal request through HANDLE for OWNER."
-  (nael-rpc-live-sync
+  (lena-rpc-live-sync
    (lambda (ok fail)
-     (nael-rpc-get-interactive-goals handle ok :failure fail :owner owner))))
+     (lena-rpc-get-interactive-goals handle ok :failure fail :owner owner))))
 
-(defun nael-rpc-live-target (outcome)
+(defun lena-rpc-live-target (outcome)
   "Return the target of the first goal in OUTCOME as a string."
   (when-let* ((goals (plist-get (cdr outcome) :goals))
               ((> (length goals) 0)))
-    (nael-render--plain-text (plist-get (aref goals 0) :type))))
+    (lena-render--plain-text (plist-get (aref goals 0) :type))))
 
-(defun nael-rpc-live-first-info (tagged)
+(defun lena-rpc-live-first-info (tagged)
   "Return the first subterm reference in TAGGED, a `CodeWithInfos'."
   (cond ((plist-member tagged :tag)
          (plist-get (aref (plist-get tagged :tag) 0) :info))
         ((plist-member tagged :append)
-         (seq-some #'nael-rpc-live-first-info (plist-get tagged :append)))))
+         (seq-some #'lena-rpc-live-first-info (plist-get tagged :append)))))
 
-(ert-deftest nael-rpc-live-goals ()
+(ert-deftest lena-rpc-live-goals ()
   "Interactive goals arrive with their references."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let* ((owner (nael-rpc-make-owner))
-           (outcome (nael-rpc-live-goals (nael-rpc-open) owner))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let* ((owner (lena-rpc-make-owner))
+           (outcome (lena-rpc-live-goals (lena-rpc-open) owner))
            (goal (aref (plist-get (cdr outcome) :goals) 0)))
       (should (eq (car outcome) 'ok))
-      (should (equal (nael-rpc-live-target outcome) "n + 0 = 1"))
+      (should (equal (lena-rpc-live-target outcome) "n + 0 = 1"))
       (should (equal (seq-mapcat (lambda (hyp) (plist-get hyp :names))
                                  (plist-get goal :hyps) 'list)
                      '("n" "h")))
-      (should (> (length (nael-rpc-owner-refs owner)) 3))
-      (nael-rpc-owner-release owner))))
+      (should (> (length (lena-rpc-owner-refs owner)) 3))
+      (lena-rpc-owner-release owner))))
 
-(ert-deftest nael-rpc-live-release ()
+(ert-deftest lena-rpc-live-release ()
   "A reference works until its owner is released."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let* ((handle (nael-rpc-open))
-           (owner (nael-rpc-make-owner))
-           (goal (aref (plist-get (cdr (nael-rpc-live-goals handle owner))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let* ((handle (lena-rpc-open))
+           (owner (lena-rpc-make-owner))
+           (goal (aref (plist-get (cdr (lena-rpc-live-goals handle owner))
                                   :goals)
                        0))
-           (info (nael-rpc-live-first-info (plist-get goal :type)))
+           (info (lena-rpc-live-first-info (plist-get goal :type)))
            (hover (lambda ()
-                    (nael-rpc-live-sync
+                    (lena-rpc-live-sync
                      (lambda (ok fail)
-                       (nael-rpc-info-to-interactive handle info ok
+                       (lena-rpc-info-to-interactive handle info ok
                                                      :failure fail))))))
       (should (eq (car (funcall hover)) 'ok))
-      (nael-rpc-owner-release owner)
-      (nael-rpc--flush-garbage (nael-rpc-handle-session handle))
+      (lena-rpc-owner-release owner)
+      (lena-rpc--flush-garbage (lena-rpc-handle-session handle))
       (let ((outcome (funcall hover)))
         (should (eq (car outcome) 'error))
-        (should (equal (nael-rpc-error-code (cdr outcome)) -32602))))))
+        (should (equal (lena-rpc-error-code (cdr outcome)) -32602))))))
 
-(ert-deftest nael-rpc-live-reconnect ()
+(ert-deftest lena-rpc-live-reconnect ()
   "A session the server does not know is replaced transparently."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let ((handle (nael-rpc-open)))
-      (should (eq (car (nael-rpc-live-goals handle)) 'ok))
-      (setf (nael-rpc-session-id (nael-rpc-handle-session handle)) "123")
-      (let ((outcome (nael-rpc-live-goals handle)))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let ((handle (lena-rpc-open)))
+      (should (eq (car (lena-rpc-live-goals handle)) 'ok))
+      (setf (lena-rpc-session-id (lena-rpc-handle-session handle)) "123")
+      (let ((outcome (lena-rpc-live-goals handle)))
         (should (eq (car outcome) 'ok))
-        (should (equal (nael-rpc-live-target outcome) "n + 0 = 1"))
-        (should-not (equal (nael-rpc-session-id
-                            (nael-rpc-handle-session handle))
+        (should (equal (lena-rpc-live-target outcome) "n + 0 = 1"))
+        (should-not (equal (lena-rpc-session-id
+                            (lena-rpc-handle-session handle))
                            "123"))))))
 
-(ert-deftest nael-rpc-live-slot ()
+(ert-deftest lena-rpc-live-slot ()
   "Of two calls in one slot, only the second is delivered."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let ((handle (nael-rpc-open))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let ((handle (lena-rpc-open))
           delivered)
-      (nael-rpc-get-interactive-goals
+      (lena-rpc-get-interactive-goals
        handle (lambda (_) (push 'first delivered)) :slot 'goals)
-      (nael-rpc-get-interactive-goals
+      (lena-rpc-get-interactive-goals
        handle (lambda (_) (push 'second delivered)) :slot 'goals)
-      (should (nael-rpc-live-wait (lambda () delivered) 30))
+      (should (lena-rpc-live-wait (lambda () delivered) 30))
       ;; Give a late answer to the first call time to arrive.
-      (nael-rpc-live-wait #'ignore 1)
+      (lena-rpc-live-wait #'ignore 1)
       (should (equal delivered '(second))))))
 
-(ert-deftest nael-rpc-live-edit-before-call ()
+(ert-deftest lena-rpc-live-edit-before-call ()
   "A call right after an edit is answered for the edited text."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 2 0)
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 2 0)
     (insert "\n\n\n")
     ;; The line of `rw' moved from 4 to 7; without the edit, line 7 is
     ;; past the end of the proof.
-    (nael-rpc-live-goto 7 2)
-    (let ((outcome (nael-rpc-live-goals (nael-rpc-open))))
+    (lena-rpc-live-goto 7 2)
+    (let ((outcome (lena-rpc-live-goals (lena-rpc-open))))
       (should (eq (car outcome) 'ok))
-      (should (equal (nael-rpc-live-target outcome) "n + 0 = 1")))))
+      (should (equal (lena-rpc-live-target outcome) "n + 0 = 1")))))
 
-(ert-deftest nael-rpc-live-import-change ()
+(ert-deftest lena-rpc-live-import-change ()
   "A call survives the restart of the file worker after an import edit."
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let* ((handle (nael-rpc-open))
-           (id (progn (should (eq (car (nael-rpc-live-goals handle)) 'ok))
-                      (nael-rpc-session-id (nael-rpc-handle-session handle)))))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let* ((handle (lena-rpc-open))
+           (id (progn (should (eq (car (lena-rpc-live-goals handle)) 'ok))
+                      (lena-rpc-session-id (lena-rpc-handle-session handle)))))
       (goto-char (point-min))
       (insert "import Init\n")
-      (nael-rpc-live-goto 5 2)
-      (let* ((handle (nael-rpc-open))
-             (outcome (nael-rpc-live-goals handle)))
+      (lena-rpc-live-goto 5 2)
+      (let* ((handle (lena-rpc-open))
+             (outcome (lena-rpc-live-goals handle)))
         (should (eq (car outcome) 'ok))
-        (should (equal (nael-rpc-live-target outcome) "n + 0 = 1"))
-        (should-not (equal (nael-rpc-session-id
-                            (nael-rpc-handle-session handle))
+        (should (equal (lena-rpc-live-target outcome) "n + 0 = 1"))
+        (should-not (equal (lena-rpc-session-id
+                            (lena-rpc-handle-session handle))
                            id))))))
 
-(ert-deftest nael-rpc-live-keepalive ()
+(ert-deftest lena-rpc-live-keepalive ()
   "A session stays alive beyond the server's 30 second expiry."
-  (skip-unless (getenv "NAEL_TEST_SLOW"))
-  (with-current-buffer (nael-rpc-live-buffer)
-    (nael-rpc-live-goto 4 2)
-    (let* ((handle (nael-rpc-open))
-           (id (progn (should (eq (car (nael-rpc-live-goals handle)) 'ok))
-                      (nael-rpc-session-id (nael-rpc-handle-session handle)))))
-      (nael-rpc-live-wait #'ignore 35)
-      (should (eq (car (nael-rpc-live-goals handle)) 'ok))
-      (should (equal (nael-rpc-session-id (nael-rpc-handle-session handle))
+  (skip-unless (getenv "LENA_TEST_SLOW"))
+  (with-current-buffer (lena-rpc-live-buffer)
+    (lena-rpc-live-goto 4 2)
+    (let* ((handle (lena-rpc-open))
+           (id (progn (should (eq (car (lena-rpc-live-goals handle)) 'ok))
+                      (lena-rpc-session-id (lena-rpc-handle-session handle)))))
+      (lena-rpc-live-wait #'ignore 35)
+      (should (eq (car (lena-rpc-live-goals handle)) 'ok))
+      (should (equal (lena-rpc-session-id (lena-rpc-handle-session handle))
                      id)))))
 
-(provide 'nael-rpc-live)
+(provide 'lena-rpc-live)
 
-;;; nael-rpc-live.el ends here
+;;; lena-rpc-live.el ends here

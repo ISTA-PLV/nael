@@ -1,4 +1,4 @@
-;;; nael-render.el --- Render Lean's interactive goals  -*- lexical-binding: t; -*-
+;;; lena-render.el --- Render Lean's interactive goals  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
@@ -20,133 +20,133 @@
 ;; Code in a goal is `TaggedText': strings in which some substrings are
 ;; tagged with information about the subterm they display.  The server
 ;; has already broken the lines.  Every tagged subterm becomes a node
-;; (`nael-render-node'), stored in the text property `nael-node' of its
+;; (`lena-render-node'), stored in the text property `lena-node' of its
 ;; characters.  Text properties do not nest, so a character carries the
 ;; innermost node.  The result also lists all nodes, so that a buffer can
 ;; put overlays on their exact extents.
 ;;
-;; Each goal carries the text property `nael-goal', a token of its own,
-;; so that adjacent goals can be told apart, and `nael-key', which
+;; Each goal carries the text property `lena-goal', a token of its own,
+;; so that adjacent goals can be told apart, and `lena-key', which
 ;; identifies it by its place so that state such as folding survives a
 ;; refresh: (case NAME . N) for the Nth goal named NAME, (goal . N) for
 ;; the Nth goal without a name, and `term-goal' for the expected type.
 ;; Headings carry `outline-level'; section headings also carry
-;; `nael-section', `goals', `term-goal' or `messages'.
+;; `lena-section', `goals', `term-goal' or `messages'.
 ;;
 ;; Messages, the results of `Lean.Widget.getInteractiveDiagnostics',
 ;; are `TaggedText' too, whose tags embed code, goals, traces and
-;; widgets.  Each message is a heading of level 2 with the `nael-key'
+;; widgets.  Each message is a heading of level 2 with the `lena-key'
 ;; (message LINE CHARACTER SEVERITY N), where N counts the messages
 ;; before it with the same start and severity, and each trace in it a
 ;; heading of level 3 or deeper, with the key of the message followed
 ;; by the trace's path: its index among the traces of its parent, for
 ;; each enclosing trace.  Headings that a buffer should fold at first carry
-;; `nael-folded'.  The server sends the children of a trace on request
-;; only: its heading then carries `nael-trace-lazy', the reference for
+;; `lena-folded'.  The server sends the children of a trace on request
+;; only: its heading then carries `lena-trace-lazy', the reference for
 ;; `Lean.Widget.lazyTraceChildrenToInteractive'.  The position of a
-;; message carries `nael-message-range', a suggestion to apply carries
-;; `nael-suggestion', a link to the explanation of an error carries
-;; `nael-explanation', and a button to restart the file, in a message
-;; that its imports are out of date, carries `nael-restart-file'.
+;; message carries `lena-message-range', a suggestion to apply carries
+;; `lena-suggestion', a link to the explanation of an error carries
+;; `lena-explanation', and a button to restart the file, in a message
+;; that its imports are out of date, carries `lena-restart-file'.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'seq)
 
-(require 'nael)
+(require 'lena)
 
-(defgroup nael-render nil
+(defgroup lena-render nil
   "Rendering of Lean's interactive goals."
-  :group 'nael
-  :prefix "nael-render-")
+  :group 'lena
+  :prefix "lena-render-")
 
-(defface nael-render-heading
+(defface lena-render-heading
   '((t :inherit bold))
   "Face of section headings such as \"Tactic state\"."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-goals-accomplished
+(defface lena-render-goals-accomplished
   '((t :inherit success))
   "Face of the line that says that the proof at point is complete."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-trace-class
+(defface lena-render-trace-class
   '((t :inherit shadow))
   "Face of the class of a trace, such as \"[Meta.synthInstance]\"."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-suggestion
+(defface lena-render-suggestion
   '((t :inherit button))
   "Face of a suggestion that can be applied, such as \"[apply]\"."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-suggestion-inserted
+(defface lena-render-suggestion-inserted
   '((t :inherit diff-refine-added))
   "Face of what a suggestion inserts, in its diff."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-suggestion-deleted
+(defface lena-render-suggestion-deleted
   '((t :inherit diff-refine-removed :strike-through t))
   "Face of what a suggestion deletes, in its diff."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-case
+(defface lena-render-case
   '((t :inherit font-lock-keyword-face))
   "Face of the case name of a goal."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-hyp-name
+(defface lena-render-hyp-name
   '((t :inherit font-lock-variable-name-face))
   "Face of the names of hypotheses."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-inaccessible
+(defface lena-render-inaccessible
   '((t :inherit shadow))
   "Face of inaccessible names, which contain \"✝\"."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-goal-prefix
+(defface lena-render-goal-prefix
   '((t :inherit font-lock-builtin-face))
   "Face of the turnstile before the target of a goal."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defcustom nael-render-wrap-indent 4
+(defcustom lena-render-wrap-indent 4
   "Columns by which a wrapped line of code continues further in.
 When a window is too narrow for a line, its continuation is indented
 by this much more than the line itself, so that it reads as part of
 it.  See `wrap-prefix'."
   :type 'natnum
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-diff-inserted
+(defface lena-render-diff-inserted
   '((t :inherit diff-added :extend nil))
   "Face of what the tactic at point has added or changed."
-  :group 'nael-render)
+  :group 'lena-render)
 
-(defface nael-render-diff-removed
+(defface lena-render-diff-removed
   '((t :inherit diff-removed :extend nil))
   "Face of what the tactic at point will remove or change."
-  :group 'nael-render)
+  :group 'lena-render)
 
 ;;;; Data:
 
-(defun nael-render-diff-face (status)
+(defun lena-render-diff-face (status)
   "Return the face for STATUS, the `diffStatus' of a subterm, or nil.
 Before a tactic, the server marks what it is about to change; after a
 tactic, what it has changed."
   (pcase status
-    ((or "wasChanged" "wasInserted" "willInsert") 'nael-render-diff-inserted)
-    ((or "willChange" "willDelete" "wasDeleted") 'nael-render-diff-removed)))
+    ((or "wasChanged" "wasInserted" "willInsert") 'lena-render-diff-inserted)
+    ((or "willChange" "willDelete" "wasDeleted") 'lena-render-diff-removed)))
 
-(cl-defstruct (nael-render-node (:constructor nael-render--node-create)
+(cl-defstruct (lena-render-node (:constructor lena-render--node-create)
                                 (:copier nil))
   "A tagged subterm of rendered code."
   info                                  ; RPC reference, for hovers
   diff-status                           ; string or nil
   beg end)                              ; extent in the rendered text
 
-(cl-defstruct (nael-render-result (:constructor nael-render--result-create)
+(cl-defstruct (lena-render-result (:constructor lena-render--result-create)
                                   (:copier nil))
   "Rendered text and the nodes in it.
 Positions of nodes count from 1 at the start of TEXT, as in a buffer
@@ -156,61 +156,61 @@ that contains only TEXT."
 
 ;;;; Code:
 
-(defvar nael-render--nodes nil
+(defvar lena-render--nodes nil
   "Nodes rendered so far, in reverse order.")
 
-(defvar nael-render--diffs t
+(defvar lena-render--diffs t
   "Non-nil if diffs are rendered; nil under the option `:hide-diffs'.")
 
-(defvar nael-render--faces nil
+(defvar lena-render--faces nil
   "Faces to add after fontification, as a list of (BEG END FACE).
 Fontification would remove faces put on the text earlier.")
 
-(defun nael-render--insert (string face)
+(defun lena-render--insert (string face)
   "Insert STRING at point and note FACE for it."
   (let ((beg (point)))
     (insert string)
-    (push (list beg (point) face) nael-render--faces)))
+    (push (list beg (point) face) lena-render--faces)))
 
-(defun nael-render--code (tagged)
+(defun lena-render--code (tagged)
   "Insert TAGGED, a `CodeWithInfos', at point.
 Each tagged subterm becomes a node.  A node is noted after the nodes
-inside it, so that `nael-render--nodes' lists outer nodes first."
+inside it, so that `lena-render--nodes' lists outer nodes first."
   (cond
    ((plist-member tagged :text)
     (insert (plist-get tagged :text)))
    ((plist-member tagged :append)
     (seq-doseq (child (plist-get tagged :append))
-      (nael-render--code child)))
+      (lena-render--code child)))
    ((plist-member tagged :tag)
     (let* ((info (aref (plist-get tagged :tag) 0))
-           (node (nael-render--node-create
+           (node (lena-render--node-create
                   :info (plist-get info :info)
                   :diff-status (plist-get info :diffStatus)
                   :beg (point))))
-      (nael-render--code (aref (plist-get tagged :tag) 1))
-      (setf (nael-render-node-end node) (point))
-      (push node nael-render--nodes)))))
+      (lena-render--code (aref (plist-get tagged :tag) 1))
+      (setf (lena-render-node-end node) (point))
+      (push node lena-render--nodes)))))
 
-(defun nael-render--fontify (beg end)
-  "Fontify the code between BEG and END with the rules of `nael-mode'."
-  (set-syntax-table nael-mode-syntax-table)
-  (setq-local font-lock-defaults nael-font-lock-defaults)
+(defun lena-render--fontify (beg end)
+  "Fontify the code between BEG and END with the rules of `lena-mode'."
+  (set-syntax-table lena-mode-syntax-table)
+  (setq-local font-lock-defaults lena-font-lock-defaults)
   (font-lock-ensure beg end))
 
-(defun nael-render--inaccessible-p (name)
+(defun lena-render--inaccessible-p (name)
   "Return non-nil if NAME is inaccessible."
   (string-search "✝" name))
 
 ;;;; Goals:
 
-(defun nael-render--hyp (hyp options)
+(defun lena-render--hyp (hyp options)
   "Insert HYP, an `InteractiveHypothesisBundle', as a line.
-OPTIONS is a plist of view options; see `nael-render-goals'."
+OPTIONS is a plist of view options; see `lena-render-goals'."
   (let ((names (seq-remove
                 (lambda (name)
                   (and (plist-get options :hide-inaccessible)
-                       (nael-render--inaccessible-p name)))
+                       (lena-render--inaccessible-p name)))
                 (plist-get hyp :names))))
     (unless (or (null names)
                 (and (plist-get options :hide-instances)
@@ -218,79 +218,79 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
                 (and (plist-get options :hide-types)
                      (eq t (plist-get hyp :isType))))
       (let ((beg (point))
-            (diff (nael-render--flag-diff-face hyp)))
+            (diff (lena-render--flag-diff-face hyp)))
         (cl-loop for (name . more) on names
-                 do (nael-render--insert
-                     name (if (nael-render--inaccessible-p name)
-                              'nael-render-inaccessible
-                            'nael-render-hyp-name))
+                 do (lena-render--insert
+                     name (if (lena-render--inaccessible-p name)
+                              'lena-render-inaccessible
+                            'lena-render-hyp-name))
                  when more do (insert " "))
         (when diff
-          (push (list beg (point) diff) nael-render--faces))
+          (push (list beg (point) diff) lena-render--faces))
         (insert " : ")
-        (nael-render--code (plist-get hyp :type))
+        (lena-render--code (plist-get hyp :type))
         (when-let* ((val (plist-get hyp :val))
                     ((not (plist-get options :hide-let-values))))
           (insert " := ")
-          (nael-render--code val))
+          (lena-render--code val))
         (insert "\n")))))
 
-(defun nael-render--flag-diff-face (object)
+(defun lena-render--flag-diff-face (object)
   "Return the diff face for OBJECT, a goal or hypothesis, or nil.
 Before a tactic, the server marks what it will remove; after it, what
 it has inserted."
-  (when nael-render--diffs
+  (when lena-render--diffs
     (cond ((eq t (plist-get object :isInserted))
-           'nael-render-diff-inserted)
+           'lena-render-diff-inserted)
           ((eq t (plist-get object :isRemoved))
-           'nael-render-diff-removed))))
+           'lena-render-diff-removed))))
 
-(defun nael-render--target (goal)
+(defun lena-render--target (goal)
   "Insert the target of GOAL, with its turnstile, as the last line.
 The turnstile shows whether the goal as a whole is removed or inserted."
   (let ((prefix (or (plist-get goal :goalPrefix) "⊢ ")))
-    (nael-render--insert prefix (or (nael-render--flag-diff-face goal)
-                                    'nael-render-goal-prefix))
-    (nael-render--code (plist-get goal :type))
+    (lena-render--insert prefix (or (lena-render--flag-diff-face goal)
+                                    'lena-render-goal-prefix))
+    (lena-render--code (plist-get goal :type))
     (insert "\n")))
 
-(defun nael-render--goal (goal heading key options)
+(defun lena-render--goal (goal heading key options)
   "Insert GOAL, an `InteractiveGoal' or `InteractiveTermGoal'.
 If HEADING is non-nil, insert it as a level 2 heading first.  KEY is
-stored in the property `nael-key'.  OPTIONS is a plist of view options;
-see `nael-render-goals'."
+stored in the property `lena-key'.  OPTIONS is a plist of view options;
+see `lena-render-goals'."
   (let ((beg (point))
         (hyps (plist-get goal :hyps)))
     (when heading
-      (nael-render--insert (propertize heading 'outline-level 2)
-                           'nael-render-case)
-      (when-let* ((diff (nael-render--flag-diff-face goal)))
-        (push (list beg (point) diff) nael-render--faces))
+      (lena-render--insert (propertize heading 'outline-level 2)
+                           'lena-render-case)
+      (when-let* ((diff (lena-render--flag-diff-face goal)))
+        (push (list beg (point) diff) lena-render--faces))
       (insert "\n"))
     (let ((code-beg (point)))
       (if (plist-get options :reverse)
-          (progn (nael-render--target goal)
+          (progn (lena-render--target goal)
                  (seq-doseq (hyp (reverse hyps))
-                   (nael-render--hyp hyp options)))
+                   (lena-render--hyp hyp options)))
         (seq-doseq (hyp hyps)
-          (nael-render--hyp hyp options))
-        (nael-render--target goal))
-      (nael-render--fontify code-beg (point)))
-    (put-text-property beg (point) 'nael-key key)
-    (put-text-property beg (point) 'nael-goal (gensym "goal"))))
+          (lena-render--hyp hyp options))
+        (lena-render--target goal))
+      (lena-render--fontify code-beg (point)))
+    (put-text-property beg (point) 'lena-key key)
+    (put-text-property beg (point) 'lena-goal (gensym "goal"))))
 
-(defun nael-render--heading (text section)
+(defun lena-render--heading (text section)
   "Insert TEXT as the level 1 heading of SECTION, a symbol."
-  (nael-render--insert (propertize text 'outline-level 1 'nael-section section)
-                       'nael-render-heading)
+  (lena-render--insert (propertize text 'outline-level 1 'lena-section section)
+                       'lena-render-heading)
   (insert "\n"))
 
-(defun nael-render--goals-section (goals options)
+(defun lena-render--goals-section (goals options)
   "Insert the section for GOALS, a vector of `InteractiveGoal's.
-OPTIONS is a plist of view options; see `nael-render-goals'."
+OPTIONS is a plist of view options; see `lena-render-goals'."
   (let ((count (length goals))
         (names nil))
-    (nael-render--heading
+    (lena-render--heading
      (format "Tactic state: %s"
              (pcase count
                (0 "no goals")
@@ -301,7 +301,7 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
      (lambda (goal index)
        (unless (zerop index) (insert "\n"))
        (let ((name (plist-get goal :userName)))
-         (nael-render--goal
+         (lena-render--goal
           goal
           (cond (name (format "case %s" name))
                 ((> count 1) (format "goal %d" (1+ index))))
@@ -316,22 +316,22 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
 
 ;;;; Messages:
 
-(defvar nael-render--trace-children nil
+(defvar lena-render--trace-children nil
   "Hash table of the fetched children of traces, by key, or nil.")
 
-(defvar nael-render--trace-key nil
+(defvar lena-render--trace-key nil
   "Key of the enclosing message or trace.")
 
-(defvar nael-render--trace-count nil
+(defvar lena-render--trace-count nil
   "A list whose car counts the traces rendered under the enclosing one.")
 
-(defvar nael-render--trace-depth 0
+(defvar lena-render--trace-depth 0
   "Number of traces that enclose the one being rendered.")
 
-(defvar nael-render--options nil
+(defvar lena-render--options nil
   "The view options of the current rendering.")
 
-(defun nael-render--severity (severity)
+(defun lena-render--severity (severity)
   "Return the name and face of the LSP SEVERITY as a cons."
   (pcase severity
     (2 '("warning" . compilation-warning))
@@ -339,89 +339,89 @@ OPTIONS is a plist of view options; see `nael-render-goals'."
     (4 '("hint" . compilation-info))
     (_ '("error" . compilation-error))))
 
-(defun nael-render--fontify-code (beg end)
+(defun lena-render--fontify-code (beg end)
   "Fontify the code between BEG and END on its own.
 Narrowed, so that text around it, like quotes in a message, does not
 change how it is parsed."
   (save-restriction
     (narrow-to-region beg end)
-    (nael-render--fontify beg end)))
+    (lena-render--fontify beg end)))
 
-(defun nael-render--msg (tagged)
+(defun lena-render--msg (tagged)
   "Insert TAGGED, a `TaggedText' of message embeds, at point."
   (cond
    ((plist-member tagged :text)
     (insert (plist-get tagged :text)))
    ((plist-member tagged :append)
     (seq-doseq (child (plist-get tagged :append))
-      (nael-render--msg child)))
+      (lena-render--msg child)))
    ((plist-member tagged :tag)
-    (nael-render--embed (aref (plist-get tagged :tag) 0)))))
+    (lena-render--embed (aref (plist-get tagged :tag) 0)))))
 
-(defun nael-render--embed (embed)
+(defun lena-render--embed (embed)
   "Insert EMBED, a `MsgEmbed', at point."
   (cond
    ((plist-member embed :expr)
     (let ((beg (point)))
-      (nael-render--code (plist-get embed :expr))
-      (nael-render--fontify-code beg (point))))
+      (lena-render--code (plist-get embed :expr))
+      (lena-render--fontify-code beg (point))))
    ((plist-member embed :goal)
     (let ((goal (plist-get embed :goal)))
       (unless (bolp) (insert "\n"))
       ;; The case as a line, not a heading: it belongs to the message.
       (when-let* ((name (plist-get goal :userName)))
-        (nael-render--insert (format "case %s" name) 'nael-render-case)
+        (lena-render--insert (format "case %s" name) 'lena-render-case)
         (insert "\n"))
-      (nael-render--goal goal nil (cons 'message-goal nael-render--trace-key)
-                         nael-render--options)))
+      (lena-render--goal goal nil (cons 'message-goal lena-render--trace-key)
+                         lena-render--options)))
    ((plist-member embed :trace)
-    (nael-render--trace (plist-get embed :trace)))
+    (lena-render--trace (plist-get embed :trace)))
    ((plist-member embed :widget)
-    (nael-render--widget (plist-get embed :widget)))))
+    (lena-render--widget (plist-get embed :widget)))))
 
-(defun nael-render--trace (trace)
+(defun lena-render--trace (trace)
   "Insert TRACE, a trace embed, as a heading with its children below.
 Children that the server sends on request only are taken from
-`nael-render--trace-children' if they were fetched."
-  (let* ((key (append nael-render--trace-key
-                      (list (prog1 (car nael-render--trace-count)
-                              (cl-incf (car nael-render--trace-count))))))
+`lena-render--trace-children' if they were fetched."
+  (let* ((key (append lena-render--trace-key
+                      (list (prog1 (car lena-render--trace-count)
+                              (cl-incf (car lena-render--trace-count))))))
          (children (plist-get trace :children))
          (lazy (plist-get children :lazy))
-         (fetched (and lazy nael-render--trace-children
-                       (gethash key nael-render--trace-children)))
+         (fetched (and lazy lena-render--trace-children
+                       (gethash key lena-render--trace-children)))
          (kids (or (plist-get children :strict) fetched))
          (beg (progn (unless (bolp) (insert "\n")) (point))))
-    (insert (make-string (* 2 nael-render--trace-depth) ?\s))
-    (nael-render--insert (format "[%s] " (plist-get trace :cls))
-                         'nael-render-trace-class)
-    (nael-render--msg (plist-get trace :msg))
+    (insert (make-string (* 2 lena-render--trace-depth) ?\s))
+    (lena-render--insert (format "[%s] " (plist-get trace :cls))
+                         'lena-render-trace-class)
+    (lena-render--msg (plist-get trace :msg))
     ;; The heading is the trace's own line; its children follow.
     (add-text-properties
      beg (point)
-     (append (list 'outline-level (+ 3 nael-render--trace-depth) 'nael-key key)
+     (append (list 'outline-level (+ 3 lena-render--trace-depth) 'lena-key key)
              (when (and kids (eq t (plist-get trace :collapsed)))
-               (list 'nael-folded t))
+               (list 'lena-folded t))
              (when (and lazy (not fetched))
-               (list 'nael-trace-lazy lazy))))
+               (list 'lena-trace-lazy lazy))))
     (insert "\n")
-    (let ((nael-render--trace-key key)
-          (nael-render--trace-count (list 0))
-          (nael-render--trace-depth (1+ nael-render--trace-depth)))
+    (let ((lena-render--trace-key key)
+          (lena-render--trace-count (list 0))
+          (lena-render--trace-depth (1+ lena-render--trace-depth)))
       (seq-doseq (child kids)
-        (nael-render--msg child)
+        (lena-render--msg child)
         (unless (bolp) (insert "\n"))))))
 
-(defun nael-render--suggestion (beg props help)
+(defun lena-render--suggestion (beg props help)
   "Mark the text from BEG to point as a suggestion with PROPS to apply.
 PROPS are those of Lean's widget, with the `:range' to replace and the
 `:suggestion'.  HELP is shown in its tooltip."
-  (put-text-property beg (point) 'nael-suggestion
+  (put-text-property beg (point) 'lena-suggestion
                      (list :range (plist-get props :range)
                            :suggestion (plist-get props :suggestion)
                            :help help)))
 
-(defun nael-render--widget (widget)
+(defun lena-render--widget (widget)
   "Insert WIDGET, a widget embed.
 Widgets are programs for VS Code; the few that Lean itself uses in
 messages are rendered here, and others show their alternative text:
@@ -434,41 +434,41 @@ messages are rendered here, and others show their alternative text:
 - `Lean.errorDescriptionWidget' links the code of an error to its
   explanation in Lean's reference manual.
 
-Suggestions carry `nael-suggestion', a plist with the `:range' to
+Suggestions carry `lena-suggestion', a plist with the `:range' to
 replace, the `:suggestion' and the `:help' to show; links carry
-`nael-explanation', the URL."
+`lena-explanation', the URL."
   (let* ((instance (plist-get widget :wi))
          (props (plist-get instance :props))
          (beg (point)))
     (pcase (plist-get instance :id)
       ("Lean.Meta.Hint.textInsertionWidget"
        (let ((accept (plist-get props :acceptSuggestionProps)))
-         (nael-render--insert (or (plist-get accept :linkText) "[apply]")
-                              'nael-render-suggestion)
-         (nael-render--suggestion beg props (plist-get accept :hoverText))))
+         (lena-render--insert (or (plist-get accept :linkText) "[apply]")
+                              'lena-render-suggestion)
+         (lena-render--suggestion beg props (plist-get accept :hoverText))))
       ("Lean.Meta.Hint.tryThisDiffWidget"
        (seq-doseq (part (plist-get props :diff))
-         (nael-render--insert (plist-get part :text)
+         (lena-render--insert (plist-get part :text)
                               (pcase (plist-get part :type)
-                                ("insertion" 'nael-render-suggestion-inserted)
-                                ("deletion" 'nael-render-suggestion-deleted)
+                                ("insertion" 'lena-render-suggestion-inserted)
+                                ("deletion" 'lena-render-suggestion-deleted)
                                 (_ 'default))))
-       (nael-render--suggestion beg props "Apply suggestion"))
+       (lena-render--suggestion beg props "Apply suggestion"))
       ("Lean.errorDescriptionWidget"
        (unless (or (bolp) (memql (char-before) '(?\s ?\n)))
          (insert " "))
        (setq beg (point))
-       (nael-render--insert (format "[%s]" (plist-get props :code))
-                            'nael-render-suggestion)
-       (put-text-property beg (point) 'nael-explanation
+       (lena-render--insert (format "[%s]" (plist-get props :code))
+                            'lena-render-suggestion)
+       (put-text-property beg (point) 'lena-explanation
                           (plist-get props :explanationUrl)))
-      (_ (nael-render--msg (plist-get widget :alt))))))
+      (_ (lena-render--msg (plist-get widget :alt))))))
 
-(defun nael-render--whole-file-p (diagnostic line-count)
+(defun lena-render--whole-file-p (diagnostic line-count)
   "Return non-nil if DIAGNOSTIC is about the whole file of LINE-COUNT lines.
 Lean gives messages about the file, such as that its imports are out of
 date, its first line as range and the whole file as full range, so that
-they are seen anywhere in it.  The same criterion as `nael-margin'."
+they are seen anywhere in it.  The same criterion as `lena-margin'."
   (when-let* ((full (plist-get diagnostic :fullRange))
               ((natnump line-count)))
     (let ((start (plist-get full :start)))
@@ -476,26 +476,26 @@ they are seen anywhere in it.  The same criterion as `nael-margin'."
            (zerop (plist-get start :character))
            (>= (plist-get (plist-get full :end) :line) (1- line-count))))))
 
-(defun nael-render--plain-text (tagged)
+(defun lena-render--plain-text (tagged)
   "Return the plain text of TAGGED, a `TaggedText', without its tags.
 A tag's text is the code of a subterm, or the fallback text of an embed
 in a message."
   (cond ((plist-member tagged :text) (plist-get tagged :text))
         ((plist-member tagged :append)
-         (mapconcat #'nael-render--plain-text (plist-get tagged :append) ""))
+         (mapconcat #'lena-render--plain-text (plist-get tagged :append) ""))
         ((plist-member tagged :tag)
-         (nael-render--plain-text (aref (plist-get tagged :tag) 1)))
+         (lena-render--plain-text (aref (plist-get tagged :tag) 1)))
         (t "")))
 
-(defun nael-render--imports-out-of-date-p (diagnostic)
+(defun lena-render--imports-out-of-date-p (diagnostic)
   "Return non-nil if DIAGNOSTIC says that the imports are out of date.
 Lean says so in two ways: when the file is opened, and when a file that
 it imports changes while it is open.  The text is how VS Code recognizes
 the first."
   (string-prefix-p "Imports are out of date"
-                   (nael-render--plain-text (plist-get diagnostic :message))))
+                   (lena-render--plain-text (plist-get diagnostic :message))))
 
-(defun nael-render--message (diagnostic line whole-file occurrence)
+(defun lena-render--message (diagnostic line whole-file occurrence)
   "Insert DIAGNOSTIC, an `InteractiveDiagnostic', as a heading and text.
 LINE is the 0-based line at which the messages were requested; a
 message that starts on another line is folded at first, unless
@@ -506,34 +506,34 @@ date gets a button to restart the file."
   (let* ((range (or (plist-get diagnostic :fullRange)
                     (plist-get diagnostic :range)))
          (start (plist-get range :start))
-         (severity (nael-render--severity (plist-get diagnostic :severity)))
+         (severity (lena-render--severity (plist-get diagnostic :severity)))
          (key (list 'message (plist-get start :line) (plist-get start :character)
                     (car severity) occurrence))
          (beg (point)))
     (insert (propertize (format "%d:%d" (1+ (plist-get start :line))
                                 (plist-get start :character))
-                        'nael-message-range range)
+                        'lena-message-range range)
             " ")
-    (nael-render--insert (car severity) (cdr severity))
+    (lena-render--insert (car severity) (cdr severity))
     (add-text-properties beg (point)
-                         (append (list 'outline-level 2 'nael-key key)
+                         (append (list 'outline-level 2 'lena-key key)
                                  (unless (or whole-file
                                              (eql (plist-get start :line) line))
-                                   (list 'nael-folded t))))
+                                   (list 'lena-folded t))))
     (insert "\n")
-    (let ((nael-render--trace-key key)
-          (nael-render--trace-count (list 0))
-          (nael-render--trace-depth 0))
-      (nael-render--msg (plist-get diagnostic :message)))
+    (let ((lena-render--trace-key key)
+          (lena-render--trace-count (list 0))
+          (lena-render--trace-depth 0))
+      (lena-render--msg (plist-get diagnostic :message)))
     (unless (bolp) (insert "\n"))
-    (when (and whole-file (nael-render--imports-out-of-date-p diagnostic))
+    (when (and whole-file (lena-render--imports-out-of-date-p diagnostic))
       (let ((beg (point)))
-        (nael-render--insert "[restart file]" 'nael-render-suggestion)
-        (put-text-property beg (point) 'nael-restart-file t)
+        (lena-render--insert "[restart file]" 'lena-render-suggestion)
+        (put-text-property beg (point) 'lena-restart-file t)
         (insert "\n")))))
 
-(defun nael-render--messages-section (messages)
-  "Insert the section for MESSAGES; see `nael-render-goals'.
+(defun lena-render--messages-section (messages)
+  "Insert the section for MESSAGES; see `lena-render-goals'.
 That a proof is complete is shown above the goals, so its message is
 left out.  Messages about the whole file come first."
   (let* ((line-count (plist-get messages :line-count))
@@ -542,13 +542,13 @@ left out.  Messages about the whole file come first."
                          (seq-contains-p (plist-get diagnostic :leanTags) 2))
                        (plist-get messages :diagnostics)))
          (whole-file (seq-filter (lambda (diagnostic)
-                                   (nael-render--whole-file-p diagnostic
+                                   (lena-render--whole-file-p diagnostic
                                                               line-count))
                                  diagnostics))
-         (nael-render--trace-children (plist-get messages :trace-children)))
+         (lena-render--trace-children (plist-get messages :trace-children)))
     (when diagnostics
       (unless (bobp) (insert "\n"))
-      (nael-render--heading (format "Messages (%d)" (length diagnostics))
+      (lena-render--heading (format "Messages (%d)" (length diagnostics))
                             'messages)
       (let ((seen (make-hash-table :test #'equal)))
         (dolist (diagnostic (append whole-file
@@ -557,33 +557,33 @@ left out.  Messages about the whole file come first."
           (let ((start (plist-get (or (plist-get diagnostic :fullRange)
                                       (plist-get diagnostic :range))
                                   :start)))
-            (nael-render--message
+            (lena-render--message
              diagnostic (plist-get messages :line)
              (memq diagnostic whole-file)
              (cl-incf (gethash (list start (plist-get diagnostic :severity))
                                seen -1)))))))))
 
-(defun nael-render--apply-faces ()
+(defun lena-render--apply-faces ()
   "Add the noted faces, then the diff faces of the rendered nodes."
-  (pcase-dolist (`(,beg ,end ,face) (reverse nael-render--faces))
+  (pcase-dolist (`(,beg ,end ,face) (reverse lena-render--faces))
     (add-face-text-property beg end face))
-  (dolist (node (and nael-render--diffs nael-render--nodes))
-    (when-let* ((face (nael-render-diff-face
-                       (nael-render-node-diff-status node))))
-      (add-face-text-property (nael-render-node-beg node)
-                              (nael-render-node-end node)
+  (dolist (node (and lena-render--diffs lena-render--nodes))
+    (when-let* ((face (lena-render-diff-face
+                       (lena-render-node-diff-status node))))
+      (add-face-text-property (lena-render-node-beg node)
+                              (lena-render-node-end node)
                               face))))
 
-(defun nael-render--put-nodes ()
-  "Store each rendered node in `nael-node' over its extent.
-`nael-render--nodes' lists outer nodes first, so inner ones win."
-  (dolist (node nael-render--nodes)
-    (put-text-property (nael-render-node-beg node)
-                       (nael-render-node-end node)
-                       'nael-node node)))
+(defun lena-render--put-nodes ()
+  "Store each rendered node in `lena-node' over its extent.
+`lena-render--nodes' lists outer nodes first, so inner ones win."
+  (dolist (node lena-render--nodes)
+    (put-text-property (lena-render-node-beg node)
+                       (lena-render-node-end node)
+                       'lena-node node)))
 
-(defun nael-render-goals (goals term-goal &optional options messages)
-  "Render GOALS, TERM-GOAL and MESSAGES as a `nael-render-result'.
+(defun lena-render-goals (goals term-goal &optional options messages)
+  "Render GOALS, TERM-GOAL and MESSAGES as a `lena-render-result'.
 
 GOALS is the result of `Lean.Widget.getInteractiveGoals' and TERM-GOAL
 that of `Lean.Widget.getInteractiveTermGoal'; either may be nil.  A
@@ -606,31 +606,31 @@ OPTIONS is a plist of view options:
   :accomplished      a line to show first if the proof at point is
                      complete, such as \"Goals accomplished\"; it
                      replaces the section of GOALS when there are none."
-  (let ((nael-render--diffs (not (plist-get options :hide-diffs)))
-        (nael-render--options options)
-        (nael-render--nodes nil)
-        (nael-render--faces nil))
+  (let ((lena-render--diffs (not (plist-get options :hide-diffs)))
+        (lena-render--options options)
+        (lena-render--nodes nil)
+        (lena-render--faces nil))
     (with-temp-buffer
       ;; As in lean.nvim, a line above the goals, which are not folded
       ;; with it; it stands for no goals at all.
       (when-let* ((accomplished (plist-get options :accomplished)))
-        (nael-render--insert accomplished 'nael-render-goals-accomplished)
+        (lena-render--insert accomplished 'lena-render-goals-accomplished)
         (insert "\n"))
       (when (and goals
                  (not (and (plist-get options :accomplished)
                            (seq-empty-p (plist-get goals :goals)))))
-        (nael-render--goals-section (plist-get goals :goals) options))
+        (lena-render--goals-section (plist-get goals :goals) options))
       (when term-goal
         (unless (bobp) (insert "\n"))
-        (nael-render--heading "Expected type" 'term-goal)
-        (nael-render--goal term-goal nil 'term-goal options))
+        (lena-render--heading "Expected type" 'term-goal)
+        (lena-render--goal term-goal nil 'term-goal options))
       (when messages
-        (nael-render--messages-section messages))
-      (nael-render--finish))))
+        (lena-render--messages-section messages))
+      (lena-render--finish))))
 
-(defun nael-render--put-wrap-prefixes ()
+(defun lena-render--put-wrap-prefixes ()
   "Indent the continuations of wrapped lines in the current buffer.
-See `nael-render-wrap-indent'."
+See `lena-render-wrap-indent'."
   (goto-char (point-min))
   (while (not (eobp))
     (let ((beg (point)))
@@ -638,40 +638,40 @@ See `nael-render-wrap-indent'."
       (put-text-property beg (min (1+ (line-end-position)) (point-max))
                          'wrap-prefix
                          (make-string (+ (- (point) beg)
-                                         nael-render-wrap-indent)
+                                         lena-render-wrap-indent)
                                       ?\s))
       (forward-line))))
 
-(defun nael-render--finish ()
+(defun lena-render--finish ()
   "Return the rendered contents of the current buffer as a result."
-  (nael-render--apply-faces)
-  (nael-render--put-nodes)
-  (nael-render--put-wrap-prefixes)
-  (nael-render--result-create
+  (lena-render--apply-faces)
+  (lena-render--put-nodes)
+  (lena-render--put-wrap-prefixes)
+  (lena-render--result-create
    :text (buffer-string)
-   :nodes (reverse nael-render--nodes)))
+   :nodes (reverse lena-render--nodes)))
 
-(defun nael-render-info (info)
-  "Render INFO, a result of `infoToInteractive', as a `nael-render-result'.
+(defun lena-render-info (info)
+  "Render INFO, a result of `infoToInteractive', as a `lena-render-result'.
 The text is the expression with all its arguments made explicit, then
 its type, as in \"EXPR : TYPE\"; either may be missing.  The
 documentation in INFO is not rendered."
-  (let ((nael-render--diffs nil)
-        (nael-render--nodes nil)
-        (nael-render--faces nil)
+  (let ((lena-render--diffs nil)
+        (lena-render--nodes nil)
+        (lena-render--faces nil)
         (expr (plist-get info :exprExplicit))
         (type (plist-get info :type)))
     (with-temp-buffer
-      (when expr (nael-render--code expr))
+      (when expr (lena-render--code expr))
       (when (and expr type) (insert " : "))
-      (when type (nael-render--code type))
-      (nael-render--fontify (point-min) (point-max))
-      (nael-render--finish))))
+      (when type (lena-render--code type))
+      (lena-render--fontify (point-min) (point-max))
+      (lena-render--finish))))
 
-(defun nael-render-node-at (pos &optional object)
+(defun lena-render-node-at (pos &optional object)
   "Return the innermost node at POS in OBJECT, a buffer or string."
-  (get-text-property pos 'nael-node object))
+  (get-text-property pos 'lena-node object))
 
-(provide 'nael-render)
+(provide 'lena-render)
 
-;;; nael-render.el ends here
+;;; lena-render.el ends here

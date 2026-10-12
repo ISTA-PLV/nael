@@ -1,4 +1,4 @@
-;;; nael-skeleton.el --- Skeleton for Nael  -*- lexical-binding: t; -*-
+;;; lena-skeleton.el --- Skeleton for Lena  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Mekeor Melire
 
@@ -20,7 +20,7 @@
 ;;
 ;;   (info "(autotype) Top")
 
-;; Note that `nael-abbrev' defines Abbrev tables built on top of these
+;; Note that `lena-abbrev' defines Abbrev tables built on top of these
 ;; Skeleton templates, as described at:
 ;;
 ;;   (info "(autotype) Skeletons as Abbrevs")
@@ -29,33 +29,33 @@
 
 (require 'skeleton)
 
-(define-skeleton nael-skeleton-7b7d "" nil "{" _ "}")
-(define-skeleton nael-skeleton-7b7d5f "" nil "{" _ "}_")
-(define-skeleton nael-skeleton-7b7b7d7d "" nil "⦃" _ "⦄")
-(define-skeleton nael-skeleton-5b5d "" nil "[" _ "]")
-(define-skeleton nael-skeleton-5b5d5f "" nil "[" _ "]_")
-(define-skeleton nael-skeleton-5b5b5d5d "" nil "⟦" _ "⟧")
-(define-skeleton nael-skeleton-3c3e "" nil "⟨" _ "⟩")
-(define-skeleton nael-skeleton-2829 "" nil "(" _ ")")
-(define-skeleton nael-skeleton-28295f "" nil "(" _ ")_")
-(define-skeleton nael-skeleton-285b5d2927 "" nil "⟮" _ "⟯")
-(define-skeleton nael-skeleton-28282929 "" nil "⸨" _ "⸩")
-(define-skeleton nael-skeleton-663c3e "" nil "‹" _ "›")
-(define-skeleton nael-skeleton-663c3c3e3e "" nil "«" _ "»")
-(define-skeleton nael-skeleton-5b2d2d5d "" nil "⁅" _ "⁆")
-(define-skeleton nael-skeleton-7c7c7c7c "" nil "‖" _ "‖")
-(define-skeleton nael-skeleton-6e6e6e6f726d "" nil "‖" _ "‖₊")
-(define-skeleton nael-skeleton-6e6f726d "" nil "‖" _ "‖")
-(define-skeleton nael-skeleton-666c6f6f72 "" nil "⌊" _ "⌋")
-(define-skeleton nael-skeleton-6365696c "" nil "⌈" _ "⌉")
-(define-skeleton nael-skeleton-6e666c6f6f72 "" nil "⌊" _ "⌋₊")
-(define-skeleton nael-skeleton-6e6365696c "" nil "⌈" _ "⌉₊")
-(define-skeleton nael-skeleton-735b5d "" nil "⦋" _ "⦌")
-(define-skeleton nael-skeleton-73696d706c6578 "" nil "⦋" _ "⦌")
+(define-skeleton lena-skeleton-7b7d "" nil "{" _ "}")
+(define-skeleton lena-skeleton-7b7d5f "" nil "{" _ "}_")
+(define-skeleton lena-skeleton-7b7b7d7d "" nil "⦃" _ "⦄")
+(define-skeleton lena-skeleton-5b5d "" nil "[" _ "]")
+(define-skeleton lena-skeleton-5b5d5f "" nil "[" _ "]_")
+(define-skeleton lena-skeleton-5b5b5d5d "" nil "⟦" _ "⟧")
+(define-skeleton lena-skeleton-3c3e "" nil "⟨" _ "⟩")
+(define-skeleton lena-skeleton-2829 "" nil "(" _ ")")
+(define-skeleton lena-skeleton-28295f "" nil "(" _ ")_")
+(define-skeleton lena-skeleton-285b5d2927 "" nil "⟮" _ "⟯")
+(define-skeleton lena-skeleton-28282929 "" nil "⸨" _ "⸩")
+(define-skeleton lena-skeleton-663c3e "" nil "‹" _ "›")
+(define-skeleton lena-skeleton-663c3c3e3e "" nil "«" _ "»")
+(define-skeleton lena-skeleton-5b2d2d5d "" nil "⁅" _ "⁆")
+(define-skeleton lena-skeleton-7c7c7c7c "" nil "‖" _ "‖")
+(define-skeleton lena-skeleton-6e6e6e6f726d "" nil "‖" _ "‖₊")
+(define-skeleton lena-skeleton-6e6f726d "" nil "‖" _ "‖")
+(define-skeleton lena-skeleton-666c6f6f72 "" nil "⌊" _ "⌋")
+(define-skeleton lena-skeleton-6365696c "" nil "⌈" _ "⌉")
+(define-skeleton lena-skeleton-6e666c6f6f72 "" nil "⌊" _ "⌋₊")
+(define-skeleton lena-skeleton-6e6365696c "" nil "⌈" _ "⌉₊")
+(define-skeleton lena-skeleton-735b5d "" nil "⦋" _ "⦌")
+(define-skeleton lena-skeleton-73696d706c6578 "" nil "⦋" _ "⦌")
 
-(provide 'nael-skeleton)
+(provide 'lena-skeleton)
 
-;;; nael-skeleton.el ends here
+;;; lena-skeleton.el ends here
 
 ;; Local Variables:
 ;; buffer-read-only: t

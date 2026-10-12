@@ -1,11 +1,11 @@
-;;; nael-tests.el --- Tests for nael  -*- lexical-binding: t; -*-
+;;; lena-tests.el --- Tests for lena  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2026 Klaus Kraßnitzer
 
 ;; SPDX-License-Identifier: GPL-3.0-only
 
 ;; This is licensed under GNU General Public License (version 3 only),
-;; see nael/LICENSE.GPL3.
+;; see lena/LICENSE.GPL3.
 
 ;;; Commentary:
 
@@ -14,9 +14,9 @@
 ;;; Code:
 
 (require 'ert)
-(require 'nael)
+(require 'lena)
 
-(ert-deftest nael-test-project-markers ()
+(ert-deftest lena-test-project-markers ()
   "Lake files mark the root of a project, for project.el and Projectile."
   (should (member "lakefile.toml" project-vc-extra-root-markers))
   (should (member "lakefile.lean" project-vc-extra-root-markers))
@@ -31,6 +31,6 @@
     (should (member "lakefile.toml" projectile-project-root-files-bottom-up))
     (should (member "lakefile.lean" projectile-project-root-files-bottom-up))))
 
-(provide 'nael-tests)
+(provide 'lena-tests)
 
-;;; nael-tests.el ends here
+;;; lena-tests.el ends here
