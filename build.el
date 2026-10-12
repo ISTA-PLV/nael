@@ -562,6 +562,7 @@ expanded whenever suitable characters are inserted.\"
           (member "test-live" build-targets))
   (require 'ert)
   (add-to-list 'load-path (file-truename "lena"))
+  (add-to-list 'load-path (file-truename "lena-evil"))
   (add-to-list 'load-path (file-truename "test"))
   ;; Test files provide features named after them and may require
   ;; each other.

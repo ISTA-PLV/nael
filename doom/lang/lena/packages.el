@@ -13,3 +13,8 @@
            :files ("lena/*.el" "lena/lena.info" "lena/lena.texi"
                    "lena/NOTICE" "lena/LICENSE*")))
 
+(when (modulep! :editor evil)
+  (package! lena-evil
+    :recipe (:host github :repo "ISTA-PLV/nael"
+             :files ("lena-evil/*.el" "lena-evil/LICENSE"))))
+
