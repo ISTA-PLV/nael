@@ -3,21 +3,21 @@
 - =goals-iris-spinlock.json= :: The result of =Lean.Widget.getInteractiveGoals=
   in =Iris/HeapLang/Lib/SpinLock.lean= of [[https://github.com/leanprover-community/iris-lean][iris-lean]]
   (commit =82c3988=, Lean 4.34.1) at line 110, inside =newlock_spec=, with RPC
-  wire format v1: 3 goals and 66 references.  The goal text is derived from
+  wire format v1: 3 goals and 66 references. The goal text is derived from
   iris-lean, which is licensed under the Apache License, Version 2.0; see
-  =../../nael/LICENSE.APACHE2=.
+  =../../lena/LICENSE.APACHE2=.
 - =interactive-diagnostics.json= :: The result of
   =Lean.Widget.getInteractiveDiagnostics= for the whole of
   =Iris/HeapLang/Lib/SpinLock.lean= of iris-lean (same commit and Lean
   version), with a few lines appended in the server's memory only: a
   =set_option trace.Meta.synthInstance true in= example, an example
-  proved by =exact?=, and a =#check=.  The server ran with
-  =silentDiagnosticSupport= and =hasWidgets=.  The fixture keeps 6 of the 12
+  proved by =exact?=, and a =#check=. The server ran with
+  =silentDiagnosticSupport= and =hasWidgets=. The fixture keeps 6 of the 12
   messages, in their order, and leaves out repetitions: two silent "Goals
   accomplished!" messages, an error, a trace with lazy children, a "Try
-  this" widget (=Lean.Meta.Hint.textInsertionWidget=), and the =#check=.  Derived from
+  this" widget (=Lean.Meta.Hint.textInsertionWidget=), and the =#check=. Derived from
   iris-lean, which is licensed under the Apache License, Version 2.0; see
-  =../../nael/LICENSE.APACHE2=.
+  =../../lena/LICENSE.APACHE2=.
 
 Both are derived from =Iris/HeapLang/Lib/SpinLock.lean=, whose header names
 its authors:

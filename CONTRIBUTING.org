@@ -1,0 +1,42 @@
+#+title: Contributing to Lena
+
+* Reporting Problems
+
+Please report problems at [[https://github.com/ISTA-PLV/nael/issues][github.com/ISTA-PLV/nael/issues]]. Say which versions of
+Emacs and of Lean (the project's =lean-toolchain=) you use, and what =*Messages*=
+and =M-x eglot-events-buffer= show.
+
+* Tests and Checks
+
+Run these from the root of the repository:
+
+- =emacs -Q --batch -l build.el test= runs the unit tests.
+- =emacs -Q --batch -l build.el test-live= runs them together with the tests
+  against a real Lean server, which need =lake= in =PATH= (with [[https://github.com/leanprover/elan][elan]], the toolchain
+  named in =test/lean/lean-toolchain= is installed on first use). =LENA_TEST_SLOW=1=
+  adds a test of the keep-alive, which takes about 35 seconds.
+- =emacs -Q --batch -l build.el compile lint= byte-compiles the packages, failing
+  on warnings, and checks them with =checkdoc= and, if it is in =load-path=,
+  =package-lint=.
+- The tests of ~lena-evil~ are skipped unless Evil is in =load-path=, for example
+  with =-L /path/to/evil=.
+
+GitHub Actions runs all of these on every push and pull request; see =.github/workflows/test.yml=.
+
+* Commits
+
+A commit message is one line that says what the change does.
+
+* Code From Elsewhere
+
+Credit code at the moment it is borrowed, also when it is adapted after reading
+another implementation: keep its copyright and license notices, add an entry to
+=lena/NOTICE=, and mention it in the chapters /Lineage and Credits/ and /License and
+Maintenance/ of =lena/README.org=.
+
+* How Lena Is Written
+
+Much of the code that Lena adds to Nael was written with an AI assistant,
+Claude, and reviewed, tested and revised by Lena's maintainers, who answer for
+it. Contributions written with such tools are welcome on the same terms: say so
+in the pull request, and submit only what you understand and have tested.
