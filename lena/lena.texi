@@ -30,8 +30,9 @@ Emacs' core. Lena adds an infoview, signs in the
 margin and more. See @emph{Lineage and Credits} for more information about Lena's
 lineage.
 
-The @code{lena} package defines the major mode. It also introduces simple and two-sided
-abbreviations per @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html, Abbrev} and @uref{https://www.gnu.org/software/emacs/manual/html_node/autotype/, Skeleton} respectively. Lena teaches Emacs' built-in
+The @code{lena} package defines the major mode. It also introduces the @code{Lena}
+@uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html, input method} for typing Unicode characters common in Lean, such as @samp{\a} for @samp{α}.
+Lena teaches Emacs' built-in
 @uref{https://microsoft.github.io/language-server-protocol/, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions}, tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that
 information, and shows it in an infoview, like the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean}.
 The separate package @code{lena-evil} binds keys for @uref{https://github.com/emacs-evil/evil, Evil}.
@@ -101,8 +102,8 @@ Changelog
 @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} is the Lean community's Emacs mode for Lean 4.
 @item
 Nael is Mekeor Melire's fork of it, on @uref{https://codeberg.org/mekeor/nael, Codeberg} and @uref{https://melpa.org/#/nael, Melpa}. Lena's major mode,
-its Font-Lock rules, abbreviations, navigation and much of this manual are
-Nael's.
+its Font-Lock rules, navigation and much of this manual are Nael's. Lena's
+input method starts from Mekeor Melire's work on Nael's @samp{dev} branch.
 @item
 Lena branched from Nael 0.8.3 (commit @samp{c1d3497} of Nael's @samp{release} branch) and
 was later renamed to Lena.
@@ -134,7 +135,7 @@ and Yury G@. Kudryashov.
 @emph{Doug Torrance}'s @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} and @emph{Jan Mas Rovira}'s @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}, whose RPC
 client Lena's is derived from, and whose building of imports Lena adapts.
 @item
-@uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, the Lean extension for VS Code: Lena's abbreviations are
+@uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, the Lean extension for VS Code: Lena's input method is
 generated from its abbreviation data, and Lena's infoview is modelled on its
 infoview.
 @item
@@ -182,6 +183,10 @@ installation.
 Lena needs Emacs 30.1, instead of 29.1.
 @item
 Lena drops Nael's support for lsp-mode (@code{nael-lsp}) and uses Eglot only.
+@item
+The @code{Lena} input method replaces Nael's abbreviations (by Alex Loitzl, from
+Mekeor Melire's work on Nael's @samp{dev} branch): @samp{\to_1} gives @samp{→₁} instead of @samp{→_1},
+and abbreviations that end in a non-word character, such as @code{\d==}, work.
 @end itemize
 
 @node Get Started
@@ -292,17 +297,16 @@ window, and @samp{M-,} (@code{xref-go-back}) returns to the infoview. In Doom Em
 are @samp{gd} and @samp{C-o}.
 @end itemize
 
-Abbreviations:
+Input method:
 
 @itemize
 @item
-@samp{C-c C-a} (@code{abbrev-mode}) enables abbreviations.
+@samp{C-\} (@code{toggle-input-method}) toggles the @code{Lena} input method. While it is
+active, typing an abbreviation like @samp{\a} or @samp{\to} inserts the corresponding
+character, here @samp{α} or @samp{→}. This also works within Isearch and the minibuffer.
 @item
-@samp{C-c C-k} (@code{lena-abbrev-help}) echoes abbreviations that expand to the character
-at point, or, if active, to the selected region.
-@item
-@samp{C-x '} (@code{expand-abbrev}) expands the abbreviation before point without
-inserting any character. (Usually, you'd insert a space or newline to expand.)
+@samp{C-u C-x =} (@code{describe-char}) describes the character at point. While the input
+method is active, this includes how to type the character.
 @end itemize
 
 Build:
@@ -351,11 +355,10 @@ custom keys in @code{lena-mode-map} like this:
 (keymap-set lena-mode-map "C-c ." #'highlight-symbol-at-point)
 @end lisp
 
-To automatically enable features (e.g. abbreviations or Eglot) when Lena is
-started, customize @code{lena-mode-hook} as follows:
+To automatically enable features (e.g. Eglot) when Lena is started, customize
+@code{lena-mode-hook} as follows:
 
 @lisp
-(add-hook 'lena-mode-hook #'abbrev-mode)
 (add-hook 'lena-mode-hook #'eglot-ensure)
 @end lisp
 
@@ -380,12 +383,19 @@ later. Then the text of a trace that Flymake shows is only "(trace)", as in VS
 Code. To keep the full text in Flymake instead, set @code{lena-eglot-widgets} to @samp{nil}
 before Lean starts.
 
-@strong{The following behavior will likely change soon}: Lena's Abbrev tables use the
-@samp{:regexp} property which is @uref{https://github.com/minad/cape/discussions/158#discussioncomment-14687758, incompatible} with @uref{https://github.com/company-mode/company-mode, Company}'s @code{company-abbrev} and @uref{https://github.com/minad/cape, Cape}'s
-@code{cape-abbrev}. Instead, Lena supports completion-at-point natively via
-@code{lena-abbrev-capf}. This CAPF is buffer-locally added to
-@code{completion-at-point-functions} whenever Abbrev mode is enabled inside Lena. To
-ditch this feature, set the @code{lena-abbrev-capf} variable to @samp{nil}.
+Lena makes @code{Lena} the default input method of its buffers, so that @samp{C-\}
+activates it. To keep your global default input method instead, set
+@code{lena-prepare-quail} to @samp{nil}. To activate the input method automatically, add
+this to your init file:
+
+@lisp
+(add-hook 'lena-mode-hook (lambda () (activate-input-method "Lena")))
+@end lisp
+
+The input method does not include abbreviations that place point between two
+inserted strings, such as @samp{\<>} for @samp{⟨⟩}. Type the opening character instead,
+e.g. @samp{\<} for @samp{⟨}. For brackets like @samp{⟨}, @samp{⟦} and @samp{⦃}, @code{electric-pair-mode} can insert
+the closing one.
 
 @node Installation
 @chapter Installation
@@ -533,9 +543,8 @@ Set it up in @samp{~/.doom.d/config.el}, with its keys under the local leader @s
 then run @samp{doom sync} and restart Emacs:
 
 @lisp
-;; Lean's Unicode input, such as \to for →.
-(add-hook 'lena-mode-hook #'abbrev-mode)
-;; Start the Lean server.
+;; C-\ toggles Lean's Unicode input, such as \to for →, in Lean buffers.
+;; Start the Lean server:
 (add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
 
 (map! :after lena
@@ -544,8 +553,7 @@ then run @samp{doom sync} and restart Emacs:
       :desc "Infoview"           "i" #'lena-infoview
       :desc "Restart file"       "r" #'lena-eglot-restart-file
       :desc "Build project"      "b" #'project-compile
-      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer
-      :desc "Abbreviations"      "a" #'lena-abbrev-help)
+      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer)
 
 (map! :after lena-infoview-buffer
       :map lena-infoview-mode-map
@@ -670,7 +678,7 @@ The files that Lena adds are licensed under GPL-3.0-only, except
 Apache-2.0. @code{lena-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and
 licensed under the MIT License, see @samp{LICENSE.MIT}. The smartparens pairs and the
 Doom Emacs setup in this manual follow Doom Emacs' @samp{:lang lean} module, under the
-MIT License. The abbreviations are
+MIT License. The input method is
 generated from data of @uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, under Apache-2.0. The test fixtures are
 recorded from @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, under Apache-2.0. For details, see @samp{NOTICE} and
 @samp{test/fixtures/README.org}.

@@ -33,8 +33,8 @@ assistants and reviewed, tested and revised by Lena's maintainers.
 
 - [[https://github.com/leanprover-community/lean4-mode][Lean4-Mode]] is the Lean community's Emacs mode for Lean 4.
 - Nael is Mekeor Melire's fork of it, on [[https://codeberg.org/mekeor/nael][Codeberg]] and [[https://melpa.org/#/nael][Melpa]]. Lena's major mode,
-  its Font-Lock rules, abbreviations, navigation and much of this manual are
-  Nael's.
+  its Font-Lock rules, navigation and much of this manual are Nael's. Lena's
+  input method starts from Mekeor Melire's work on Nael's =dev= branch.
 - Lena branched from Nael 0.8.3 (commit =c1d3497= of Nael's =release= branch) and
   was later renamed to Lena.
 - It builds on code from elsewhere: ~lena-eglot.el~'s building of imports
@@ -57,7 +57,7 @@ Lena builds on the work of many people:
   and Yury G. Kudryashov.
 - /Doug Torrance/'s [[https://github.com/d-torrance/lean4-mode][lean4-mode]] and /Jan Mas Rovira/'s [[https://github.com/janmasrovira/neo-lean-mode][neo-lean-mode]], whose RPC
   client Lena's is derived from, and whose building of imports Lena adapts.
-- [[https://github.com/leanprover/vscode-lean4][vscode-lean4]], the Lean extension for VS Code: Lena's abbreviations are
+- [[https://github.com/leanprover/vscode-lean4][vscode-lean4]], the Lean extension for VS Code: Lena's input method is
   generated from its abbreviation data, and Lena's infoview is modelled on its
   infoview.
 - [[https://github.com/Julian/lean.nvim][lean.nvim]], whose infoview keys some of the keys of ~lena-evil~ follow.
@@ -91,6 +91,9 @@ Compared to Nael 0.8.3:
   installation.
 - Lena needs Emacs 30.1, instead of 29.1.
 - Lena drops Nael's support for lsp-mode (~nael-lsp~) and uses Eglot only.
+- The ~Lena~ input method replaces Nael's abbreviations (by Alex Loitzl, from
+  Mekeor Melire's work on Nael's =dev= branch): =\to_1= gives =→₁= instead of =→_1=,
+  and abbreviations that end in a non-word character, such as ~\d==~, work.
 
 * Get Started
 
@@ -381,9 +384,8 @@ Set it up in =~/.doom.d/config.el=, with its keys under the local leader =SPC m=
 then run =doom sync= and restart Emacs:
 
 #+begin_src emacs-lisp
-;; Lean's Unicode input, such as \to for →.
-(add-hook 'lena-mode-hook #'abbrev-mode)
-;; Start the Lean server.
+;; C-\ toggles Lean's Unicode input, such as \to for →, in Lean buffers.
+;; Start the Lean server:
 (add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
 
 (map! :after lena
@@ -392,8 +394,7 @@ then run =doom sync= and restart Emacs:
       :desc "Infoview"           "i" #'lena-infoview
       :desc "Restart file"       "r" #'lena-eglot-restart-file
       :desc "Build project"      "b" #'project-compile
-      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer
-      :desc "Abbreviations"      "a" #'lena-abbrev-help)
+      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer)
 
 (map! :after lena-infoview-buffer
       :map lena-infoview-mode-map
@@ -469,7 +470,7 @@ The files that Lena adds are licensed under GPL-3.0-only, except
 Apache-2.0. ~lena-rpc.el~ is derived from lean4-mode and [[https://github.com/janmasrovira/neo-lean-mode][neo-lean-mode]] and
 licensed under the MIT License, see =LICENSE.MIT=. The smartparens pairs and the
 Doom Emacs setup in this manual follow Doom Emacs' =:lang lean= module, under the
-MIT License. The abbreviations are
+MIT License. The input method is
 generated from data of [[https://github.com/leanprover/vscode-lean4][vscode-lean4]], under Apache-2.0. The test fixtures are
 recorded from [[https://github.com/leanprover-community/iris-lean][iris-lean]], under Apache-2.0. For details, see =NOTICE= and
 =test/fixtures/README.org=.

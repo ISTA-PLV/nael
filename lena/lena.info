@@ -21,12 +21,11 @@ simplicity, modularity and integration into Emacs' core.  Lena adds an
 infoview, signs in the margin and more.  See _Lineage and Credits_ for
 more information about Lena's lineage.
 
-   The ‘lena’ package defines the major mode.  It also introduces simple
-and two-sided abbreviations per Abbrev
-(https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html)
-and Skeleton
-(https://www.gnu.org/software/emacs/manual/html_node/autotype/)
-respectively.  Lena teaches Emacs' built-in LSP
+   The ‘lena’ package defines the major mode.  It also introduces the
+‘Lena’ input method
+(https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html)
+for typing Unicode characters common in Lean, such as ‘\a’ for ‘α’.
+Lena teaches Emacs' built-in LSP
 (https://microsoft.github.io/language-server-protocol/) client Eglot
 (https://www.gnu.org/software/emacs/manual/html_node/eglot/) about
 Lean-specific LSP-extensions
@@ -109,8 +108,8 @@ File: lena.info,  Node: Lineage,  Next: Credits,  Up: Lineage and Credits
    • Nael is Mekeor Melire's fork of it, on Codeberg
      (https://codeberg.org/mekeor/nael) and Melpa
      (https://melpa.org/#/nael).  Lena's major mode, its Font-Lock
-     rules, abbreviations, navigation and much of this manual are
-     Nael's.
+     rules, navigation and much of this manual are Nael's.  Lena's input
+     method starts from Mekeor Melire's work on Nael's ‘dev’ branch.
    • Lena branched from Nael 0.8.3 (commit ‘c1d3497’ of Nael's ‘release’
      branch) and was later renamed to Lena.
    • It builds on code from elsewhere: ‘lena-eglot.el’'s building of
@@ -148,7 +147,7 @@ Lena builds on the work of many people:
      whose RPC client Lena's is derived from, and whose building of
      imports Lena adapts.
    • vscode-lean4 (https://github.com/leanprover/vscode-lean4), the Lean
-     extension for VS Code: Lena's abbreviations are generated from its
+     extension for VS Code: Lena's input method is generated from its
      abbreviation data, and Lena's infoview is modelled on its infoview.
    • lean.nvim (https://github.com/Julian/lean.nvim), whose infoview
      keys some of the keys of ‘lena-evil’ follow.
@@ -194,6 +193,10 @@ Compared to Nael 0.8.3:
    • Lena needs Emacs 30.1, instead of 29.1.
    • Lena drops Nael's support for lsp-mode (‘nael-lsp’) and uses Eglot
      only.
+   • The ‘Lena’ input method replaces Nael's abbreviations (by Alex
+     Loitzl, from Mekeor Melire's work on Nael's ‘dev’ branch): ‘\to_1’
+     gives ‘→₁’ instead of ‘→_1’, and abbreviations that end in a
+     non-word character, such as ‘\d==’, work.
 
 
 File: lena.info,  Node: Get Started,  Next: Usage,  Prev: Lineage and Credits,  Up: Top
@@ -301,14 +304,15 @@ Language Server Protocol (LSP):
      in another window, and ‘M-,’ (‘xref-go-back’) returns to the
      infoview.  In Doom Emacs, these are ‘gd’ and ‘C-o’.
 
-   Abbreviations:
+   Input method:
 
-   • ‘C-c C-a’ (‘abbrev-mode’) enables abbreviations.
-   • ‘C-c C-k’ (‘lena-abbrev-help’) echoes abbreviations that expand to
-     the character at point, or, if active, to the selected region.
-   • ‘C-x '’ (‘expand-abbrev’) expands the abbreviation before point
-     without inserting any character.  (Usually, you'd insert a space or
-     newline to expand.)
+   • ‘C-\’ (‘toggle-input-method’) toggles the ‘Lena’ input method.
+     While it is active, typing an abbreviation like ‘\a’ or ‘\to’
+     inserts the corresponding character, here ‘α’ or ‘→’.  This also
+     works within Isearch and the minibuffer.
+   • ‘C-u C-x =’ (‘describe-char’) describes the character at point.
+     While the input method is active, this includes how to type the
+     character.
 
    Build:
 
@@ -349,10 +353,9 @@ You can bind custom keys in ‘lena-mode-map’ like this:
 
      (keymap-set lena-mode-map "C-c ." #'highlight-symbol-at-point)
 
-   To automatically enable features (e.g.  abbreviations or Eglot) when
-Lena is started, customize ‘lena-mode-hook’ as follows:
+   To automatically enable features (e.g.  Eglot) when Lena is started,
+customize ‘lena-mode-hook’ as follows:
 
-     (add-hook 'lena-mode-hook #'abbrev-mode)
      (add-hook 'lena-mode-hook #'eglot-ensure)
 
    The signs in the margin can be changed, also for a single project in
@@ -374,16 +377,17 @@ names Lean 4.30 or later.  Then the text of a trace that Flymake shows
 is only "(trace)", as in VS Code.  To keep the full text in Flymake
 instead, set ‘lena-eglot-widgets’ to ‘nil’ before Lean starts.
 
-   *The following behavior will likely change soon*: Lena's Abbrev
-tables use the ‘:regexp’ property which is incompatible
-(https://github.com/minad/cape/discussions/158#discussioncomment-14687758)
-with Company (https://github.com/company-mode/company-mode)'s
-‘company-abbrev’ and Cape (https://github.com/minad/cape)'s
-‘cape-abbrev’.  Instead, Lena supports completion-at-point natively via
-‘lena-abbrev-capf’.  This CAPF is buffer-locally added to
-‘completion-at-point-functions’ whenever Abbrev mode is enabled inside
-Lena.  To ditch this feature, set the ‘lena-abbrev-capf’ variable to
-‘nil’.
+   Lena makes ‘Lena’ the default input method of its buffers, so that
+‘C-\’ activates it.  To keep your global default input method instead,
+set ‘lena-prepare-quail’ to ‘nil’.  To activate the input method
+automatically, add this to your init file:
+
+     (add-hook 'lena-mode-hook (lambda () (activate-input-method "Lena")))
+
+   The input method does not include abbreviations that place point
+between two inserted strings, such as ‘\<>’ for ‘⟨⟩’.  Type the opening
+character instead, e.g.  ‘\<’ for ‘⟨’.  For brackets like ‘⟨’, ‘⟦’ and
+‘⦃’, ‘electric-pair-mode’ can insert the closing one.
 
 
 File: lena.info,  Node: Installation,  Next: Changelog,  Prev: Configuration,  Up: Top
@@ -536,9 +540,8 @@ Lena in ‘~/.doom.d/packages.el’:
    Set it up in ‘~/.doom.d/config.el’, with its keys under the local
 leader ‘SPC m’, then run ‘doom sync’ and restart Emacs:
 
-     ;; Lean's Unicode input, such as \to for →.
-     (add-hook 'lena-mode-hook #'abbrev-mode)
-     ;; Start the Lean server.
+     ;; C-\ toggles Lean's Unicode input, such as \to for →, in Lean buffers.
+     ;; Start the Lean server:
      (add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
 
      (map! :after lena
@@ -547,8 +550,7 @@ leader ‘SPC m’, then run ‘doom sync’ and restart Emacs:
            :desc "Infoview"           "i" #'lena-infoview
            :desc "Restart file"       "r" #'lena-eglot-restart-file
            :desc "Build project"      "b" #'project-compile
-           :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer
-           :desc "Abbreviations"      "a" #'lena-abbrev-help)
+           :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer)
 
      (map! :after lena-infoview-buffer
            :map lena-infoview-mode-map
@@ -689,7 +691,7 @@ Apache-2.0 and sublicensed under GPL-3.0.
 (https://github.com/janmasrovira/neo-lean-mode) and licensed under the
 MIT License, see ‘LICENSE.MIT’.  The smartparens pairs and the Doom
 Emacs setup in this manual follow Doom Emacs' ‘:lang lean’ module, under
-the MIT License.  The abbreviations are generated from data of
+the MIT License.  The input method is generated from data of
 vscode-lean4 (https://github.com/leanprover/vscode-lean4), under
 Apache-2.0.  The test fixtures are recorded from iris-lean
 (https://github.com/leanprover-community/iris-lean), under Apache-2.0.
@@ -706,28 +708,28 @@ please report problems there.
 
 Tag Table:
 Node: Top192
-Node: Lineage and Credits2942
-Node: Lineage3127
-Node: Credits4332
-Node: What It Adds6055
-Node: Get Started7893
-Node: Usage8285
-Node: Configuration14721
-Node: Installation17042
-Node: Installation from Sources17496
-Node: Manual Installation17844
-Node: Installation via package-vc18801
-Ref: Installation via package-vc-selected-packages19464
-Ref: Installation via use-package vc20607
-Node: Installation in Doom Emacs21498
-Node: Changelog24133
-Node: Lena not released yet24627
-Node: Version 082 from 2026-02-2224961
-Node: Version 080 from 2026-12-1625351
-Node: Version 070 from 2025-12-1525996
-Node: Version 062 from 2025-11-3026595
-Node: Version 060 from 2025-11-3026948
-Node: License and Maintenance28046
+Node: Lineage and Credits2915
+Node: Lineage3100
+Node: Credits4372
+Node: What It Adds6093
+Node: Get Started8216
+Node: Usage8608
+Node: Configuration15100
+Node: Installation17384
+Node: Installation from Sources17838
+Node: Manual Installation18186
+Node: Installation via package-vc19143
+Ref: Installation via package-vc-selected-packages19806
+Ref: Installation via use-package vc20949
+Node: Installation in Doom Emacs21840
+Node: Changelog24397
+Node: Lena not released yet24891
+Node: Version 082 from 2026-02-2225225
+Node: Version 080 from 2026-12-1625615
+Node: Version 070 from 2025-12-1526260
+Node: Version 062 from 2025-11-3026859
+Node: Version 060 from 2025-11-3027212
+Node: License and Maintenance28310
 
 End Tag Table
 
