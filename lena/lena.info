@@ -119,9 +119,10 @@ File: lena.info,  Node: Lineage,  Next: Credits,  Up: Lineage and Credits
      (https://github.com/d-torrance/lean4-mode); ‘lena-rpc.el’ is
      derived from that lean4-mode's ‘lean4-rpc.el’, which is derived
      from Jan Mas Rovira's neo-lean-mode
-     (https://github.com/janmasrovira/neo-lean-mode); the Doom Emacs
-     module follows Doom Emacs' own ‘:lang lean’ module.  See _License
-     and Maintenance_ and ‘NOTICE’.
+     (https://github.com/janmasrovira/neo-lean-mode); the smartparens
+     pairs and the Doom Emacs setup in this manual follow Doom Emacs'
+     own ‘:lang lean’ module.  See _License and Maintenance_ and
+     ‘NOTICE’.
 
 
 File: lena.info,  Node: Credits,  Next: What It Adds,  Prev: Lineage,  Up: Lineage and Credits
@@ -153,7 +154,7 @@ Lena builds on the work of many people:
      keys some of the keys of ‘lena-evil’ follow.
    • _Henrik Lissner_ and the contributors of Doom Emacs
      (https://github.com/doomemacs/doomemacs), whose ‘:lang lean’ module
-     Lena's Doom module follows.
+     Lena's smartparens pairs and Doom Emacs setup follow.
    • The authors of iris-lean
      (https://github.com/leanprover-community/iris-lean), from which the
      test fixtures are recorded.
@@ -182,7 +183,8 @@ Compared to Nael 0.8.3:
      when a file is opened (‘lena-eglot-build-dependencies’); Lean's
      silent diagnostics and widgets in messages.
    • Keys for Evil (https://github.com/emacs-evil/evil), in the separate
-     package ‘lena-evil’, and a Doom Emacs module (‘doom/lang/lena/’).
+     package ‘lena-evil’, and a setup for Doom Emacs (see _Installation
+     in Doom Emacs_).
    • Smaller changes: a better syntax table, also for ElDoc, and macros
      recognized as such; the first goal is no longer echoed
      (‘lena-eglot-echo-goal’); a shorter ElDoc delay in Lena buffers
@@ -518,10 +520,60 @@ File: lena.info,  Node: Installation in Doom Emacs,  Prev: Installation from Sou
 5.2 Installation in Doom Emacs
 ==============================
 
-The repository contains a Doom Emacs module, ‘:lang lena’, in
-‘doom/lang/lena/’.  It installs Lena and sets up its infoview, with keys
-under ‘SPC m’ and for Evil, and replaces Doom's ‘:lang lean’ module,
-which uses upstream Nael.  See its ‘README.org’ for how to install it.
+Doom's own ‘:lang lean’ module uses upstream Nael, so disable it: in
+‘~/.doom.d/init.el’, comment out ‘lean’ under ‘:lang’.  Then declare
+Lena in ‘~/.doom.d/packages.el’:
+
+     (package! lena
+       :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+                :files ("lena/*.el" "lena/lena.info" "lena/lena.texi"
+                        "lena/NOTICE" "lena/LICENSE*")))
+     ;; With Evil:
+     (package! lena-evil
+       :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+                :files ("lena-evil/*.el" "lena-evil/LICENSE")))
+
+   Set it up in ‘~/.doom.d/config.el’, with its keys under the local
+leader ‘SPC m’, then run ‘doom sync’ and restart Emacs:
+
+     ;; Lean's Unicode input, such as \to for →.
+     (add-hook 'lena-mode-hook #'abbrev-mode)
+     ;; Start the Lean server.
+     (add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
+
+     (map! :after lena
+           :map lena-mode-map
+           :localleader
+           :desc "Infoview"           "i" #'lena-infoview
+           :desc "Restart file"       "r" #'lena-eglot-restart-file
+           :desc "Build project"      "b" #'project-compile
+           :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer
+           :desc "Abbreviations"      "a" #'lena-abbrev-help)
+
+     (map! :after lena-infoview-buffer
+           :map lena-infoview-mode-map
+           :localleader
+           :desc "Refresh"            "r" #'lena-infoview-refresh
+           :desc "View options"       "v" #'lena-infoview-view-options
+           :desc "Copy goal"          "y" #'lena-infoview-copy-goal)
+
+     ;; The infoview places itself, in a side window by default; see
+     ;; `lena-infoview-display-action'.  The help buffer is a popup.
+     (set-popup-rule! "^\\*Lena Infoview\\*" :ignore t)
+     (set-popup-rule! "^\\*Lena Help\\*" :slot 2 :vslot -8 :size 0.42 :select t)
+
+     ;; With Evil:
+     (after! (evil lena-infoview-buffer)
+       (lena-evil-setup))
+
+   In the infoview's normal state, ‘]g’ and ‘[g’ go to the next and
+previous goal, ‘]h’ and ‘[h’ to headings, ‘gr’ refreshes, and on a
+subterm ‘K’ or ‘RET’ describes it, ‘gd’ goes to its definition and ‘C-o’
+comes back.  The descriptions open in ‘*Lena Help*’, where ‘C-o’ and
+‘C-i’ go back and forth and ‘q’ closes.
+
+   To work on Lena itself, use your clone in the recipes instead, as in
+‘(:local-repo "/path/to/lena" :files (...))’.
 
 
 File: lena.info,  Node: Changelog,  Next: License and Maintenance,  Prev: Installation,  Up: Top
@@ -635,11 +687,11 @@ Apache-2.0 and sublicensed under GPL-3.0.
 (https://github.com/d-torrance/lean4-mode) under Apache-2.0.
 ‘lena-rpc.el’ is derived from lean4-mode and neo-lean-mode
 (https://github.com/janmasrovira/neo-lean-mode) and licensed under the
-MIT License, see ‘LICENSE.MIT’.  The Doom Emacs module follows Doom
-Emacs' ‘:lang lean’ module, under the MIT License.  The abbreviations
-are generated from data of vscode-lean4
-(https://github.com/leanprover/vscode-lean4), under Apache-2.0.  The
-test fixtures are recorded from iris-lean
+MIT License, see ‘LICENSE.MIT’.  The smartparens pairs and the Doom
+Emacs setup in this manual follow Doom Emacs' ‘:lang lean’ module, under
+the MIT License.  The abbreviations are generated from data of
+vscode-lean4 (https://github.com/leanprover/vscode-lean4), under
+Apache-2.0.  The test fixtures are recorded from iris-lean
 (https://github.com/leanprover-community/iris-lean), under Apache-2.0.
 For details, see ‘NOTICE’ and ‘test/fixtures/README.org’.
 
@@ -656,26 +708,26 @@ Tag Table:
 Node: Top192
 Node: Lineage and Credits2942
 Node: Lineage3127
-Node: Credits4288
-Node: What It Adds5985
-Node: Get Started7804
-Node: Usage8196
-Node: Configuration14632
-Node: Installation16953
-Node: Installation from Sources17407
-Node: Manual Installation17755
-Node: Installation via package-vc18712
-Ref: Installation via package-vc-selected-packages19375
-Ref: Installation via use-package vc20518
-Node: Installation in Doom Emacs21409
-Node: Changelog21875
-Node: Lena not released yet22369
-Node: Version 082 from 2026-02-2222703
-Node: Version 080 from 2026-12-1623093
-Node: Version 070 from 2025-12-1523738
-Node: Version 062 from 2025-11-3024337
-Node: Version 060 from 2025-11-3024690
-Node: License and Maintenance25788
+Node: Credits4332
+Node: What It Adds6055
+Node: Get Started7893
+Node: Usage8285
+Node: Configuration14721
+Node: Installation17042
+Node: Installation from Sources17496
+Node: Manual Installation17844
+Node: Installation via package-vc18801
+Ref: Installation via package-vc-selected-packages19464
+Ref: Installation via use-package vc20607
+Node: Installation in Doom Emacs21498
+Node: Changelog24133
+Node: Lena not released yet24627
+Node: Version 082 from 2026-02-2224961
+Node: Version 080 from 2026-12-1625351
+Node: Version 070 from 2025-12-1525996
+Node: Version 062 from 2025-11-3026595
+Node: Version 060 from 2025-11-3026948
+Node: License and Maintenance28046
 
 End Tag Table
 

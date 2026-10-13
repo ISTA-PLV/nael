@@ -110,8 +110,9 @@ was later renamed to Lena.
 It builds on code from elsewhere: @code{lena-eglot.el}'s building of imports
 (@samp{dependencyBuildMode}) and restarting of files are adapted from Doug Torrance's
 @uref{https://github.com/d-torrance/lean4-mode, lean4-mode}; @code{lena-rpc.el} is derived from that lean4-mode's @samp{lean4-rpc.el}, which
-is derived from Jan Mas Rovira's @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}; the Doom Emacs module follows
-Doom Emacs' own @samp{:lang lean} module. See @emph{License and Maintenance} and @samp{NOTICE}.
+is derived from Jan Mas Rovira's @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}; the smartparens pairs and the Doom Emacs
+setup in this manual follow Doom Emacs' own @samp{:lang lean} module. See @emph{License
+and Maintenance} and @samp{NOTICE}.
 @end itemize
 
 @node Credits
@@ -140,7 +141,7 @@ infoview.
 @uref{https://github.com/Julian/lean.nvim, lean.nvim}, whose infoview keys some of the keys of @code{lena-evil} follow.
 @item
 @emph{Henrik Lissner} and the contributors of @uref{https://github.com/doomemacs/doomemacs, Doom Emacs}, whose @samp{:lang lean} module
-Lena's Doom module follows.
+Lena's smartparens pairs and Doom Emacs setup follow.
 @item
 The authors of @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, from which the test fixtures are recorded.
 @end itemize
@@ -168,7 +169,8 @@ For Eglot: restarting the current file, which builds its imports once
 (@code{lena-eglot-build-dependencies}); Lean's silent diagnostics and widgets in
 messages.
 @item
-Keys for @uref{https://github.com/emacs-evil/evil, Evil}, in the separate package @code{lena-evil}, and a Doom Emacs module (@samp{doom/lang/lena/}).
+Keys for @uref{https://github.com/emacs-evil/evil, Evil}, in the separate package @code{lena-evil}, and a setup for Doom Emacs
+(see @emph{Installation in Doom Emacs}).
 @item
 Smaller changes: a better syntax table, also for ElDoc, and macros recognized
 as such; the first goal is no longer echoed (@code{lena-eglot-echo-goal}); a shorter
@@ -512,10 +514,63 @@ that is generated at installation, you don't need to specify load-triggers like
 @node Installation in Doom Emacs
 @section Installation in Doom Emacs
 
-The repository contains a Doom Emacs module, @samp{:lang lena}, in @samp{doom/lang/lena/}. It
-installs Lena and sets up its infoview, with keys under @samp{SPC m} and for Evil, and
-replaces Doom's @samp{:lang lean} module, which uses upstream Nael. See its @samp{README.org}
-for how to install it.
+Doom's own @samp{:lang lean} module uses upstream Nael, so disable it: in
+@samp{~/.doom.d/init.el}, comment out @samp{lean} under @samp{:lang}. Then declare Lena in
+@samp{~/.doom.d/packages.el}:
+
+@lisp
+(package! lena
+  :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+           :files ("lena/*.el" "lena/lena.info" "lena/lena.texi"
+                   "lena/NOTICE" "lena/LICENSE*")))
+;; With Evil:
+(package! lena-evil
+  :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+           :files ("lena-evil/*.el" "lena-evil/LICENSE")))
+@end lisp
+
+Set it up in @samp{~/.doom.d/config.el}, with its keys under the local leader @samp{SPC m},
+then run @samp{doom sync} and restart Emacs:
+
+@lisp
+;; Lean's Unicode input, such as \to for →.
+(add-hook 'lena-mode-hook #'abbrev-mode)
+;; Start the Lean server.
+(add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
+
+(map! :after lena
+      :map lena-mode-map
+      :localleader
+      :desc "Infoview"           "i" #'lena-infoview
+      :desc "Restart file"       "r" #'lena-eglot-restart-file
+      :desc "Build project"      "b" #'project-compile
+      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer
+      :desc "Abbreviations"      "a" #'lena-abbrev-help)
+
+(map! :after lena-infoview-buffer
+      :map lena-infoview-mode-map
+      :localleader
+      :desc "Refresh"            "r" #'lena-infoview-refresh
+      :desc "View options"       "v" #'lena-infoview-view-options
+      :desc "Copy goal"          "y" #'lena-infoview-copy-goal)
+
+;; The infoview places itself, in a side window by default; see
+;; `lena-infoview-display-action'.  The help buffer is a popup.
+(set-popup-rule! "^\\*Lena Infoview\\*" :ignore t)
+(set-popup-rule! "^\\*Lena Help\\*" :slot 2 :vslot -8 :size 0.42 :select t)
+
+;; With Evil:
+(after! (evil lena-infoview-buffer)
+  (lena-evil-setup))
+@end lisp
+
+In the infoview's normal state, @samp{]g} and @samp{[g} go to the next and previous goal,
+@samp{]h} and @samp{[h} to headings, @samp{gr} refreshes, and on a subterm @samp{K} or @samp{RET} describes it,
+@samp{gd} goes to its definition and @samp{C-o} comes back. The descriptions open in
+@samp{*Lena Help*}, where @samp{C-o} and @samp{C-i} go back and forth and @samp{q} closes.
+
+To work on Lena itself, use your clone in the recipes instead, as in
+@samp{(:local-repo "/path/to/lena" :files (...))}.
 
 @node Changelog
 @chapter Changelog
@@ -613,8 +668,9 @@ sublicensed under GPL-3.0.
 The files that Lena adds are licensed under GPL-3.0-only, except
 @code{lena-rpc.el}. Parts of @code{lena-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under
 Apache-2.0. @code{lena-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and
-licensed under the MIT License, see @samp{LICENSE.MIT}. The Doom Emacs module follows
-Doom Emacs' @samp{:lang lean} module, under the MIT License. The abbreviations are
+licensed under the MIT License, see @samp{LICENSE.MIT}. The smartparens pairs and the
+Doom Emacs setup in this manual follow Doom Emacs' @samp{:lang lean} module, under the
+MIT License. The abbreviations are
 generated from data of @uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, under Apache-2.0. The test fixtures are
 recorded from @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, under Apache-2.0. For details, see @samp{NOTICE} and
 @samp{test/fixtures/README.org}.
