@@ -23,7 +23,7 @@ jobs:
           (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
           (package-initialize))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: purcell/setup-emacs@master
         with:
           version: ${{ matrix.emacs }}
@@ -42,16 +42,16 @@ jobs:
   live:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: purcell/setup-emacs@master
         with:
           version: '30.2'
       - run: emacs --version
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.elan
           key: elan-${{ hashFiles('test/lean/lean-toolchain') }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: test/lean/.lake
           key: lake-${{ hashFiles('test/lean/lean-toolchain') }}-${{ hashFiles('test/lean/lakefile.toml', 'test/lean/**/*.lean') }}
