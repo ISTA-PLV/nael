@@ -24,25 +24,23 @@
 @top Lena — An Emacs major mode for Lean
 
 Lena is a set of packages that extend @uref{https://www.gnu.org/software/emacs/, GNU Emacs} for the @uref{https://lean-lang.org, Lean} language. It is
-ISTA PLV's fork of @uref{https://codeberg.org/mekeor/nael, Nael} by Mekeor Melire, which is itself a radically refactored
+a fork of @uref{https://codeberg.org/mekeor/nael, Nael} by Mekeor Melire, which is itself a radically refactored
 fork of @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} with focus on simplicity, modularity and integration into
-Emacs' core. Lena branched from Nael 0.8.3 and adds an infoview, signs in the
+Emacs' core. Lena adds an infoview, signs in the
 margin and more. See @emph{Lineage and Credits} for more information about Lena's
 lineage.
 
 The @code{lena} package defines the major mode. It also introduces simple and two-sided
-abbreviations per @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html, Abbrev} and @uref{https://www.gnu.org/software/emacs/manual/html_node/autotype/, Skeleton} respectively. It teaches Emacs' built-in
+abbreviations per @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html, Abbrev} and @uref{https://www.gnu.org/software/emacs/manual/html_node/autotype/, Skeleton} respectively. Lena teaches Emacs' built-in
 @uref{https://microsoft.github.io/language-server-protocol/, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions}, tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that
-information, and shows it in an infoview, like the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean}
-that many are familiar with. The separate package @code{lena-evil} binds keys for @uref{https://github.com/emacs-evil/evil, Evil}.
+information, and shows it in an infoview, like the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean}.
+The separate package @code{lena-evil} binds keys for @uref{https://github.com/emacs-evil/evil, Evil}.
 
 Lena works with Eglot only. Nael's support for @uref{https://github.com/emacs-lsp/lsp-mode, lsp-mode}, its package @code{nael-lsp},
 is not part of Lena.
 
-Much of the code that Lena adds to Nael was written with the help of an AI
-assistant, Claude, and reviewed, tested and revised by Lena's maintainers, who
-answer for it. The code that Lena takes from Nael and the other projects named
-under @emph{Lineage and Credits} is their authors' work. 
+@strong{Note}: Much of the code that Lena adds to Nael was written with the help of AI
+assistants and reviewed, tested and revised by Lena's maintainers.
 
 @end ifnottex
 

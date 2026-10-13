@@ -13,20 +13,20 @@ Lena — An Emacs major mode for Lean
 
 Lena is a set of packages that extend GNU Emacs
 (https://www.gnu.org/software/emacs/) for the Lean
-(https://lean-lang.org) language.  It is ISTA PLV's fork of Nael
+(https://lean-lang.org) language.  It is a fork of Nael
 (https://codeberg.org/mekeor/nael) by Mekeor Melire, which is itself a
 radically refactored fork of Lean4-Mode
 (https://github.com/leanprover-community/lean4-mode) with focus on
-simplicity, modularity and integration into Emacs' core.  Lena branched
-from Nael 0.8.3 and adds an infoview, signs in the margin and more.  See
-_Lineage and Credits_ for more information about Lena's lineage.
+simplicity, modularity and integration into Emacs' core.  Lena adds an
+infoview, signs in the margin and more.  See _Lineage and Credits_ for
+more information about Lena's lineage.
 
    The ‘lena’ package defines the major mode.  It also introduces simple
 and two-sided abbreviations per Abbrev
 (https://www.gnu.org/software/emacs/manual/html_node/emacs/Abbrevs.html)
 and Skeleton
 (https://www.gnu.org/software/emacs/manual/html_node/autotype/)
-respectively.  It teaches Emacs' built-in LSP
+respectively.  Lena teaches Emacs' built-in LSP
 (https://microsoft.github.io/language-server-protocol/) client Eglot
 (https://www.gnu.org/software/emacs/manual/html_node/eglot/) about
 Lean-specific LSP-extensions
@@ -37,19 +37,17 @@ to display that information, and shows it in an infoview, like the “info
 view
 (https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview)”
 in vscode-lean
-(https://marketplace.visualstudio.com/items?itemName=leanprover.lean4)
-that many are familiar with.  The separate package ‘lena-evil’ binds
-keys for Evil (https://github.com/emacs-evil/evil).
+(https://marketplace.visualstudio.com/items?itemName=leanprover.lean4).
+The separate package ‘lena-evil’ binds keys for Evil
+(https://github.com/emacs-evil/evil).
 
    Lena works with Eglot only.  Nael's support for lsp-mode
 (https://github.com/emacs-lsp/lsp-mode), its package ‘nael-lsp’, is not
 part of Lena.
 
-   Much of the code that Lena adds to Nael was written with the help of
-an AI assistant, Claude, and reviewed, tested and revised by Lena's
-maintainers, who answer for it.  The code that Lena takes from Nael and
-the other projects named under _Lineage and Credits_ is their authors'
-work.
+   *Note*: Much of the code that Lena adds to Nael was written with the
+help of AI assistants and reviewed, tested and revised by Lena's
+maintainers.
 
 * Menu:
 
@@ -656,28 +654,28 @@ please report problems there.
 
 Tag Table:
 Node: Top192
-Node: Lineage and Credits3146
-Node: Lineage3331
-Node: Credits4492
-Node: What It Adds6189
-Node: Get Started8008
-Node: Usage8400
-Node: Configuration14836
-Node: Installation17157
-Node: Installation from Sources17611
-Node: Manual Installation17959
-Node: Installation via package-vc18916
-Ref: Installation via package-vc-selected-packages19579
-Ref: Installation via use-package vc20722
-Node: Installation in Doom Emacs21613
-Node: Changelog22079
-Node: Lena not released yet22573
-Node: Version 082 from 2026-02-2222907
-Node: Version 080 from 2026-12-1623297
-Node: Version 070 from 2025-12-1523942
-Node: Version 062 from 2025-11-3024541
-Node: Version 060 from 2025-11-3024894
-Node: License and Maintenance25992
+Node: Lineage and Credits2942
+Node: Lineage3127
+Node: Credits4288
+Node: What It Adds5985
+Node: Get Started7804
+Node: Usage8196
+Node: Configuration14632
+Node: Installation16953
+Node: Installation from Sources17407
+Node: Manual Installation17755
+Node: Installation via package-vc18712
+Ref: Installation via package-vc-selected-packages19375
+Ref: Installation via use-package vc20518
+Node: Installation in Doom Emacs21409
+Node: Changelog21875
+Node: Lena not released yet22369
+Node: Version 082 from 2026-02-2222703
+Node: Version 080 from 2026-12-1623093
+Node: Version 070 from 2025-12-1523738
+Node: Version 062 from 2025-11-3024337
+Node: Version 060 from 2025-11-3024690
+Node: License and Maintenance25788
 
 End Tag Table
 
