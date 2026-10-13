@@ -80,7 +80,7 @@
   (let ((failed nil)
         (root default-directory)
         ;; Generated from data of the Lean plugin for V. S. Code.
-        (generated '("lena-abbrev.el" "lena-skeleton.el")))
+        (generated '("lena-quail.el")))
     (dolist (dir (file-expand-wildcards "lena*"))
       (dolist (file (directory-files dir t (rx ".el" eos)))
         (unless (or (string-suffix-p "-autoloads.el" file)
