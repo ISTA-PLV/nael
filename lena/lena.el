@@ -432,7 +432,7 @@
 ;; the input methods in Emacs' `leim-list', `quail-use-package' loads
 ;; the library only once the input method is activated.
 (register-input-method
- "Lena" "UTF-8" #'quail-use-package "Lena"
+ "Lena" "UTF-8" #'quail-use-package "∀"
  "TeX-like input method for Lean language and `lena-mode'."
  "lena-quail")
 

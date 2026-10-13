@@ -29,7 +29,7 @@
 (quail-define-package
  "Lena" ;; name
  "UTF-8" ;; language
- "Lena" ;; title
+ "∀" ;; title
  nil ;; guidance
  "TeX-like input method for Lean language and `lena-mode'." ;; doc
  nil ;; translation-keys
