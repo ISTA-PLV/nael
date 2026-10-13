@@ -67,6 +67,7 @@
 (declare-function lena-eglot-configure-when-managed "lena-eglot" ())
 (declare-function lena-eglot-restart-file "lena-eglot" ())
 (declare-function lena-infoview "lena-infoview" ())
+(declare-function sp-local-pair "smartparens" (modes open close &rest args))
 
 (defgroup lena nil
   "Major mode for Lean."
@@ -552,6 +553,17 @@ Expand symbol-including abbreviations when adequate character inserted."
   (defvar markdown-code-lang-modes)
   (add-to-list 'markdown-code-lang-modes
                (cons "lean" 'lena-mode)))
+
+;; These pairs follow Doom Emacs' `:lang lean' module (Doom Emacs at
+;; commit f8329b4, Copyright (c) 2014-2026 Henrik Lissner, MIT License;
+;; see <https://github.com/doomemacs/doomemacs/blob/master/LICENSE>).
+(with-eval-after-load 'smartparens
+  (sp-local-pair 'lena-mode "/-" "-/")
+  (sp-local-pair 'lena-mode "`" "`")
+  (sp-local-pair 'lena-mode "{" "}")
+  (sp-local-pair 'lena-mode "«" "»")
+  (sp-local-pair 'lena-mode "⟨" "⟩")
+  (sp-local-pair 'lena-mode "⟪" "⟫"))
 
 (provide 'lena)
 
