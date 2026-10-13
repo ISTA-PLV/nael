@@ -440,7 +440,16 @@
   "Whether the Lena input method should be prepared for `lena-mode'.
 
 When non-nil, `lena-mode' makes Lena the buffer's default input method
-so that \\[toggle-input-method] activates it."
+so that \\[toggle-input-method] toggles it, also in prompts entered
+from the buffer; see `lena-quail-minibuffer-setup'."
+  :type 'boolean
+  :group 'lena)
+
+(defcustom lena-activate-quail t
+  "Whether `lena-mode' turns the Lena input method on.
+
+When non-nil and the option `lena-prepare-quail' is non-nil, Lean buffers start
+with the input method on, and \\[toggle-input-method] turns it off."
   :type 'boolean
   :group 'lena)
 
@@ -449,7 +458,30 @@ so that \\[toggle-input-method] activates it."
   (interactive)
   (when lena-prepare-quail
     (setq-local default-input-method
-                "Lena")))
+                "Lena")
+    (when lena-activate-quail
+      (activate-input-method "Lena"))))
+
+;; A prompt is a buffer of its own, which starts without an input
+;; method and with the global default.  Give it the default of the
+;; buffer it was entered from, so that `toggle-input-method' turns on
+;; Lena there instead of asking which input method to use.  The prompt
+;; starts with the input method off, since in a regexp, for example,
+;; \b would become β.
+(defun lena-quail-minibuffer-setup ()
+  "Make the prompt's default input method that of the buffer it serves."
+  (when-let* ((window (minibuffer-selected-window))
+              (buffer (window-buffer window))
+              (method (with-current-buffer buffer
+                        (and (local-variable-p 'default-input-method)
+                             default-input-method))))
+    (setq-local default-input-method method)
+    ;; `toggle-input-method' prefers the most recently chosen input
+    ;; method over the default.
+    (setq-local input-method-history
+                (cons method (remove method input-method-history)))))
+
+(add-hook 'minibuffer-setup-hook #'lena-quail-minibuffer-setup)
 
 ;;;; Mode:
 
