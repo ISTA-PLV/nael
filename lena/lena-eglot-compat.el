@@ -25,6 +25,7 @@
     eglot--signal-textDocument/didClose
     eglot--signal-textDocument/didOpen
     eglot--TextDocumentPositionParams
+    eglot--update-hints-1
     jsonrpc--next-request-id)
   "Internal functions of Eglot and jsonrpc that Lena calls.")
 
@@ -75,6 +76,11 @@ jsonrpc."
   "Make Eglot ask for the semantic tokens of the current buffer again.
 Eglot keeps them for a document version.  It has them since 1.19."
   (setq eglot--semtok-state nil))
+
+(defun lena-eglot-compat-update-hints (from to)
+  "Ask for the inlay hints between FROM and TO, and show them.
+Eglot asks for them only when it fontifies the text."
+  (eglot--update-hints-1 from to))
 
 (provide 'lena-eglot-compat)
 

@@ -145,6 +145,41 @@
                   (should (buffer-local-value 'eglot--semtok-state other)))
               (delete-process (jsonrpc--process server)))))))))
 
+(ert-deftest lena-eglot-test-inlay-hints-refresh ()
+  "Lean's requests to refresh inlay hints make Eglot ask for the shown ones."
+  (let ((server (make-instance 'lena-eglot-test-server
+                               :process (make-pipe-process
+                                         :name "lena-eglot-test"
+                                         :noquery t)))
+        (asked nil))
+    (with-temp-buffer
+      (let ((shown (current-buffer)))
+        (insert (make-string 100 ?x))
+        (with-temp-buffer
+          (let ((hidden (current-buffer))
+                (window (selected-window))
+                (previous (window-buffer (selected-window))))
+            (with-current-buffer shown (setq-local eglot-inlay-hints-mode t))
+            (with-current-buffer hidden (setq-local eglot-inlay-hints-mode t))
+            (unwind-protect
+                (cl-letf (((symbol-function 'eglot-managed-p)
+                           (lambda () (memq (current-buffer) (list shown hidden))))
+                          ((symbol-function 'eglot-current-server)
+                           (lambda () server))
+                          ((symbol-function 'lena-eglot-compat-update-hints)
+                           (lambda (from to)
+                             (push (list (current-buffer) from to) asked))))
+                  (set-window-buffer window shown)
+                  (should-not (eglot-handle-request
+                               server 'workspace/inlayHint/refresh))
+                  ;; Only the shown buffer is asked, for its window.
+                  (should (equal (mapcar #'car asked) (list shown)))
+                  (should (equal (cdar asked)
+                                 (list (window-start window)
+                                       (window-end window t)))))
+              (set-window-buffer window previous)
+              (delete-process (jsonrpc--process server)))))))))
+
 (ert-deftest lena-eglot-test-semantic-tokens-restart ()
   "Restarting the file makes Eglot ask for its semantic tokens again."
   (with-temp-buffer

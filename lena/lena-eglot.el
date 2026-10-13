@@ -444,6 +444,35 @@ Only where Eglot shows them, with `eglot-semantic-tokens-mode'."
         (lena-eglot-refresh-semantic-tokens))))
   nil)
 
+;; Lean streams inlay hints the same way, such as the auto-bound
+;; implicit {B} of `def a (b : B) := b': it reports those of the part of
+;; the file processed so far, and asks for them again with
+;; `workspace/inlayHint/refresh' until it is done.  Eglot does not handle
+;; that request (as of 1.24) and asks for hints only when it fontifies,
+;; so the hints of a line just written stayed missing until the line
+;; was fontified again.
+
+(defvar eglot-inlay-hints-mode)
+
+(defun lena-eglot-refresh-inlay-hints ()
+  "Ask again for the inlay hints of the current buffer, where it is shown.
+Only where Eglot shows them, with `eglot-inlay-hints-mode'."
+  (when-let* (((bound-and-true-p eglot-inlay-hints-mode))
+              (windows (get-buffer-window-list nil nil t)))
+    (lena-eglot-compat-update-hints
+     (apply #'min (mapcar #'window-start windows))
+     (apply #'max (mapcar (lambda (window) (window-end window t))
+                          windows)))))
+
+(cl-defmethod eglot-handle-request
+  ((server lena-eglot-server) (_method (eql workspace/inlayHint/refresh)))
+  "Ask SERVER again for the inlay hints of its buffers, as Lean expects."
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (and (eglot-managed-p) (eq (eglot-current-server) server))
+        (lena-eglot-refresh-inlay-hints))))
+  nil)
+
 (defun lena-eglot-processing-line-p (&optional line)
   "Return non-nil if the server is still processing LINE.
 LINE is 0-based as in LSP and defaults to the line of point.  The
