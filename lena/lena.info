@@ -306,10 +306,14 @@ Language Server Protocol (LSP):
 
    Input method:
 
-   • ‘C-\’ (‘toggle-input-method’) toggles the ‘Lena’ input method.
-     While it is active, typing an abbreviation like ‘\a’ or ‘\to’
-     inserts the corresponding character, here ‘α’ or ‘→’.  This also
-     works within Isearch and the minibuffer.
+   • Lean buffers start with the ‘Lena’ input method on, shown as ‘∀’ in
+     the mode line: typing an abbreviation like ‘\a’ or ‘\to’ inserts
+     the corresponding character, here ‘α’ or ‘→’.  ‘\\’ inserts a
+     backslash.
+   • ‘C-\’ (‘toggle-input-method’) turns the input method off and on.
+     Prompts entered from a Lean buffer, such as searches, start with it
+     off, so that regexps like ‘\b’ stay as they are; there, ‘C-\’ turns
+     on ‘Lena’ too.
    • ‘C-u C-x =’ (‘describe-char’) describes the character at point.
      While the input method is active, this includes how to type the
      character.
@@ -377,12 +381,9 @@ names Lean 4.30 or later.  Then the text of a trace that Flymake shows
 is only "(trace)", as in VS Code.  To keep the full text in Flymake
 instead, set ‘lena-eglot-widgets’ to ‘nil’ before Lean starts.
 
-   Lena makes ‘Lena’ the default input method of its buffers, so that
-‘C-\’ activates it.  To keep your global default input method instead,
-set ‘lena-prepare-quail’ to ‘nil’.  To activate the input method
-automatically, add this to your init file:
-
-     (add-hook 'lena-mode-hook (lambda () (activate-input-method "Lena")))
+   To start Lean buffers with the input method off, set
+‘lena-activate-quail’ to ‘nil’; ‘C-\’ still turns it on.  To keep your
+global default input method instead, set ‘lena-prepare-quail’ to ‘nil’.
 
    The input method does not include abbreviations that place point
 between two inserted strings, such as ‘\<>’ for ‘⟨⟩’.  Type the opening
@@ -540,8 +541,8 @@ Lena in ‘~/.doom.d/packages.el’:
    Set it up in ‘~/.doom.d/config.el’, with its keys under the local
 leader ‘SPC m’, then run ‘doom sync’ and restart Emacs:
 
-     ;; C-\ toggles Lean's Unicode input, such as \to for →, in Lean buffers.
-     ;; Start the Lean server:
+     ;; Lean's Unicode input, such as \to for →, is on in Lean buffers; C-\
+     ;; toggles it.  Start the Lean server:
      (add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
 
      (map! :after lena
@@ -714,22 +715,22 @@ Node: Credits4372
 Node: What It Adds6093
 Node: Get Started8216
 Node: Usage8608
-Node: Configuration15100
-Node: Installation17384
-Node: Installation from Sources17838
-Node: Manual Installation18186
-Node: Installation via package-vc19143
-Ref: Installation via package-vc-selected-packages19806
-Ref: Installation via use-package vc20949
-Node: Installation in Doom Emacs21840
-Node: Changelog24397
-Node: Lena not released yet24891
-Node: Version 082 from 2026-02-2225225
-Node: Version 080 from 2026-12-1625615
-Node: Version 070 from 2025-12-1526260
-Node: Version 062 from 2025-11-3026859
-Node: Version 060 from 2025-11-3027212
-Node: License and Maintenance28310
+Node: Configuration15335
+Node: Installation17497
+Node: Installation from Sources17951
+Node: Manual Installation18299
+Node: Installation via package-vc19256
+Ref: Installation via package-vc-selected-packages19919
+Ref: Installation via use-package vc21062
+Node: Installation in Doom Emacs21953
+Node: Changelog24521
+Node: Lena not released yet25015
+Node: Version 082 from 2026-02-2225349
+Node: Version 080 from 2026-12-1625739
+Node: Version 070 from 2025-12-1526384
+Node: Version 062 from 2025-11-3026983
+Node: Version 060 from 2025-11-3027336
+Node: License and Maintenance28434
 
 End Tag Table
 
