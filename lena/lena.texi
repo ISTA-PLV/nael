@@ -1,0 +1,690 @@
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename lena.info
+@settitle Lena — An Emacs major mode for Lean
+@documentencoding UTF-8
+@documentlanguage en
+@c %**end of header
+
+@dircategory Emacs misc features
+@direntry
+* Lena: (lena).         Major mode for Lean.
+@end direntry
+
+@finalout
+@titlepage
+@title Lena — An Emacs major mode for Lean
+@author Mekeor Melire and ISTA PLV
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top Lena — An Emacs major mode for Lean
+
+Lena is a set of packages that extend @uref{https://www.gnu.org/software/emacs/, GNU Emacs} for the @uref{https://lean-lang.org, Lean} language. It is
+a fork of @uref{https://codeberg.org/mekeor/nael, Nael} by Mekeor Melire, which is itself a radically refactored
+fork of @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} with focus on simplicity, modularity and integration into
+Emacs' core. Lena adds an infoview, signs in the
+margin and more. See @emph{Lineage and Credits} for more information about Lena's
+lineage.
+
+The @code{lena} package defines the major mode. It also introduces the @code{Lena}
+@uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Input-Methods.html, input method} for typing Unicode characters common in Lean, such as @samp{\a} for @samp{α}.
+Lena teaches Emacs' built-in
+@uref{https://microsoft.github.io/language-server-protocol/, LSP} client @uref{https://www.gnu.org/software/emacs/manual/html_node/eglot/, Eglot} about @uref{https://github.com/leanprover/lean4/blob/master/src/Lean/Data/Lsp/Extra.lean, Lean-specific LSP-extensions}, tells @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html, ElDoc} to display that
+information, and shows it in an infoview, like the “@uref{https://github.com/leanprover/vscode-lean4/blob/master/vscode-lean4/manual/manual.md#infoview, info view}” in @uref{https://marketplace.visualstudio.com/items?itemName=leanprover.lean4, vscode-lean}.
+The separate package @code{lena-evil} binds keys for @uref{https://github.com/emacs-evil/evil, Evil}.
+
+Lena works with Eglot only. Nael's support for @uref{https://github.com/emacs-lsp/lsp-mode, lsp-mode}, its package @code{nael-lsp},
+is not part of Lena.
+
+@strong{Note}: Much of the code that Lena adds to Nael was written with the help of AI
+assistants and reviewed, tested and revised by Lena's maintainers.
+
+@end ifnottex
+
+@menu
+* Lineage and Credits::
+* Get Started::
+* Usage::
+* Configuration::
+* Installation::
+* Changelog::
+* License and Maintenance::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Lineage and Credits
+
+* Lineage::
+* Credits::
+* What It Adds::
+
+Installation
+
+* Installation from Sources::
+* Installation in Doom Emacs::
+
+Installation from Sources
+
+* Manual Installation::
+* Installation via @code{package-vc}::
+
+Changelog
+
+* Lena, not released yet: Lena not released yet. 
+* Version 0.8.2 from 2026-02-22: Version 082 from 2026-02-22. 
+* Version 0.8.0 from 2026-12-16: Version 080 from 2026-12-16. 
+* Version 0.7.0 from 2025-12-15: Version 070 from 2025-12-15. 
+* Version 0.6.2 from 2025-11-30: Version 062 from 2025-11-30. 
+* Version 0.6.0 from 2025-11-30: Version 060 from 2025-11-30. 
+
+@end detailmenu
+@end menu
+
+@node Lineage and Credits
+@chapter Lineage and Credits
+
+@menu
+* Lineage::
+* Credits::
+* What It Adds::
+@end menu
+
+@node Lineage
+@section Lineage
+
+@itemize
+@item
+@uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} is the Lean community's Emacs mode for Lean 4.
+@item
+Nael is Mekeor Melire's fork of it, on @uref{https://codeberg.org/mekeor/nael, Codeberg} and @uref{https://melpa.org/#/nael, Melpa}. Lena's major mode,
+its Font-Lock rules, navigation and much of this manual are Nael's. Lena's
+input method starts from Mekeor Melire's work on Nael's @samp{dev} branch.
+@item
+Lena branched from Nael 0.8.3 (commit @samp{c1d3497} of Nael's @samp{release} branch) and
+was later renamed to Lena.
+@item
+It builds on code from elsewhere: @code{lena-eglot.el}'s building of imports
+(@samp{dependencyBuildMode}) and restarting of files are adapted from Doug Torrance's
+@uref{https://github.com/d-torrance/lean4-mode, lean4-mode}; @code{lena-rpc.el} is derived from that lean4-mode's @samp{lean4-rpc.el}, which
+is derived from Jan Mas Rovira's @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}; the smartparens pairs and the Doom Emacs
+setup in this manual follow Doom Emacs' own @samp{:lang lean} module. See @emph{License
+and Maintenance} and @samp{NOTICE}.
+@end itemize
+
+@node Credits
+@section Credits
+
+Lena builds on the work of many people:
+
+@itemize
+@item
+@emph{Mekeor Melire} wrote @uref{https://codeberg.org/mekeor/nael, Nael}, which Lena is a fork of.
+@item
+The authors of @uref{https://github.com/leanprover-community/lean4-mode, Lean4-Mode} and its predecessors, whom @code{lena.el} names: Adam
+Topaz, Akira Komamura, Bao Zhiyuan, Daniel Selsam, Gabriel Ebner, Henrik
+Böving, Hongyu Ouyang, Jakub Bartczuk, Leonardo de Moura, Mauricio Collares,
+Mekeor Melire, Philip Kaludercic, Richard Copley, Sebastian Ullrich, Siddharth
+Bhat, Simon Hudon, Soonho Kong, Tomáš Skřivan, Wojciech Nawrocki, Yael Dillies
+and Yury G@. Kudryashov.
+@item
+@emph{Doug Torrance}'s @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} and @emph{Jan Mas Rovira}'s @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode}, whose RPC
+client Lena's is derived from, and whose building of imports Lena adapts.
+@item
+@uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, the Lean extension for VS Code: Lena's input method is
+generated from its abbreviation data, and Lena's infoview is modelled on its
+infoview.
+@item
+@uref{https://github.com/Julian/lean.nvim, lean.nvim}, whose infoview keys some of the keys of @code{lena-evil} follow.
+@item
+@emph{Henrik Lissner} and the contributors of @uref{https://github.com/doomemacs/doomemacs, Doom Emacs}, whose @samp{:lang lean} module
+Lena's smartparens pairs and Doom Emacs setup follow.
+@item
+The authors of @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, from which the test fixtures are recorded.
+@end itemize
+
+@node What It Adds
+@section What It Adds
+
+Compared to Nael 0.8.3:
+
+@itemize
+@item
+An infoview (@code{lena-infoview}, @samp{C-c C-i}) that talks to Lean's RPC: goals and the
+expected type, with the changes of the tactic at point, folding and filters;
+subterms described by ElDoc, tooltips and the help buffer @samp{*Lena Help*}, and
+followed to their definitions; the messages of the line of point, with traces,
+suggestions to apply and links to the explanations of errors. Files:
+@code{lena-rpc.el}, @code{lena-render.el}, @code{lena-infoview.el}, @code{lena-infoview-buffer.el},
+@code{lena-infoview-hover.el}.
+@item
+Signs in the left margin for diagnostics, complete proofs, unsolved goals,
+uses of @samp{sorry} and lines being processed (@code{lena-margin-mode}, @code{lena-margin.el}).
+@item
+For Eglot: restarting the current file, which builds its imports once
+(@code{lena-eglot-restart-file}, @samp{C-c C-r}); not building imports when a file is opened
+(@code{lena-eglot-build-dependencies}); Lean's silent diagnostics and widgets in
+messages.
+@item
+Keys for @uref{https://github.com/emacs-evil/evil, Evil}, in the separate package @code{lena-evil}, and a setup for Doom Emacs
+(see @emph{Installation in Doom Emacs}).
+@item
+Smaller changes: a better syntax table, also for ElDoc, and macros recognized
+as such; the first goal is no longer echoed (@code{lena-eglot-echo-goal}); a shorter
+ElDoc delay in Lena buffers (@code{lena-eldoc-idle-delay}).
+@item
+Tests in @samp{test/}: @samp{emacs -Q --batch -l build.el test}, and @samp{test-live} with a Lean
+installation.
+@item
+Lena needs Emacs 30.1, instead of 29.1.
+@item
+Lena drops Nael's support for lsp-mode (@code{nael-lsp}) and uses Eglot only.
+@item
+The @code{Lena} input method replaces Nael's abbreviations (by Alex Loitzl, from
+Mekeor Melire's work on Nael's @samp{dev} branch): @samp{\to_1} gives @samp{→₁} instead of @samp{→_1},
+and abbreviations that end in a non-word character, such as @code{\d==}, work.
+@end itemize
+
+@node Get Started
+@chapter Get Started
+
+Lena is not on Elpa or Melpa yet. To install Lena, use @code{package-vc} or a clone of
+this repository, see the @emph{Installation} chapter below.
+
+Lena, (upstream) Nael and Lean4-Mode each make themselves the major mode for @samp{.lean}
+files, so install only one of them.
+
+@node Usage
+@chapter Usage
+
+Language Server Protocol (LSP):
+
+@itemize
+@item
+@samp{C-c C-e} (@code{eglot}) starts Eglot, the LSP client.
+@item
+@samp{C-c C-r} (@code{lena-eglot-restart-file}) makes the Lean server reprocess the current
+file, building its imports first if they are out of date. Opening a file does
+not build its imports, unless @code{lena-eglot-build-dependencies} is non-nil.
+@item
+@samp{C-c C-i} (@code{lena-infoview}) toggles the infoview, a window that shows the goals
+and the expected type at point and follows point. It needs Lean 4.30 or
+later.
+@item
+@samp{C-h .} (@code{eldoc-doc-buffer}) displays the ElDoc documentation buffer showing
+tactic state and expected goal at point, unless the infoview shows them.
+@end itemize
+
+Signs in the left margin, while Eglot manages the buffer (@code{lena-margin-mode}):
+
+@itemize
+@item
+@samp{‼} marks the line of an error, @samp{!} that of a warning or a note. A diagnostic that
+spans several lines gets a bar over them instead, @samp{┌}, @samp{│}, @samp{└}, in its color. These
+are the indicators that Flymake shows otherwise; Flymake still underlines the
+diagnostics and shows their messages. The tooltip of a sign shows the message,
+and clicking it lists all diagnostics.
+@item
+@samp{✓} marks a proof that is complete, @samp{✗} the last line of one with unsolved
+goals, where it goes on, and @samp{⚠} a declaration that uses @samp{sorry}. Other signs,
+such as emoji, can be set with @code{lena-margin-goals-accomplished},
+@code{lena-margin-unsolved-goals} and @code{lena-margin-admitted}; with most fonts, an emoji
+makes its line taller, unless @code{lena-margin-emoji-height} makes it smaller, such
+as 0.7.
+@item
+An orange @samp{│} marks the lines that Lean is still processing.
+@end itemize
+
+Infoview:
+
+@itemize
+@item
+Inspired by lean.nvim, in a complete proof, a line above the goals says "Goals
+accomplished ✓", and replaces "no goals" when none are left.
+@item
+Below the goals and the expected type, the section @emph{Messages} shows Lean's
+messages on the line of point: errors, warnings, and output such as that of
+@samp{#check}. Messages that start on another line, like an error about a whole
+proof, are folded; messages about the whole file, like that its imports are
+out of date, are not, and come first. That message has a @samp{[restart file]}
+button, which does what @samp{C-c C-r} does. Their terms are subterms like those of
+goals. @samp{RET} or @samp{mouse-1} on the position of a message goes there in the source.
+@item
+Traces, as with @samp{set_option trace.Meta.synthInstance true in}, are headings: @samp{TAB}
+on one shows its children, which Lean sends on request only.
+@item
+Suggestions such as Lean's "Try this" have an @samp{[apply]} button that replaces the
+code in the source with the suggestion; this includes the tactics of libraries
+that suggest through Lean's @samp{TryThis}. Lean's hints show the change they suggest
+as a diff, which applies the same way. The code of an error, such as
+@samp{[lean.invalidField]}, opens its explanation in Lean's reference manual.
+@item
+@samp{v} (@code{lena-infoview-view-options}) opens a menu for customizing what the infoview
+shows: which hypotheses to hide, whether to show the target first and the
+changes of the tactic at point, and how to show the expected type.
+
+@item
+With @uref{https://github.com/emacs-evil/evil, Evil} and the @code{lena-evil} package, @samp{(with-eval-after-load 'evil (lena-evil-setup))}
+binds keys in normal state that don't clash with its motions: @samp{]g} and @samp{[g} for
+the next and previous goal, @samp{]h} and @samp{[h} for headings, @samp{gr} to refresh, @samp{K} to
+describe the subterm at point, and, with a local leader, @samp{<localleader> v} for
+the view options and @samp{<localleader> y} to copy the goal.
+@end itemize
+
+Infoview, on a subterm of a goal:
+
+@itemize
+@item
+ElDoc echoes the subterm with all its arguments made explicit, and its
+type. With @uref{https://github.com/casouri/eldoc-box, eldoc-box}, this appears in a popup.
+@item
+With @code{tooltip-mode}, the tooltip of the subterm under the mouse shows it with
+its type and documentation. We suggest turning native tooltips off for better
+formatting, by setting @code{use-system-tooltips} to @samp{nil}.
+@item
+@samp{RET}, @samp{mouse-1} or @samp{C-h .} (@code{lena-infoview-describe}) describes the subterm in the
+help buffer @samp{*Lena Help*}: its explicit form, its type, its documentation, and
+how the tactic at point changes it. Its subterms can be described in turn, and
+the history goes back and forth: @samp{l} and @samp{r}, or @samp{C-o} and @samp{C-i} with Evil. In Doom
+Emacs, @samp{K} describes too. Closing the help window returns to the infoview.
+@item
+@samp{M-.} (@code{xref-find-definitions}) shows the definition of the subterm in another
+window, and @samp{M-,} (@code{xref-go-back}) returns to the infoview. In Doom Emacs, these
+are @samp{gd} and @samp{C-o}.
+@end itemize
+
+Input method:
+
+@itemize
+@item
+Lean buffers start with the @code{Lena} input method on, shown as @samp{∀} in the mode
+line: typing an abbreviation like @samp{\a} or @samp{\to} inserts the corresponding
+character, here @samp{α} or @samp{→}. @samp{\\} inserts a backslash.
+@item
+@samp{C-\} (@code{toggle-input-method}) turns the input method off and on. Prompts
+entered from a Lean buffer, such as searches, start with it off, so that
+regexps like @samp{\b} stay as they are; there, @samp{C-\} turns on @code{Lena} too.
+@item
+@samp{C-u C-x =} (@code{describe-char}) describes the character at point. While the input
+method is active, this includes how to type the character.
+@end itemize
+
+Build:
+
+@itemize
+@item
+@samp{C-c C-c} (@code{project-compile}) prompts for a command to build the current
+project. It will suggest @samp{lake build} because Lena configures the
+@code{compile-command} variable.
+@end itemize
+
+Navigation:
+
+@itemize
+@item
+@samp{M-a} (@code{forward-sentence}) go to beginning of current sentence/block, or to
+previous one.
+@item
+@samp{M-e} (@code{backward-sentence}) go to end of current sentence/block, or to next one.
+@item
+@samp{M-g i} (@code{imenu}) jumps to an interactively chosen definition in current buffer.
+@end itemize
+
+Comments:
+
+@itemize
+@item
+@samp{M-;} (@code{comment-dwim}) toggles the active region as comment or, if no region is
+active, creates a comment at end of line.
+@item
+@samp{M-q} (@code{prog-fill-reindent-defun}) fills the string- or comment-paragraph at
+point, or reindents the point-surrounding code.
+@end itemize
+
+@node Configuration
+@chapter Configuration
+
+To view the complete list of Lena's user option variables from within Emacs,
+customize the group @code{lena} (and its child-groups) with @samp{M-x customize-group RET
+lena RET}. This chapter highlights and elaborates on some of them.
+
+As an exception, Emacs customization groups cannot include keymaps. You can bind
+custom keys in @code{lena-mode-map} like this:
+
+@lisp
+(keymap-set lena-mode-map "C-c ." #'highlight-symbol-at-point)
+@end lisp
+
+To automatically enable features (e.g. Eglot) when Lena is started, customize
+@code{lena-mode-hook} as follows:
+
+@lisp
+(add-hook 'lena-mode-hook #'eglot-ensure)
+@end lisp
+
+The signs in the margin can be changed, also for a single project in its
+@samp{.dir-locals.el}. For example, with chickens:
+
+@lisp
+(setq lena-margin-goals-accomplished "🐣"  ; complete proof
+      lena-margin-unsolved-goals "🥚"      ; unsolved goals
+      lena-margin-admitted "🍗"            ; uses sorry
+      lena-margin-emoji-height 0.7)        ; as tall as text lines
+@end lisp
+
+The margin is as wide as its widest sign.
+
+To keep Flymake's indicators instead of the signs, set @code{lena-margin} to @samp{nil} before
+opening Lean files.
+
+For the infoview to show messages with their terms, traces and suggestions, Lena
+asks Lean for them when the project's @samp{lean-toolchain} names Lean 4.30 or
+later. Then the text of a trace that Flymake shows is only "(trace)", as in VS
+Code. To keep the full text in Flymake instead, set @code{lena-eglot-widgets} to @samp{nil}
+before Lean starts.
+
+To start Lean buffers with the input method off, set @code{lena-activate-quail} to
+@samp{nil}; @samp{C-\} still turns it on. To keep your global default input method
+instead, set @code{lena-prepare-quail} to @samp{nil}.
+
+The input method does not include abbreviations that place point between two
+inserted strings, such as @samp{\<>} for @samp{⟨⟩}. Type the opening character instead,
+e.g. @samp{\<} for @samp{⟨}. For brackets like @samp{⟨}, @samp{⟦} and @samp{⦃}, @code{electric-pair-mode} can insert
+the closing one.
+
+@node Installation
+@chapter Installation
+
+Lena's LSP-based features require Lean version 4 to be @uref{https://lean-lang.org/install/manual/, installed}.
+
+Lena is not on Melpa yet. The @code{nael} and @code{nael-lsp} packages on @uref{https://melpa.org/#/nael, Melpa} are upstream
+Nael, without Lena's additions.
+
+@menu
+* Installation from Sources::
+* Installation in Doom Emacs::
+@end menu
+
+@node Installation from Sources
+@section Installation from Sources
+
+The instructions below install Lena. For upstream Nael, use
+@samp{https://codeberg.org/mekeor/nael.git} instead.
+
+@menu
+* Manual Installation::
+* Installation via @code{package-vc}::
+@end menu
+
+@node Manual Installation
+@subsection Manual Installation
+
+First clone the Git repository, then, in your Emacs initialization file, add
+Lena to @code{load-path} and load it. For lazy loading the autoloads-file needs to be
+built beforehand.
+
+@lisp
+;; git clone https://github.com/ISTA-PLV/nael.git ~/path/to/lena
+
+(add-to-list 'load-path "~/path/to/lena/lena")
+;; For Evil:
+;; (add-to-list 'load-path "~/path/to/lena/lena-evil")
+
+;; Option 1, eager loading:
+(require 'lena)
+;; (require 'lena-evil)
+
+;; Option 2, lazy loading:
+;; cd ~/path/to/lena && ./build.el autoloads
+;; (require 'lena-autoloads)
+;; (require 'lena-evil-autoloads)
+
+;; Optionally, make readme available as info manual:
+(require 'info)
+(info-initialize)
+(add-to-list 'Info-directory-list "~/path/to/lena/lena")
+@end lisp
+
+@node Installation via @code{package-vc}
+@subsection Installation via @code{package-vc}
+
+Since version 29, Emacs ships with @code{package-vc} which enables the built-in
+package manager @code{package} to install from version-controlled source
+repositories. Keep in mind to regularly upgrade such packages with the command
+@code{package-vc-upgrade} or @code{package-vc-upgrade-all}. (And please ignore the warnings
+that arise when @code{package-vc} attempts to byte-compile all Elisp source files in
+the repository instead of just the package-specific ones.)
+
+@enumerate
+@item
+@anchor{Installation via @code{package-vc-selected-packages}}Installation via @code{package-vc-selected-packages}
+
+
+In your Emacs session, select packages per @code{package-vc-selected-packages}
+variable and install them with @samp{M-x package-vc-install-selected-packages
+RET}. Persist the package selection in your Emacs initialization file
+too. @code{package-vc} will generate the autoloads-file automatically. To lazy-load
+Lena, load the autoloads-file.
+
+@lisp
+(require 'package-vc)
+
+(setopt package-vc-selected-packages
+        '((lena
+           :doc "lena/README.org"
+           :lisp-dir "lena"
+           :url "https://github.com/ISTA-PLV/nael.git")
+          ;; For Evil:
+          ;; (lena-evil
+          ;;  :lisp-dir "lena-evil"
+          ;;  :url "https://github.com/ISTA-PLV/nael.git")
+          ))
+
+(package-initialize)
+
+;; Option 1, lazy loading:
+(require 'lena-autoloads)
+;; (require 'lena-evil-autoloads)
+
+;; Option 2, eager loading:
+;; (require 'lena)
+;; (require 'lena-evil)
+@end lisp
+
+@item
+@anchor{Installation via @code{use-package} @samp{vc}}Installation via @code{use-package} @samp{:vc}
+
+
+Since version 30 from 2025, Emacs' popular @code{use-package} macro supports a @samp{:vc}
+keyword as interface to @code{package-vc}. (Because each package has autoload-cookies
+on relevant expressions, and because @code{use-package} will load the autoloads-file
+that is generated at installation, you don't need to specify load-triggers like
+@samp{:mode}. I.e. lazy-loading should work out of the box.)
+
+@lisp
+(use-package lena
+  :vc ( :doc "lena/README.org"
+        :lisp-dir "lena"
+        :url "https://github.com/ISTA-PLV/nael.git"))
+
+;; For Evil:
+;; (use-package lena-evil
+;;   :after (lena evil)
+;;   :vc ( :lisp-dir "lena-evil"
+;;         :url "https://github.com/ISTA-PLV/nael.git")
+;;   :config (lena-evil-setup))
+@end lisp
+@end enumerate
+
+@node Installation in Doom Emacs
+@section Installation in Doom Emacs
+
+Doom's own @samp{:lang lean} module uses upstream Nael, so disable it: in
+@samp{~/.doom.d/init.el}, comment out @samp{lean} under @samp{:lang}. Then declare Lena in
+@samp{~/.doom.d/packages.el}:
+
+@lisp
+(package! lena
+  :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+           :files ("lena/*.el" "lena/lena.info" "lena/lena.texi"
+                   "lena/NOTICE" "lena/LICENSE*")))
+;; With Evil:
+(package! lena-evil
+  :recipe (:host github :repo "ISTA-PLV/nael" :branch "lena"
+           :files ("lena-evil/*.el" "lena-evil/LICENSE")))
+@end lisp
+
+Set it up in @samp{~/.doom.d/config.el}, with its keys under the local leader @samp{SPC m},
+then run @samp{doom sync} and restart Emacs:
+
+@lisp
+;; Lean's Unicode input, such as \to for →, is on in Lean buffers; C-\
+;; toggles it.  Start the Lean server:
+(add-hook 'lena-mode-local-vars-hook #'eglot-ensure 'append)
+
+(map! :after lena
+      :map lena-mode-map
+      :localleader
+      :desc "Infoview"           "i" #'lena-infoview
+      :desc "Restart file"       "r" #'lena-eglot-restart-file
+      :desc "Build project"      "b" #'project-compile
+      :desc "ElDoc buffer"       "e" #'eldoc-doc-buffer)
+
+(map! :after lena-infoview-buffer
+      :map lena-infoview-mode-map
+      :localleader
+      :desc "Refresh"            "r" #'lena-infoview-refresh
+      :desc "View options"       "v" #'lena-infoview-view-options
+      :desc "Copy goal"          "y" #'lena-infoview-copy-goal)
+
+;; The infoview places itself, in a side window by default; see
+;; `lena-infoview-display-action'.  The help buffer is a popup.
+(set-popup-rule! "^\\*Lena Infoview\\*" :ignore t)
+(set-popup-rule! "^\\*Lena Help\\*" :slot 2 :vslot -8 :size 0.42 :select t)
+
+;; With Evil:
+(after! (evil lena-infoview-buffer)
+  (lena-evil-setup))
+@end lisp
+
+In the infoview's normal state, @samp{]g} and @samp{[g} go to the next and previous goal,
+@samp{]h} and @samp{[h} to headings, @samp{gr} refreshes, and on a subterm @samp{K} or @samp{RET} describes it,
+@samp{gd} goes to its definition and @samp{C-o} comes back. The descriptions open in
+@samp{*Lena Help*}, where @samp{C-o} and @samp{C-i} go back and forth and @samp{q} closes.
+
+To work on Lena itself, use your clone in the recipes instead, as in
+@samp{(:local-repo "/path/to/lena" :files (...))}.
+
+@node Changelog
+@chapter Changelog
+
+@menu
+* Lena, not released yet: Lena not released yet. 
+* Version 0.8.2 from 2026-02-22: Version 082 from 2026-02-22. 
+* Version 0.8.0 from 2026-12-16: Version 080 from 2026-12-16. 
+* Version 0.7.0 from 2025-12-15: Version 070 from 2025-12-15. 
+* Version 0.6.2 from 2025-11-30: Version 062 from 2025-11-30. 
+* Version 0.6.0 from 2025-11-30: Version 060 from 2025-11-30. 
+@end menu
+
+@node Lena not released yet
+@section Lena, not released yet
+
+@itemize
+@item
+Based on Nael 0.8.3, and renamed from Nael to Lena. See @emph{What It Adds} in the chapter @emph{Lineage and Credits}. The versions below are Nael's, by Mekeor Melire.
+@end itemize
+
+@node Version 082 from 2026-02-22
+@section Version 0.8.2 from 2026-02-22
+
+@itemize
+@item
+Improved rules for Font-Lock: Highlight identifiers in their definitions. For example, in “def foo : Nat := 123”, @samp{foo} will be highlighted (via Font-Lock).
+@end itemize
+
+@node Version 080 from 2026-12-16
+@section Version 0.8.0 from 2026-12-16
+
+@itemize
+@item
+Fix bugs related to automatic abbreviation expansion:
+@item
+Backslash-dot-space now correctly expands to middledot-space, all while the cursor is positioned after the space character.
+@item
+Adjacent abbreviations expand correctly, i.e. backslash-dot-backslash expands the first abbreviation, resulting in middledot-backslash.
+@item
+Two abbreviations have been dropped, namely backslash and plus-space.
+@end itemize
+
+@node Version 070 from 2025-12-15
+@section Version 0.7.0 from 2025-12-15
+
+@itemize
+@item
+Remove the @code{nael-markdown} package. Move its code into @code{nael} package instead. (Wrapped into @code{with-eval-after-load}.)
+@item
+@code{nael} is now on @uref{https://melpa.org/#/nael, Melpa} and @uref{https://stable.melpa.org/#/nael, Melpa-Stable}. @code{nael-lsp} is not there yet. (Addendum: @code{nael-lsp} is available on Melpa (and Melpa-Stable) too, since )
+@end itemize
+
+@node Version 062 from 2025-11-30
+@section Version 0.6.2 from 2025-11-30
+
+@itemize
+@item
+Re-add readme as .texi and .info to repository because Nael might soon be added to Melpa which won't build Info manuals itself.
+@end itemize
+
+@node Version 060 from 2025-11-30
+@section Version 0.6.0 from 2025-11-30
+
+@itemize
+@item
+Remove .texi, .info, and -autoloads.el files from repository. Thus, don't load autoloads-files from other Elisp sources. This makes Nael compatible with package-vc.
+@item
+build.el: Only build files/targets passed as command-line arguments. Valid arguments are abbreviations, autoloads, compile, info and root-readme.
+@item
+dir-locals.el: Remove an assignment of a non-core Emacs variable which lead to Emacs asking for confirmation.
+@item
+README: Provide installation instructions via package-vc-selected-packages and use-package :vc.
+@item
+Add several autoload-cookies. This allows for simpler use-package expressions.
+@item
+README: Add changelog chapter.
+@item
+nael, nael-abbrev:
+@itemize
+@item
+Rename nael-abbrev-table-only-singletons to nael-abbrev-singleton-table.
+@item
+Rename nael-abbrev-table-only-skeletons to nael-abbrev-skeleton-table.
+@end itemize
+@end itemize
+
+@node License and Maintenance
+@chapter License and Maintenance
+
+Like Nael, Lena is effectively licensed under GNU GPL version 3 only. More
+precisely, the code that comes from Nael is licensed under Apache-2.0 and
+sublicensed under GPL-3.0.
+
+The files that Lena adds are licensed under GPL-3.0-only, except
+@code{lena-rpc.el}. Parts of @code{lena-eglot.el} are adapted from @uref{https://github.com/d-torrance/lean4-mode, lean4-mode} under
+Apache-2.0. @code{lena-rpc.el} is derived from lean4-mode and @uref{https://github.com/janmasrovira/neo-lean-mode, neo-lean-mode} and
+licensed under the MIT License, see @samp{LICENSE.MIT}. The smartparens pairs and the
+Doom Emacs setup in this manual follow Doom Emacs' @samp{:lang lean} module, under the
+MIT License. The input method is
+generated from data of @uref{https://github.com/leanprover/vscode-lean4, vscode-lean4}, under Apache-2.0. The test fixtures are
+recorded from @uref{https://github.com/leanprover-community/iris-lean, iris-lean}, under Apache-2.0. For details, see @samp{NOTICE} and
+@samp{test/fixtures/README.org}.
+
+Lena is maintained by @emph{Klaus Kraßnitzer} and @emph{Alex Loitzl} of ISTA PLV at
+@uref{https://github.com/ISTA-PLV/nael, github.com/ISTA-PLV/nael}; please report problems there.
+
+Nael, upstream, is maintained by @emph{Mekeor Melire} (@email{mailto:mekeor@@posteo.de, mekeor@@posteo.de}) on @uref{https://codeberg.org/mekeor/nael, Codeberg}.
+
+@bye

@@ -1,0 +1,534 @@
+;;; lena-infoview-hover.el --- Information on subterms in Lena's infoview  -*- lexical-binding: t; -*-
+
+;; Copyright © 2026 Klaus Kraßnitzer
+
+;; SPDX-License-Identifier: GPL-3.0-only
+
+;; This is licensed under GNU General Public License (version 3 only),
+;; see LICENSE.GPL3.
+
+;;; Commentary:
+
+;; Every subterm that the infoview shows carries a reference to what the
+;; server knows about it (see `lena-render').  This file asks the server
+;; about the subterm at point, as an editor asks about the symbol at
+;; point in source code:
+;;
+;; - ElDoc shows the subterm with all its arguments made explicit and its
+;;   type in the echo area, and its documentation in `eldoc-doc-buffer'.
+;;   Packages that show ElDoc elsewhere, such as in a child frame, show
+;;   it there.
+;;
+;; - With `tooltip-mode', the tooltip of a subterm under the mouse shows
+;;   the same documentation, as Flymake's tooltips show diagnostics.
+;;
+;; - `lena-infoview-describe', on RET, a click, or `C-h .', shows the
+;;   same and more in a help buffer of its own, like `describe-function'
+;;   does in *Help*.  The subterms shown there can be described in turn,
+;;   and Help's history commands lead back.  In Doom Emacs, `K' does the
+;;   same.  Closing the help window returns to the infoview.
+;;
+;; - `xref-find-definitions', on `M-.' or Doom's `gd', goes to where the
+;;   subterm's head is defined; `M-,' or Doom's `C-o' come back.
+;;
+;; The functions here work in any buffer that shows rendered nodes and
+;; whose `lena-infoview--handle' is the RPC handle through which their
+;; references were obtained: the infoview and the help buffer.
+;;
+;; A description keeps the references of the subterms it shows for as
+;; long as the help buffer's history can lead back to it.
+
+;;; Code:
+
+(require 'cl-lib)
+(require 'eglot)
+(require 'eldoc)
+(require 'help-mode)
+(require 'xref)
+
+(require 'lena-eglot)
+(require 'lena-eglot-compat)
+(require 'lena-render)
+(require 'lena-rpc)
+
+(defvar-local lena-infoview--handle nil
+  "RPC handle through which the references shown in this buffer came.
+References belong to an RPC session, so calls about them must use it.")
+
+(defvar lena-infoview-node-map)
+
+(defvar-local lena-infoview--info-cache nil
+  "Documentation of the nodes shown, as far as asked for, or nil.
+Maps nodes to (DOC . ECHO), see `lena-infoview--info-strings'.")
+
+(defun lena-infoview--info-cache ()
+  "Return the documentation of nodes of the current buffer, a table."
+  (or lena-infoview--info-cache
+      (setq lena-infoview--info-cache
+            (make-hash-table :test #'eq :weakness 'key))))
+
+(defvar-local lena-infoview--tooltip-node nil
+  "The node whose documentation is being fetched for its tooltip.")
+
+;;;; Content:
+
+(defun lena-infoview--diff-note (status)
+  "Return a sentence explaining STATUS, the diff status of a subterm."
+  (pcase status
+    ("wasChanged" "The tactic at point changed this subterm.")
+    ("willChange" "The tactic at point will change this subterm.")
+    ("wasInserted" "The tactic at point inserted this subterm.")
+    ("willInsert" "The tactic at point will insert this subterm.")
+    ("wasDeleted" "The tactic at point deleted this subterm.")
+    ("willDelete" "The tactic at point will delete this subterm.")))
+
+(defun lena-infoview--docstring (info)
+  "Return the documentation in INFO, formatted, or nil.
+Markdown is shown as Eglot shows it, with `markdown-mode' if installed."
+  (let ((doc (plist-get info :doc)))
+    (when (and (stringp doc) (not (string-blank-p doc)))
+      (string-trim (lena-eglot-compat-format-markup doc)))))
+
+(defun lena-infoview--without-nodes (string)
+  "Return a copy of STRING without the nodes in it."
+  (let ((string (copy-sequence string)))
+    (remove-list-of-text-properties 0 (length string) '(lena-node) string)
+    string))
+
+(defun lena-infoview--info-strings (info status)
+  "Return the documentation of INFO, as (DOC . ECHO).
+ECHO is the subterm and its type; DOC adds the documentation and an
+explanation of STATUS, the diff status of the subterm."
+  (let ((echo (lena-infoview--without-nodes
+               (lena-render-result-text (lena-render-info info)))))
+    (cons (string-join (delq nil (list echo
+                                       (lena-infoview--docstring info)
+                                       (lena-infoview--diff-note status)))
+                       "\n\n")
+          echo)))
+
+;;;; Documentation of nodes:
+
+(defun lena-infoview--fetch-info (node slot callback &optional failure)
+  "Call CALLBACK with the documentation of NODE, as (DOC . ECHO).
+Take it from the cache, at once, or ask Lean in the RPC slot SLOT and
+cache the answer.  Call FAILURE, if non-nil, if Lean cannot answer."
+  (if-let* ((strings (gethash node (lena-infoview--info-cache))))
+      (funcall callback strings)
+    (let ((cache (lena-infoview--info-cache))
+          (owner (lena-rpc-make-owner)))
+      (lena-rpc-info-to-interactive
+       lena-infoview--handle (lena-render-node-info node)
+       (lambda (info)
+         (let ((strings (and info
+                             (lena-infoview--info-strings
+                              info (lena-render-node-diff-status node)))))
+           ;; The strings refer to nothing on the server.
+           (lena-rpc-owner-release owner)
+           (if strings
+               (progn (puthash node strings cache)
+                      (funcall callback strings))
+             (when failure (funcall failure nil)))))
+       :owner owner :slot slot
+       :failure (or failure #'ignore)))))
+
+;;;; ElDoc:
+
+(defun lena-infoview-eldoc-function (callback &rest _)
+  "Report the subterm at point to ElDoc with CALLBACK.
+The echo area shows the subterm with all its arguments made explicit,
+and its type.  The documentation buffer of ElDoc also shows the
+documentation of the subterm and how the tactic at point changes it."
+  (when-let* ((node (lena-render-node-at (point)))
+              ((lena-rpc-handle-live-p lena-infoview--handle)))
+    (lena-infoview--fetch-info node 'infoview-eldoc
+                               (pcase-lambda (`(,doc . ,echo))
+                                 (funcall callback doc :echo echo)))
+    t))
+
+;;;; Tooltips:
+
+(defun lena-infoview--node-under-mouse ()
+  "Return the node under the mouse pointer, or nil."
+  (pcase (mouse-pixel-position)
+    (`(,frame ,(and x (pred numberp)) . ,y)
+     (let* ((posn (posn-at-x-y x y frame))
+            (window (posn-window posn))
+            (pos (posn-point posn)))
+       (when (and (windowp window) pos)
+         (with-current-buffer (window-buffer window)
+           (lena-render-node-at pos)))))))
+
+(defun lena-infoview--tooltip-done (buffer node)
+  "Note in BUFFER that the tooltip of NODE is no longer being fetched."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (eq lena-infoview--tooltip-node node)
+        (setq lena-infoview--tooltip-node nil)))))
+
+(defun lena-infoview--node-help-echo (window _object pos)
+  "Return the tooltip for the subterm at POS in WINDOW, if there is one.
+It is the documentation of the subterm, as in the documentation buffer
+of ElDoc.  Without `tooltip-mode', Emacs would show it in the echo
+area, where ElDoc shows the subterm at point; then there is none.
+If the documentation is not known yet, ask Lean for it, return nil,
+and show the tooltip once Lean answers, if the mouse is still there."
+  (when (bound-and-true-p tooltip-mode)
+    (with-current-buffer (if window (window-buffer window) (current-buffer))
+      (when-let* ((node (lena-render-node-at pos))
+                  ((lena-rpc-handle-live-p lena-infoview--handle)))
+        (or (car (gethash node (lena-infoview--info-cache)))
+            (let ((buffer (current-buffer)))
+              (unless (eq node lena-infoview--tooltip-node)
+                (setq lena-infoview--tooltip-node node)
+                (lena-infoview--fetch-info
+                 node 'infoview-tooltip
+                 (lambda (strings)
+                   (lena-infoview--tooltip-done buffer node)
+                   (when (eq node (lena-infoview--node-under-mouse))
+                     (funcall show-help-function (car strings))))
+                 (lambda (_) (lena-infoview--tooltip-done buffer node))))
+              nil))))))
+
+;;;; Descriptions:
+
+(defconst lena-infoview-help-buffer-name "*Lena Help*"
+  "Name of the buffer that describes subterms of the infoview.")
+
+(cl-defstruct (lena-infoview--page (:constructor lena-infoview--page-create)
+                                   (:copier nil))
+  "The description of a subterm in the help buffer."
+  handle                                ; RPC handle of its references
+  info                                  ; result of `infoToInteractive'
+  owner                                 ; owner of the references in INFO
+  status                                ; diff status of the subterm
+  source)                               ; marker where the goals were asked
+
+(defvar lena-infoview--pages nil
+  "Descriptions whose references are kept, newest first.")
+
+(defun lena-infoview--handle-marker (handle)
+  "Return a marker at the position that HANDLE was opened at, or nil."
+  (let ((buffer (lena-rpc-handle-buffer handle)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (let ((position (plist-get (lena-rpc-handle-position handle)
+                                   :position)))
+          (copy-marker (car (eglot-range-region
+                             (list :start position :end position)))))))))
+
+(defun lena-infoview--location (buffer pos)
+  "Describe position POS in BUFFER as BUFFER:LINE:COLUMN."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char pos)
+      (format "%s:%d:%d" (buffer-name) (line-number-at-pos)
+              (current-column)))))
+
+(defun lena-infoview--live-handle ()
+  "Return the RPC handle of the current buffer, if it can still be used.
+Signal a user error otherwise."
+  (let ((handle lena-infoview--handle))
+    (unless (and handle (lena-rpc-handle-live-p handle)
+                 (buffer-live-p (lena-rpc-handle-buffer handle)))
+      (user-error "The Lean session of these goals has ended; \
+describe the subterm again from the infoview"))
+    handle))
+
+(defun lena-infoview--failure-message (error)
+  "Return a message for ERROR of a call about a subterm."
+  (let ((code (lena-rpc-error-code error)))
+    (if (or (eql code -32602)           ; invalid params: a dead reference
+            (lena-rpc-dead-code-p code))
+        "Lean no longer knows this subterm; \
+describe it again from the infoview"
+      (format "Lean could not look up this subterm: %s"
+              (or (plist-get error :message) error)))))
+
+(defun lena-infoview--decorate (nodes offset)
+  "Make NODES, rendered at OFFSET in the current buffer, react to input.
+Their extents are moved by OFFSET, to buffer positions.  Each gets an
+overlay with `mouse-face' and the keymap `lena-infoview-node-map'.
+Overlays rather than text properties, because nodes nest, and because
+text properties also apply just after their end."
+  (dolist (node nodes)
+    (cl-incf (lena-render-node-beg node) offset)
+    (cl-incf (lena-render-node-end node) offset)
+    (let ((overlay (make-overlay (lena-render-node-beg node)
+                                 (lena-render-node-end node))))
+      (overlay-put overlay 'mouse-face 'highlight)
+      (overlay-put overlay 'help-echo #'lena-infoview--node-help-echo)
+      (overlay-put overlay 'keymap lena-infoview-node-map)
+      (overlay-put overlay 'lena-infoview-node t))))
+
+(defun lena-infoview--insert-page (page)
+  "Insert the description PAGE at point in the help buffer."
+  (let* ((info (lena-infoview--page-info page))
+         (rendered (lena-render-info info))
+         (start (point))
+         (source (lena-infoview--page-source page)))
+    (insert (lena-render-result-text rendered) "\n")
+    (lena-infoview--decorate (lena-render-result-nodes rendered)
+                             (1- start))
+    (when-let* ((doc (lena-infoview--docstring info)))
+      (insert "\n" doc "\n"))
+    (when-let* ((note (lena-infoview--diff-note
+                       (lena-infoview--page-status page))))
+      (insert "\n" note "\n"))
+    (when (and source (marker-buffer source))
+      (insert "\nFrom the goals at ")
+      (insert-text-button (lena-infoview--location (marker-buffer source) source)
+                          'action (lambda (_)
+                                    (pop-to-buffer (marker-buffer source))
+                                    (goto-char source))
+                          'help-echo "mouse-1, RET: go there")
+      (insert ".\n"))))
+
+(define-derived-mode lena-infoview-help-mode help-mode "Lena Help"
+  "Major mode of the descriptions of subterms of Lena's infoview.
+The subterms shown can be described in turn with \\<lena-infoview-node-map>\\[lena-infoview-describe] or a click.
+Help's history commands go back and forth, and \\[xref-find-definitions] goes to the
+definition of a subterm.
+
+\\{lena-infoview-help-mode-map}"
+  (setq-local truncate-lines nil
+              word-wrap t)
+  (lena-infoview-hover-setup)
+  (add-hook 'kill-buffer-hook #'lena-infoview--release-all-pages nil t))
+
+(defun lena-infoview--help-buffer ()
+  "Return the help buffer of the infoview, creating it if needed."
+  (or (get-buffer lena-infoview-help-buffer-name)
+      (with-current-buffer (get-buffer-create lena-infoview-help-buffer-name)
+        (lena-infoview-help-mode)
+        (current-buffer))))
+
+(defun lena-infoview--reachable-pages ()
+  "Return the descriptions that the help buffer shows or can go back to."
+  (when-let* ((buffer (get-buffer lena-infoview-help-buffer-name)))
+    (with-current-buffer buffer
+      (seq-filter #'lena-infoview--page-p
+                  (flatten-tree (list help-xref-stack-item
+                                      help-xref-stack
+                                      help-xref-forward-stack))))))
+
+(defun lena-infoview--release-page (page)
+  "Release the references and the marker of the description PAGE."
+  (lena-rpc-owner-release (lena-infoview--page-owner page))
+  (when-let* ((source (lena-infoview--page-source page)))
+    (set-marker source nil)))
+
+(defun lena-infoview--release-pages ()
+  "Release the references of descriptions that history cannot lead to."
+  (let ((reachable (lena-infoview--reachable-pages)))
+    (setq lena-infoview--pages
+          (seq-filter (lambda (page)
+                        (or (memq page reachable)
+                            (ignore (lena-infoview--release-page page))))
+                      lena-infoview--pages))))
+
+(defun lena-infoview--release-all-pages ()
+  "Release the references of all descriptions, as the help buffer is gone."
+  (mapc #'lena-infoview--release-page lena-infoview--pages)
+  (setq lena-infoview--pages nil))
+
+(defun lena-infoview--show-page (page &optional interactive)
+  "Show the description PAGE in the help buffer.
+INTERACTIVE is non-nil if a command asked for it, rather than the
+history.  This is the function of PAGE's items in the history."
+  (let ((buffer (lena-infoview--help-buffer)))
+    (with-current-buffer buffer
+      ;; `help-setup-xref' records the history of the buffer that
+      ;; `help-buffer' names: this one, while it is current and followed.
+      (let ((help-xref-following t))
+        (help-setup-xref (list #'lena-infoview--show-page page) interactive)))
+    (with-help-window buffer
+      (with-current-buffer standard-output
+        (lena-infoview--insert-page page)
+        (setq lena-infoview--handle (lena-infoview--page-handle page)
+              lena-infoview--info-cache nil
+              lena-infoview--tooltip-node nil))))
+  (lena-infoview--release-pages))
+
+(defvar lena-infoview--return nil
+  "Where to return when the help window closes, as (HELP . WINDOW).
+HELP is the window showing a description, WINDOW the one it was asked
+from.")
+
+(defun lena-infoview--return-from-help (_frame)
+  "Select the window that asked for a description, after its help closed.
+Only if the help window was selected when it closed.  Emacs's own
+`quit-window' returns there by itself, but Doom Emacs closes popups with
+`delete-window', which selects the most recently used window that is
+not dedicated, so never the infoview, a side window.  Run from
+`window-selection-change-functions' while a description is shown."
+  (pcase-let ((`(,help . ,origin) lena-infoview--return))
+    (unless (and (window-live-p help)
+                 (eq (window-buffer help)
+                     (get-buffer lena-infoview-help-buffer-name)))
+      (setq lena-infoview--return nil)
+      (remove-hook 'window-selection-change-functions
+                   #'lena-infoview--return-from-help)
+      (when (and (eq (old-selected-window) help)
+                 (window-live-p origin)
+                 (not (eq (selected-window) origin)))
+        (select-window origin)))))
+
+(defun lena-infoview--return-after-help (origin)
+  "Return to ORIGIN once the help window, now showing a description, closes.
+ORIGIN is the window that asked for the description."
+  (when-let* ((help (get-buffer-window lena-infoview-help-buffer-name t)))
+    ;; A description asked for from another keeps the way back.
+    (unless (eq help origin)
+      (setq lena-infoview--return (cons help origin))
+      (add-hook 'window-selection-change-functions
+                #'lena-infoview--return-from-help))))
+
+(defun lena-infoview-describe (&optional pos)
+  "Describe the subterm at POS, or point, in a help buffer.
+Show it with all its arguments made explicit, its type, its
+documentation, and how the tactic at point changes it.  The subterms in
+the description can be described in turn."
+  (interactive)
+  (let* ((node (or (lena-render-node-at (or pos (point)))
+                   (user-error "No subterm at point")))
+         (handle (lena-infoview--live-handle))
+         (owner (lena-rpc-make-owner))
+         (origin (selected-window)))
+    (lena-rpc-info-to-interactive
+     handle (lena-render-node-info node)
+     (lambda (info)
+       (if (not info)
+           (lena-rpc-owner-release owner)
+         (let ((page (lena-infoview--page-create
+                      :handle handle :info info :owner owner
+                      :status (lena-render-node-diff-status node)
+                      :source (lena-infoview--handle-marker handle))))
+           (push page lena-infoview--pages)
+           (lena-infoview--show-page page t)
+           (lena-infoview--return-after-help origin))))
+     :owner owner :slot 'infoview-describe
+     :failure (lambda (error)
+                (message "%s" (lena-infoview--failure-message error))))))
+
+(defun lena-infoview-describe-at-mouse (event)
+  "Describe the subterm clicked on with EVENT in a help buffer."
+  (interactive "e")
+  (mouse-set-point event)
+  (lena-infoview-describe))
+
+(defvar-keymap lena-infoview-node-map
+  :doc "Keymap of the subterms in the infoview and in their descriptions."
+  "RET" #'lena-infoview-describe
+  "<mouse-2>" #'lena-infoview-describe-at-mouse
+  "<follow-link>" 'mouse-face
+  "<remap> <display-local-help>" #'lena-infoview-describe)
+
+;;;; Definitions:
+
+(defun lena-infoview--xref-backend ()
+  "Return the xref backend for the subterm at point, if there is one."
+  (and (lena-render-node-at (point)) 'lena-infoview))
+
+(cl-defmethod xref-backend-identifier-at-point
+  ((_backend (eql lena-infoview)))
+  "Return the text of the subterm at point, carrying its node."
+  (when-let* ((node (lena-render-node-at (point))))
+    (propertize (truncate-string-to-width
+                 (replace-regexp-in-string
+                  "[ \n]+" " " (buffer-substring-no-properties
+                                (lena-render-node-beg node)
+                                (lena-render-node-end node)))
+                 60 nil nil "…")
+                'lena-node node)))
+
+(cl-defmethod xref-backend-identifier-completion-table
+  ((_backend (eql lena-infoview)))
+  "Return nil: subterms cannot be completed, only taken from point."
+  nil)
+
+(defun lena-infoview--xref-item (link)
+  "Return the xref item for LINK, an LSP `LocationLink', in a list.
+Return nil if the target file cannot be read."
+  (let* ((file (eglot-uri-to-path (plist-get link :targetUri)))
+         (range (or (plist-get link :targetSelectionRange)
+                    (plist-get link :targetRange)))
+         (visiting (find-buffer-visiting file)))
+    (cl-flet ((locate ()
+                ;; In the target's buffer, so that columns, which LSP
+                ;; counts in UTF-16 code units, are converted as Eglot
+                ;; does.
+                (save-excursion
+                  (save-restriction
+                    (widen)
+                    (goto-char (car (eglot-range-region range)))
+                    (xref-make (string-trim (buffer-substring-no-properties
+                                             (line-beginning-position)
+                                             (line-end-position)))
+                               (xref-make-file-location
+                                file (line-number-at-pos)
+                                (- (point) (line-beginning-position))))))))
+      (cond (visiting (list (with-current-buffer visiting (locate))))
+            ((file-readable-p file)
+             (with-temp-buffer
+               (insert-file-contents file)
+               (list (locate))))))))
+
+(cl-defmethod xref-backend-definitions
+  ((_backend (eql lena-infoview)) identifier)
+  "Return xref items for the definitions of the subterm IDENTIFIER."
+  (let ((node (or (get-text-property 0 'lena-node identifier)
+                  ;; Doom Emacs may pass the text without properties.
+                  (lena-render-node-at (point))
+                  (user-error "No subterm at point"))))
+    (mapcan #'lena-infoview--xref-item
+            (condition-case error
+                (lena-rpc-call-sync (lena-infoview--live-handle)
+                                    "Lean.Widget.getGoToLocation"
+                                    (list :kind "definition"
+                                          :info (lena-render-node-info node))
+                                    :retry nil)
+              (lena-rpc-error
+               (user-error "%s" (lena-infoview--failure-message
+                                 (nth 2 error))))))))
+
+;;;; Doom Emacs:
+
+(defvar +lookup-documentation-functions)
+
+(defun lena-infoview--lookup-documentation (_identifier)
+  "Describe the subterm at point, for Doom Emacs' `+lookup/documentation'.
+Return `deferred': the description is shown once Lean answers, and
+lookup must leave the windows alone until then."
+  (when (lena-render-node-at (point))
+    (lena-infoview-describe)
+    'deferred))
+
+;;;; Setup:
+
+(defun lena-infoview-hover-setup ()
+  "Make the subterms shown in the current buffer report on themselves."
+  (add-hook 'eldoc-documentation-functions #'lena-infoview-eldoc-function
+            nil t)
+  ;; As quick as in Lena buffers.
+  (when lena-eldoc-idle-delay
+    (setq-local eldoc-idle-delay lena-eldoc-idle-delay))
+  (add-hook 'xref-backend-functions #'lena-infoview--xref-backend nil t)
+  ;; Only with Doom's lookup module loaded: adding to the hook would
+  ;; define it, and the module's own definition would not take effect.
+  (when (boundp '+lookup-documentation-functions)
+    (add-hook '+lookup-documentation-functions
+              #'lena-infoview--lookup-documentation nil t))
+  (when (bound-and-true-p global-eldoc-mode)
+    (eldoc-mode)))
+
+(defun lena-infoview-hover-reset (handle)
+  "Forget what was found out about the nodes shown so far.
+HANDLE is the RPC handle of the references shown from now on."
+  (setq lena-infoview--handle handle
+        lena-infoview--info-cache nil
+        lena-infoview--tooltip-node nil))
+
+(provide 'lena-infoview-hover)
+
+;;; lena-infoview-hover.el ends here
