@@ -290,8 +290,9 @@
   (if (save-excursion (beginning-of-line)
                       (looking-at-p "[[:blank:]]*$"))
       (progn
-        ;; Respect users who set `comment-start' to "--".
-        (insert comment-start " ")
+        ;; `comment-indent-new-line' binds `comment-start' to the
+        ;; previous comment's starter, whose padding it includes.
+        (insert (string-trim-right comment-start) " ")
         ;; Respect users who set `comment-end' to "".
         (unless (length= comment-end 0)
           (save-excursion
@@ -522,9 +523,9 @@ with the input method on, and \\[toggle-input-method] turns it off."
               #'lena-fill-paragraph)
   ;; Comments:
   (setq-local comment-end
-              "-/")
+              "")
   (setq-local comment-end-skip
-              "[[:space:]]*-/")
+              "[[:space:]]*\\(?:-/\\|\\s>\\)")
   (setq-local comment-insert-comment-function
               #'lena-comment-insert)
   (setq-local comment-padding
@@ -532,11 +533,9 @@ with the input method on, and \\[toggle-input-method] turns it off."
   (setq-local comment-quote-nested ;; Comments may be nested.
               nil)
   (setq-local comment-start
-              "/-")
+              "--")
   (setq-local comment-start-skip
-              "/-[[:space:]]*")
-  (setq-local comment-style
-              'multi-line)
+              "[-/]-[[:space:]]*")
   (setq-local comment-use-syntax
               t)
   (setq-local parse-sexp-ignore-comments

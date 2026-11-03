@@ -32,6 +32,22 @@
     (should (member "lakefile.toml" projectile-project-root-files-bottom-up))
     (should (member "lakefile.lean" projectile-project-root-files-bottom-up))))
 
+;;;; Comments:
+
+(ert-deftest lena-test-comment-region ()
+  "Regions are commented out with --, and uncommented line by line."
+  (with-temp-buffer
+    (lena-mode)
+    (insert "theorem t : True := by\n  trivial\n")
+    (comment-region (point-min) (point-max))
+    (should (equal (buffer-string) "-- theorem t : True := by\n--   trivial\n"))
+    (goto-char (point-min))
+    (forward-line)
+    (uncomment-region (point) (line-end-position))
+    (should (equal (buffer-string) "-- theorem t : True := by\n  trivial\n"))
+    (uncomment-region (point-min) (point-max))
+    (should (equal (buffer-string) "theorem t : True := by\n  trivial\n"))))
+
 ;;;; Input method:
 
 (ert-deftest lena-test-input-method ()
